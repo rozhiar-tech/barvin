@@ -1,3 +1,6 @@
+import 'package:barvin/screens/orders.dart';
+import 'package:barvin/screens/profile.dart';
+import 'package:barvin/screens/splash.dart';
 import 'package:flutter/material.dart';
 import 'package:barvin/screens/login.dart';
 import 'package:barvin/screens/home.dart';
@@ -15,10 +18,12 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Barvin',
       theme: ThemeData(useMaterial3: true),
-      initialRoute: '/login',
+      initialRoute: '/splash',
       routes: {
         '/login': (context) => LoginPage(),
         '/main': (context) => const MainScreen(),
+        '/splash': (context) => Splash(),
+        '/orders': (context) => Orders(),
       },
     );
   }
@@ -35,8 +40,8 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final List<Widget> _pages = const [
     HomeScreen(),
-    Placeholder(), // OrdersScreen()
-    Placeholder(), // ProfileScreen()
+    Orders(), // OrdersScreen()
+    Profile(), // ProfileScreen()
   ];
 
   @override
@@ -47,6 +52,9 @@ class _MainScreenState extends State<MainScreen> {
         children: _pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
+        // fixedColor: Colors.grey[600],
+        backgroundColor: Colors.white,
+        selectedItemColor: Color(0xFF10B981),
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {

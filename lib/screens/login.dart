@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF5F5F5),
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -46,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: primaryColor,
+                        color: const Color(0xFF10B981),
                       ),
                     ),
                     SizedBox(height: 32),

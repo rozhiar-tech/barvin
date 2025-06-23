@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:barvin/screens/single_item.dart';
 import 'package:flutter/material.dart';
+import 'package:barvin/screens/seeMore.dart';
 
 const Color primaryColor = Color(0xFF10B981);
 
@@ -22,12 +24,12 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   final List<Map<String, dynamic>> _sections = [
-    {'title': 'Cheese', 'icon': Icons.emoji_food_beverage, 'items': 5},
-    {'title': 'Finger Foods', 'icon': Icons.fastfood, 'items': 5},
-    {'title': 'Oils', 'icon': Icons.local_drink, 'items': 5},
-    {'title': 'Coffee & Tea', 'icon': Icons.local_cafe, 'items': 5},
-    {'title': 'Rice & Sugar', 'icon': Icons.rice_bowl, 'items': 5},
-    {'title': 'Canned Goods', 'icon': Icons.inbox, 'items': 5},
+    {'title': 'Cheese', 'icon': Icons.emoji_food_beverage, 'count': 5},
+    {'title': 'Finger Foods', 'icon': Icons.fastfood, 'count': 5},
+    {'title': 'Oils', 'icon': Icons.local_drink, 'count': 5},
+    {'title': 'Coffee & Tea', 'icon': Icons.local_cafe, 'count': 5},
+    {'title': 'Rice & Sugar', 'icon': Icons.rice_bowl, 'count': 5},
+    {'title': 'Canned Goods', 'icon': Icons.inbox, 'count': 5},
   ];
 
   @override
@@ -64,9 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.person, size: 28),
-                  onPressed: () {
-                    // TODO: Navigate to profile
-                  },
+                  onPressed: () {},
                 ),
                 Text(
                   'Welcome Back',
@@ -81,24 +81,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Carousel - auto scroll every 3 seconds
+            // Carousel
             SizedBox(
               height: 180,
               child: PageView.builder(
                 controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() => _currentPage = index);
-                },
                 itemCount: _carouselImages.length,
-                itemBuilder: (context, index) {
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      _carouselImages[index],
-                      fit: BoxFit.cover,
-                    ),
-                  );
-                },
+                onPageChanged: (index) => setState(() => _currentPage = index),
+                itemBuilder: (context, index) => ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    _carouselImages[index],
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -125,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Sections
             for (final section in _sections) ...[
-              // Section header
+              // Header + See More
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -144,49 +140,80 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   TextButton(
                     onPressed: () {
-                      // TODO: Navigate to see more
+                      final items = List.generate(
+                        section['count'] as int,
+                        (i) => {
+                          'icon': section['icon'],
+                          'name': '${section['title']} ${i + 1}',
+                        },
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SeeMoreScreen(
+                            title: section['title'] as String,
+                            items: items,
+                          ),
+                        ),
+                      );
                     },
-                    child: Text(
-                      'See More',
-                      style: TextStyle(color: primaryColor),
-                    ),
+                    child: Text('See More',
+                        style: TextStyle(color: const Color(0xFF10B981))),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
 
-              // Horizontal item list
+              // Horizontal list with item tap
               SizedBox(
                 height: 120,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: section['items'],
+                  itemCount: section['count'] as int,
                   itemBuilder: (ctx, idx) {
-                    return Container(
-                      width: 100,
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 6,
-                            offset: const Offset(0, 4),
+                    final itemName = '${section['title']} ${idx + 1}';
+                    return InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SingleItem(
+                              icon: section['icon'] as IconData,
+                              name: itemName,
+                              description:
+                                  'Delicious $itemName to brighten your day.',
+                              unitPrice: 4.99,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(section['icon'], size: 40, color: primaryColor),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${section['title']} ${idx + 1}',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ],
+                        );
+                      },
+                      child: Container(
+                        width: 100,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(section['icon'],
+                                size: 40, color: primaryColor),
+                            const SizedBox(height: 8),
+                            Text(
+                              itemName,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
