@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-const Color primaryColor = Color(0xFF10B981);
+const Color primaryColor = Color(0xFF567765);
 
 class SingleItem extends StatefulWidget {
   final IconData icon;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-const Color primaryColor = Color(0xFF10B981);
+const Color primaryColor = Color(0xFF567765);
 const Color primaryDarkColor = Color(0xFF047857);
 
 class LoginPage extends StatefulWidget {
@@ -46,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF10B981),
+                        color: const Color(0xFF567765),
                       ),
                     ),
                     SizedBox(height: 32),

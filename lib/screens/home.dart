@@ -1,41 +1,93 @@
 import 'dart:async';
-import 'package:barvin/screens/single_item.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:barvin/screens/seeMore.dart';
+import 'package:http/http.dart' as http;
 
-const Color primaryColor = Color(0xFF10B981);
+// your existing imports
+import 'single_item.dart';
+import 'seeMore.dart';
+
+const Color primaryColor = Color(0xFF567765);
+const String apiBase =
+    'http://localhost:4000/api'; // adjust to your backend URL
+
+// Simple models
+class Category {
+  final int id;
+  final String name;
+  Category({required this.id, required this.name});
+  factory Category.fromJson(Map<String, dynamic> j) =>
+      Category(id: j['id'], name: j['name']);
+}
+
+class Item {
+  final int id;
+  final String name;
+  final String imageUrl;
+  final double price;
+
+  Item({
+    required this.id,
+    required this.name,
+    required this.imageUrl,
+    required this.price,
+  });
+
+  factory Item.fromJson(Map<String, dynamic> j) {
+    // price comes back as a string from your API, e.g. "8.99"
+    final rawPrice = j['price'];
+    double price;
+    if (rawPrice is num) {
+      price = rawPrice.toDouble();
+    } else if (rawPrice is String) {
+      price = double.tryParse(rawPrice) ?? 0.0;
+    } else {
+      price = 0.0;
+    }
+
+    return Item(
+      id: j['id'] is int ? j['id'] : int.parse(j['id'].toString()),
+      name: j['name'] as String,
+      imageUrl: j['image_url'] as String? ?? '',
+      price: price,
+    );
+  }
+}
+
+class _SectionData {
+  final Category category;
+  final List<Item> items;
+  _SectionData(this.category, this.items);
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<String> _carouselImages = [
+    'assets/ad.png',
+    'assets/ad.png',
+    'assets/ad.png',
+  ];
+  int _currentPage = 0;
   final PageController _pageController = PageController();
   Timer? _carouselTimer;
-  int _currentPage = 0;
 
-  final List<String> _carouselImages = [
-    'assets/ad.png',
-    'assets/ad.png',
-    'assets/ad.png',
-  ];
-
-  final List<Map<String, dynamic>> _sections = [
-    {'title': 'Cheese', 'icon': Icons.emoji_food_beverage, 'count': 5},
-    {'title': 'Finger Foods', 'icon': Icons.fastfood, 'count': 5},
-    {'title': 'Oils', 'icon': Icons.local_drink, 'count': 5},
-    {'title': 'Coffee & Tea', 'icon': Icons.local_cafe, 'count': 5},
-    {'title': 'Rice & Sugar', 'icon': Icons.rice_bowl, 'count': 5},
-    {'title': 'Canned Goods', 'icon': Icons.inbox, 'count': 5},
-  ];
+  bool _loading = true;
+  List<_SectionData> _sections = [];
 
   @override
   void initState() {
     super.initState();
-    _carouselTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _startCarousel();
+    _loadSections();
+  }
+
+  void _startCarousel() {
+    _carouselTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       _currentPage = (_currentPage + 1) % _carouselImages.length;
       _pageController.animateToPage(
         _currentPage,
@@ -43,6 +95,33 @@ class _HomeScreenState extends State<HomeScreen> {
         curve: Curves.easeInOut,
       );
     });
+  }
+
+  Future<void> _loadSections() async {
+    try {
+      // 1. get categories
+      final catRes = await http.get(Uri.parse('$apiBase/categories'));
+      final List catsJson = jsonDecode(catRes.body);
+      final cats = catsJson.map((j) => Category.fromJson(j)).toList();
+
+      // 2. for each category, fetch items
+      final List<_SectionData> secData = [];
+      for (var cat in cats) {
+        final itRes =
+            await http.get(Uri.parse('$apiBase/items?categoryId=${cat.id}'));
+        final List itemsJson = jsonDecode(itRes.body);
+        final items = itemsJson.map((j) => Item.fromJson(j)).toList();
+        secData.add(_SectionData(cat, items));
+      }
+
+      setState(() {
+        _sections = secData;
+        _loading = false;
+      });
+    } catch (e) {
+      print('Failed loading sections: $e');
+      setState(() => _loading = false);
+    }
   }
 
   @override
@@ -54,6 +133,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SafeArea(
       child: Scaffold(
         backgroundColor: Colors.grey[100],
@@ -68,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: const Icon(Icons.person, size: 28),
                   onPressed: () {},
                 ),
-                Text(
+                const Text(
                   'Welcome Back',
                   style: TextStyle(
                     fontSize: 24,
@@ -87,11 +170,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _carouselImages.length,
-                onPageChanged: (index) => setState(() => _currentPage = index),
-                itemBuilder: (context, index) => ClipRRect(
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                itemBuilder: (_, i) => ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Image.asset(
-                    _carouselImages[index],
+                    _carouselImages[i],
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -104,12 +187,12 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 _carouselImages.length,
-                (index) => Container(
+                (i) => Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentPage == index ? 12 : 8,
-                  height: _currentPage == index ? 12 : 8,
+                  width: _currentPage == i ? 12 : 8,
+                  height: _currentPage == i ? 12 : 8,
                   decoration: BoxDecoration(
-                    color: _currentPage == index
+                    color: _currentPage == i
                         ? primaryColor
                         : primaryColor.withOpacity(0.4),
                     shape: BoxShape.circle,
@@ -119,70 +202,60 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Sections
-            for (final section in _sections) ...[
-              // Header + See More
+            // Dynamic sections
+            for (var sec in _sections) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(section['icon'], color: primaryColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        section['title'],
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    sec.category.name,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   TextButton(
                     onPressed: () {
-                      final items = List.generate(
-                        section['count'] as int,
-                        (i) => {
-                          'icon': section['icon'],
-                          'name': '${section['title']} ${i + 1}',
-                        },
-                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => SeeMoreScreen(
-                            title: section['title'] as String,
-                            items: items,
+                            title: sec.category.name,
+                            items: sec.items
+                                .map((it) => {
+                                      'icon': Icons.fastfood,
+                                      'name': it.name,
+                                    })
+                                .toList(),
                           ),
                         ),
                       );
                     },
-                    child: Text('See More',
-                        style: TextStyle(color: const Color(0xFF10B981))),
+                    child: Text(
+                      'See More',
+                      style: TextStyle(color: primaryColor),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-
-              // Horizontal list with item tap
               SizedBox(
-                height: 120,
+                height: 140,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: section['count'] as int,
-                  itemBuilder: (ctx, idx) {
-                    final itemName = '${section['title']} ${idx + 1}';
+                  itemCount: sec.items.length,
+                  itemBuilder: (_, idx) {
+                    final it = sec.items[idx];
                     return InkWell(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => SingleItem(
-                              icon: section['icon'] as IconData,
-                              name: itemName,
-                              description:
-                                  'Delicious $itemName to brighten your day.',
-                              unitPrice: 4.99,
+                              icon: Icons.fastfood,
+                              name: it.name,
+                              description: 'Delicious ${it.name}',
+                              unitPrice: it.price,
                             ),
                           ),
                         );
@@ -204,11 +277,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(section['icon'],
-                                size: 40, color: primaryColor),
+                            // if you have network images you can use Image.network
+                            Icon(Icons.fastfood, size: 40, color: primaryColor),
                             const SizedBox(height: 8),
                             Text(
-                              itemName,
+                              it.name,
                               textAlign: TextAlign.center,
                               style: const TextStyle(fontSize: 14),
                             ),

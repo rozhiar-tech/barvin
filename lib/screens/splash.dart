@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-const Color primaryColor = Color(0xFF10B981);
+const Color primaryColor = Color(0xFF567765);
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
