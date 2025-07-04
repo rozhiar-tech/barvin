@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:barvin/screens/login.dart';
 import 'package:barvin/screens/home.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 

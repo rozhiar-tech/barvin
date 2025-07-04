@@ -1,4 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const Color primaryColor = Color(0xFF567765);
 
@@ -25,18 +28,28 @@ class _SingleItemState extends State<SingleItem> {
 
   double get _totalPrice => widget.unitPrice * _quantity;
 
-  void _increment() {
-    setState(() {
-      _quantity++;
-    });
+  void _increment() => setState(() => _quantity++);
+  void _decrement() {
+    if (_quantity > 1) setState(() => _quantity--);
   }
 
-  void _decrement() {
-    if (_quantity > 1) {
-      setState(() {
-        _quantity--;
-      });
-    }
+  Future<void> _addToBasket() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cart = prefs.getStringList('cart') ?? [];
+    // Create a map for this item
+    final itemMap = {
+      'id': widget.name.hashCode.toString(),
+      'name': widget.name,
+      'price': widget.unitPrice.toString(),
+      'quantity': _quantity.toString(),
+    };
+    cart.add(jsonEncode(itemMap));
+    await prefs.setStringList('cart', cart);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${widget.name} (x$_quantity) added to basket'),
+      ),
+    );
   }
 
   @override
@@ -60,7 +73,6 @@ class _SingleItemState extends State<SingleItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image placeholder
             Container(
               height: 200,
               decoration: BoxDecoration(
@@ -83,19 +95,14 @@ class _SingleItemState extends State<SingleItem> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Description
             Text(
               widget.description,
               style: const TextStyle(fontSize: 16, height: 1.4),
             ),
             const SizedBox(height: 24),
-
-            // Quantity & price
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Quantity controls
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -128,8 +135,6 @@ class _SingleItemState extends State<SingleItem> {
                     ],
                   ),
                 ),
-
-                // Total price
                 Text(
                   '\$${_totalPrice.toStringAsFixed(2)}',
                   style: const TextStyle(
@@ -140,8 +145,6 @@ class _SingleItemState extends State<SingleItem> {
               ],
             ),
             const SizedBox(height: 32),
-
-            // Add to Basket button
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -152,9 +155,7 @@ class _SingleItemState extends State<SingleItem> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () {
-                  // TODO: Add to basket logic
-                },
+                onPressed: _addToBasket,
                 child: const Text(
                   'Add to Basket',
                   style: TextStyle(
