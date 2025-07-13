@@ -1,30 +1,30 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:barvin/screens/basket.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'basket.dart';
 import 'single_item.dart';
 import 'seeMore.dart';
 
-const Color primaryColor = Color(0xFF567765);
-const String apiBase = 'http://localhost:4000/api';
+const Color primaryColor = Color(0xFFbed6be);
+const Color secondaryColor = Color(0xFF6D8474);
+const String apiBase = 'http://95.111.224.58:4000/api';
 
 class Ad {
   final int id;
   final String filePath;
   final String link;
   final String mediaType;
-
-  Ad(
-      {required this.id,
-      required this.filePath,
-      required this.link,
-      required this.mediaType});
-
+  Ad({
+    required this.id,
+    required this.filePath,
+    required this.link,
+    required this.mediaType,
+  });
   factory Ad.fromJson(Map<String, dynamic> j) => Ad(
         id: j['id'],
         filePath: j['file_path'],
@@ -38,7 +38,7 @@ class Category {
   final String name;
   Category({required this.id, required this.name});
   factory Category.fromJson(Map<String, dynamic> j) =>
-      Category(id: j['id'], name: j['name']);
+      Category(id: j['id'], name: j['name_en']);
 }
 
 class Item {
@@ -46,23 +46,32 @@ class Item {
   final String name;
   final String imageUrl;
   final double price;
+  final double discount; // <— new
 
-  Item(
-      {required this.id,
-      required this.name,
-      required this.imageUrl,
-      required this.price});
+  Item({
+    required this.id,
+    required this.name,
+    required this.imageUrl,
+    required this.price,
+    required this.discount,
+  });
 
   factory Item.fromJson(Map<String, dynamic> j) {
     final rawPrice = j['price'];
+    final rawDiscount = j['discount']; // <—
     double price = rawPrice is num
         ? rawPrice.toDouble()
         : double.tryParse(rawPrice) ?? 0.0;
+    double discount = rawDiscount is num
+        ? rawDiscount.toDouble()
+        : double.tryParse(rawDiscount) ?? 0.0; // <—
+
     return Item(
       id: j['id'] is int ? j['id'] : int.parse(j['id'].toString()),
-      name: j['name'],
+      name: j['name_en'],
       imageUrl: j['image_url'] ?? '',
       price: price,
+      discount: discount,
     );
   }
 }
@@ -111,7 +120,12 @@ class _HomeScreenState extends State<HomeScreen> {
       final ads = list.map((j) => Ad.fromJson(j)).toList();
       for (var ad in ads) {
         if (ad.mediaType == 'video') {
-          final url = apiBase.replaceAll('/api', '') + ad.filePath;
+          // normalize URL
+          final host = apiBase.replaceAll('/api', '');
+          final rawPath = ad.filePath.startsWith('/')
+              ? ad.filePath.substring(1)
+              : ad.filePath;
+          final url = '$host/$rawPath';
           final vc = VideoPlayerController.network(url);
           await vc.initialize();
           _videoControllers[ad.id] = vc;
@@ -141,21 +155,53 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadSections() async {
     try {
       final catRes = await http.get(Uri.parse('$apiBase/categories'));
-      final List catsJson = jsonDecode(catRes.body);
+      final decoded = jsonDecode(catRes.body);
+
+      // 1) Debug print so you can see what keys the API actually returns:
+      print('🟢 categories payload: $decoded');
+
+      // 2) Try a few spots for the array, then default to []:
+      List<dynamic> catsJson;
+      if (decoded is List) {
+        catsJson = decoded;
+      } else if (decoded['data'] is List) {
+        catsJson = decoded['data'];
+      } else if (decoded['categories'] is List) {
+        catsJson = decoded['categories'];
+      } else {
+        catsJson = [];
+      }
+
       final cats = catsJson.map((j) => Category.fromJson(j)).toList();
       final List<_SectionData> secData = [];
+
       for (var cat in cats) {
         final itRes =
             await http.get(Uri.parse('$apiBase/items?categoryId=${cat.id}'));
-        final List itemsJson = jsonDecode(itRes.body);
+        final itDecoded = jsonDecode(itRes.body);
+
+        // Debug print your items response too
+        print('🟢 items for category ${cat.id}: $itDecoded');
+
+        List<dynamic> itemsJson;
+        if (itDecoded is List) {
+          itemsJson = itDecoded;
+        } else if (itDecoded['data'] is List) {
+          itemsJson = itDecoded['data'];
+        } else if (itDecoded['items'] is List) {
+          itemsJson = itDecoded['items'];
+        } else {
+          itemsJson = [];
+        }
+
         final items = itemsJson.map((j) => Item.fromJson(j)).toList();
         secData.add(_SectionData(cat, items));
       }
-      setState(() {
-        _sections = secData;
-      });
-    } catch (e) {
-      print('Failed loading sections: $e');
+
+      setState(() => _sections = secData);
+    } catch (e, st) {
+      print('❌ Failed loading sections: $e\n$st');
+      setState(() => _sections = []);
     }
   }
 
@@ -163,217 +209,331 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _carouselTimer?.cancel();
     _pageController.dispose();
-    for (var vc in _videoControllers.values) {
-      vc.dispose();
-    }
+    for (var vc in _videoControllers.values) vc.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.grey[100],
-        appBar: AppBar(
-          backgroundColor: Colors.grey[100],
-          title: const Text('Welcome Back'),
-          actions: [
-            Stack(
-              alignment: Alignment.topRight,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.shopping_basket),
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const BasketPage()),
-                    );
-                    _loadCartCount();
-                  },
+
+    // common host for all media
+    final host = apiBase.replaceAll('/api', '');
+
+    return Scaffold(
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        backgroundColor: Colors.grey[200],
+        // instead of a plain Text, make your title a Row:
+        title: Row(
+          children: [
+            // 1) the rounded image avatar
+            CircleAvatar(
+              radius: 16,
+              backgroundImage: AssetImage(
+                'assets/logo.jpeg',
+              ),
+              backgroundColor: Colors.grey[300],
+            ),
+            const SizedBox(width: 8),
+            // 2) your original title
+            const Text(
+              'Welcome Back',
+              style: TextStyle(
+                color: secondaryColor,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+        centerTitle: true,
+        actions: [
+          Stack(
+            alignment: Alignment.topRight,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_basket, color: secondaryColor),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BasketPage()),
+                  );
+                  _loadCartCount();
+                },
+              ),
+              if (_cartCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints:
+                        const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      '$_cartCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 ),
-                if (_cartCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(10),
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // ─── Ads Carousel ──────────────────────────────────────────────────────
+          SizedBox(
+            height: 200,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _ads.length,
+              onPageChanged: (i) => setState(() => _currentPage = i),
+              itemBuilder: (context, i) {
+                final ad = _ads[i];
+                // normalize path
+                final rawPath = ad.filePath.startsWith('/')
+                    ? ad.filePath.substring(1)
+                    : ad.filePath;
+                final mediaUrl = '$host/$rawPath';
+                return GestureDetector(
+                  onTap: () async {
+                    final url = ad.link;
+                    final open = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Open Link?'),
+                        content: Text('Go to: $url'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel')),
+                          TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Yes')),
+                        ],
                       ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '$_cartCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                        ),
-                        textAlign: TextAlign.center,
+                    );
+                    if (open == true && await canLaunchUrl(Uri.parse(url))) {
+                      await launchUrl(Uri.parse(url));
+                    }
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: ad.mediaType == 'image'
+                        ? Image.network(mediaUrl, fit: BoxFit.cover)
+                        : VideoPlayer(_videoControllers[ad.id]!),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              _ads.length,
+              (index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: _currentPage == index ? 12 : 8,
+                height: _currentPage == index ? 12 : 8,
+                decoration: BoxDecoration(
+                  color: _currentPage == index
+                      ? primaryColor
+                      : secondaryColor.withOpacity(0.4),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ─── Dynamic Category Sections ────────────────────────────────────────
+          for (var sec in _sections) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(sec.category.name,
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black)),
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SeeMoreScreen(
+                        title: sec.category.name,
+                        items: sec.items
+                            .map((it) =>
+                                {'icon': Icons.fastfood, 'name': it.name})
+                            .toList(),
                       ),
                     ),
                   ),
+                  child:
+                      Text('See More', style: TextStyle(color: secondaryColor)),
+                ),
               ],
             ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+            const SizedBox(height: 12),
             SizedBox(
-              height: 200,
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _ads.length,
-                onPageChanged: (i) => setState(() => _currentPage = i),
-                itemBuilder: (context, i) {
-                  final ad = _ads[i];
-                  return GestureDetector(
+              height: 170,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: sec.items.length,
+                itemBuilder: (_, idx) {
+                  final it = sec.items[idx];
+                  final rawPath = it.imageUrl.startsWith('/')
+                      ? it.imageUrl.substring(1)
+                      : it.imageUrl;
+                  final imgUrl = '$host/$rawPath';
+
+                  return InkWell(
                     onTap: () async {
-                      final url = ad.link;
-                      final open = await showDialog<bool>(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: const Text('Open Link?'),
-                          content: Text('Go to: $url'),
-                          actions: [
-                            TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel')),
-                            TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Yes')),
-                          ],
-                        ),
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => SingleItem(
+                                  icon: Icons.fastfood,
+                                  name: it.name,
+                                  description: 'Delicious ${it.name}',
+                                  unitPrice: it.price,
+                                  imageUrl: imgUrl,
+                                  discount: it.discount,
+                                )),
                       );
-                      if (open == true && await canLaunch(url)) {
-                        await launch(url);
-                      }
+                      _loadCartCount(); // ← now we reload the badge *after* you pop back
                     },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: ad.mediaType == 'image'
-                          ? Image.network(
-                              apiBase.replaceAll('/api', '') + ad.filePath,
-                              fit: BoxFit.cover,
-                            )
-                          : VideoPlayer(_videoControllers[ad.id]!),
+                    child: Container(
+                      width: 120,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white,
+                        boxShadow: [/* … */],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // 1) Image + discount badge
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(16)),
+                                child: it.imageUrl.isNotEmpty
+                                    ? Image.network(
+                                        imgUrl,
+                                        width: double.infinity,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        width: double.infinity,
+                                        height: 80,
+                                        color: Colors.grey[300],
+                                        child: const Icon(
+                                          Icons.fastfood,
+                                          size: 40,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                              ),
+                              if (it.discount > 0)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '-${it.discount.toStringAsFixed(0)}%',
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 10),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          // 2) Name
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Text(
+                              it.name,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          // 3) Price / Discounted price
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: it.discount > 0
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        '\$${it.price.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          decoration:
+                                              TextDecoration.lineThrough,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      Text(
+                                        '\$${(it.price * (1 - it.discount / 100)).toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    '\$${it.price.toStringAsFixed(2)}',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _ads.length,
-                (index) => Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentPage == index ? 12 : 8,
-                  height: _currentPage == index ? 12 : 8,
-                  decoration: BoxDecoration(
-                    color: _currentPage == index
-                        ? primaryColor
-                        : primaryColor.withOpacity(0.4),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
             const SizedBox(height: 24),
-            for (var sec in _sections) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(sec.category.name,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SeeMoreScreen(
-                            title: sec.category.name,
-                            items: sec.items
-                                .map((it) =>
-                                    {'icon': Icons.fastfood, 'name': it.name})
-                                .toList(),
-                          ),
-                        ),
-                      );
-                    },
-                    child:
-                        Text('See More', style: TextStyle(color: primaryColor)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 140,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: sec.items.length,
-                  itemBuilder: (_, idx) {
-                    final it = sec.items[idx];
-                    return InkWell(
-                      onTap: () async {
-                        // add to cart
-                        final prefs = await SharedPreferences.getInstance();
-                        final cart = prefs.getStringList('cart') ?? [];
-                        cart.add(jsonEncode(
-                            {'id': it.id, 'name': it.name, 'price': it.price}));
-                        await prefs.setStringList('cart', cart);
-                        _loadCartCount();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SingleItem(
-                              icon: Icons.fastfood,
-                              name: it.name,
-                              description: 'Delicious ${it.name}',
-                              unitPrice: it.price,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 100,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 6,
-                                offset: const Offset(0, 4))
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.fastfood, size: 40, color: primaryColor),
-                            const SizedBox(height: 8),
-                            Text(it.name,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 14)),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }

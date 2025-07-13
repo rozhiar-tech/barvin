@@ -10,14 +10,18 @@ class SingleItem extends StatefulWidget {
   final String name;
   final String description;
   final double unitPrice;
+  final double discount; // ← new field
+  final String imageUrl;
 
   const SingleItem({
-    super.key,
+    Key? key,
     required this.icon,
     required this.name,
     required this.description,
     required this.unitPrice,
-  });
+    required this.discount, // ← new
+    required this.imageUrl,
+  }) : super(key: key);
 
   @override
   State<SingleItem> createState() => _SingleItemState();
@@ -26,7 +30,15 @@ class SingleItem extends StatefulWidget {
 class _SingleItemState extends State<SingleItem> {
   int _quantity = 1;
 
-  double get _totalPrice => widget.unitPrice * _quantity;
+  // calculate the effective unit price after discount
+  double get _effectiveUnitPrice {
+    if (widget.discount > 0) {
+      return widget.unitPrice * (1 - widget.discount / 100);
+    }
+    return widget.unitPrice;
+  }
+
+  double get _totalPrice => _effectiveUnitPrice * _quantity;
 
   void _increment() => setState(() => _quantity++);
   void _decrement() {
@@ -35,19 +47,38 @@ class _SingleItemState extends State<SingleItem> {
 
   Future<void> _addToBasket() async {
     final prefs = await SharedPreferences.getInstance();
-    final cart = prefs.getStringList('cart') ?? [];
-    // Create a map for this item
-    final itemMap = {
-      'id': widget.name.hashCode.toString(),
-      'name': widget.name,
-      'price': widget.unitPrice.toString(),
-      'quantity': _quantity.toString(),
-    };
-    cart.add(jsonEncode(itemMap));
-    await prefs.setStringList('cart', cart);
+    final cartList = prefs.getStringList('cart') ?? [];
+    final cart =
+        cartList.map((e) => jsonDecode(e) as Map<String, dynamic>).toList();
+
+    final itemId = widget.name.hashCode.toString();
+    final idx = cart.indexWhere((e) => e['id'].toString() == itemId);
+
+    if (idx >= 0) {
+      final existing = cart[idx];
+      final existingQty = int.tryParse(existing['quantity'].toString()) ?? 0;
+      existing['quantity'] = (existingQty + _quantity).toString();
+      cart[idx] = existing;
+    } else {
+      cart.add({
+        'id': itemId,
+        'name': widget.name,
+        'price': widget.unitPrice.toString(),
+        'discount': widget.discount.toString(),
+        'quantity': _quantity.toString(),
+      });
+    }
+
+    final newCartList = cart.map((m) => jsonEncode(m)).toList();
+    await prefs.setStringList('cart', newCartList);
+
+    final newQty = idx >= 0
+        ? int.tryParse(cart[idx]['quantity'].toString()) ?? _quantity
+        : _quantity;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${widget.name} (x$_quantity) added to basket'),
+        content: Text('${widget.name} added to basket (x$newQty)'),
       ),
     );
   }
@@ -73,6 +104,7 @@ class _SingleItemState extends State<SingleItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // ───────────── IMAGE ─────────────
             Container(
               height: 200,
               decoration: BoxDecoration(
@@ -86,20 +118,79 @@ class _SingleItemState extends State<SingleItem> {
                   ),
                 ],
               ),
-              child: Center(
-                child: Icon(
-                  widget.icon,
-                  size: 80,
-                  color: primaryColor,
-                ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: widget.imageUrl.isNotEmpty
+                    ? Image.network(
+                        widget.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Center(
+                            child: Icon(widget.icon,
+                                size: 80, color: primaryColor)),
+                      )
+                    : Center(
+                        child:
+                            Icon(widget.icon, size: 80, color: primaryColor)),
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              widget.description,
-              style: const TextStyle(fontSize: 16, height: 1.4),
-            ),
+
+            // ───────────── PRICE & DISCOUNT ─────────────
+            if (widget.discount > 0) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '\$${widget.unitPrice.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      decoration: TextDecoration.lineThrough,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '\$${_effectiveUnitPrice.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '-${widget.discount.toStringAsFixed(0)}%',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              Text(
+                '\$${widget.unitPrice.toStringAsFixed(2)}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
+
+            // ─────────── DESCRIPTION ───────────
+            Text(widget.description,
+                style: const TextStyle(fontSize: 16, height: 1.4)),
+            const SizedBox(height: 24),
+
+            // ───────── QUANTITY & LINE TOTAL ─────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -118,33 +209,27 @@ class _SingleItemState extends State<SingleItem> {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: _decrement,
-                        icon: const Icon(Icons.remove),
-                        color: primaryColor,
-                      ),
-                      Text(
-                        '$_quantity',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
+                          icon: const Icon(Icons.remove),
+                          color: primaryColor,
+                          onPressed: _decrement),
+                      Text('$_quantity',
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                       IconButton(
-                        onPressed: _increment,
-                        icon: const Icon(Icons.add),
-                        color: primaryColor,
-                      ),
+                          icon: const Icon(Icons.add),
+                          color: primaryColor,
+                          onPressed: _increment),
                     ],
                   ),
                 ),
-                Text(
-                  '\$${_totalPrice.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text('\$${_totalPrice.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 32),
+
+            // ───────── ADD TO BASKET ─────────
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -152,18 +237,14 @@ class _SingleItemState extends State<SingleItem> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: _addToBasket,
-                child: const Text(
-                  'Add to Basket',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                child: const Text('Add to Basket',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
               ),
             ),
           ],
