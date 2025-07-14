@@ -1,0 +1,22 @@
+{
+  "@@locale": "en",
+  "appTitle": "My Barvin App",
+  "profileTitle":"Profile",
+  "language":"language",
+  "logout":"logout",
+  "footerCredit":"Designed and Developed by UST Agency",
+  "login":"Login",
+ "guestModeMessage": "Please sign in to place your order",
+  "@guestModeMessage": {
+    "description": "Shown in basket when the user is not signed in",
+    "type": "text"
+  },
+  "welcomeBack": "Welcome back!",
+  "itemsCount": "{howMany, plural, =0{No items} =1{1 item} other{{howMany} items}}",
+  "@itemsCount": {
+    "description": "How many items in the basket",
+    "placeholders": {
+      "howMany": {}
+    }
+  }
+}

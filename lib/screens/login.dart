@@ -33,15 +33,28 @@ class _LoginPageState extends State<LoginPage> {
 
       if (res.statusCode == 200 && body['token'] != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('userId', body['user']['id'].toString());
+        await prefs.setBool('loggedIn', true);
+        await prefs.setString('userName', body['user']['name']);
+
+        await prefs.setString('userAddress', body['user']['address']);
+
+        await prefs.setString('userPhone', body['user']['phone']);
+        await prefs.setString('userAvatar', body['user']['avatar']);
+        await prefs.setBool('delivery', body['user']['delivery']);
+        await prefs.setBool('debt', body['user']['debt']);
+        await prefs.setString('latitude', body['user']['latitude']);
+
+        await prefs.setString('longitude', body['user']['longitude']);
+        await prefs.setInt('userId', body['user']['id']);
         await prefs.setString('token', body['token']);
+
         if (_rememberMe) {
           await prefs.setString('email', _email);
         }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Signed in successfully!')),
         );
-        Navigator.of(context).pushReplacementNamed('/main');
+        Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
       } else {
         final msg = body['error'] ?? 'Invalid credentials';
         ScaffoldMessenger.of(context).showSnackBar(

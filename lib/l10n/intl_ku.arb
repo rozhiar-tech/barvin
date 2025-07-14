@@ -1,0 +1,16 @@
+{
+  "@@locale": "ku",
+  "appTitle": "برڤین بەرنامە",
+  "profileTitle":"پەڕەی تایبەت",
+  "language":"زمان",
+  "logout":"چونە دەرەوە",
+  "footerCredit":"دیزاین کردنو پەرە پێدان لەلایەن یوئێستی ئەیجنسی",
+  "login":"چوونە ژوەرەوە",
+   "guestModeMessage": "تکایە بچۆ ژوورەوە بۆ داواکردنی داواکاری",
+  "@guestModeMessage": {
+    "description": "Shown in basket when the user is not signed in",
+    "type": "text"
+  },
+  "welcomeBack": "بەخێربێیتەوە!",
+  "itemsCount": "{howMany, plural, =0{هیچ بابەتێک نییە} =1{ یەک دانە} other{{howMany} چەندە}}"
+}

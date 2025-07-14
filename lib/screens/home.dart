@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -35,44 +36,77 @@ class Ad {
 
 class Category {
   final int id;
-  final String name;
-  Category({required this.id, required this.name});
-  factory Category.fromJson(Map<String, dynamic> j) =>
-      Category(id: j['id'], name: j['name_en']);
+  final String nameEn, nameKu, nameAr;
+  Category({
+    required this.id,
+    required this.nameEn,
+    required this.nameKu,
+    required this.nameAr,
+  });
+  factory Category.fromJson(Map<String, dynamic> j) => Category(
+        id: j['id'],
+        nameEn: j['name_en'] ?? '',
+        nameKu: j['name_ku'] ?? '',
+        nameAr: j['name_ar'] ?? '',
+      );
+
+  String localizedName(BuildContext ctx) {
+    final code = Localizations.localeOf(ctx).languageCode;
+    switch (code) {
+      case 'ku':
+        return nameKu.isNotEmpty ? nameKu : nameEn;
+      case 'ar':
+        return nameAr.isNotEmpty ? nameAr : nameEn;
+      default:
+        return nameEn;
+    }
+  }
 }
 
 class Item {
   final int id;
-  final String name;
+  final String nameEn, nameKu, nameAr;
   final String imageUrl;
-  final double price;
-  final double discount; // <— new
+  final double price, discount;
 
   Item({
     required this.id,
-    required this.name,
+    required this.nameEn,
+    required this.nameKu,
+    required this.nameAr,
     required this.imageUrl,
     required this.price,
     required this.discount,
   });
 
   factory Item.fromJson(Map<String, dynamic> j) {
-    final rawPrice = j['price'];
-    final rawDiscount = j['discount']; // <—
-    double price = rawPrice is num
-        ? rawPrice.toDouble()
-        : double.tryParse(rawPrice) ?? 0.0;
-    double discount = rawDiscount is num
-        ? rawDiscount.toDouble()
-        : double.tryParse(rawDiscount) ?? 0.0; // <—
-
+    double price = (j['price'] is num)
+        ? (j['price'] as num).toDouble()
+        : double.tryParse(j['price'].toString()) ?? 0;
+    double discount = (j['discount'] is num)
+        ? (j['discount'] as num).toDouble()
+        : double.tryParse(j['discount'].toString()) ?? 0;
     return Item(
-      id: j['id'] is int ? j['id'] : int.parse(j['id'].toString()),
-      name: j['name_en'],
+      id: j['id'],
+      nameEn: j['name_en'] ?? '',
+      nameKu: j['name_ku'] ?? '',
+      nameAr: j['name_ar'] ?? '',
       imageUrl: j['image_url'] ?? '',
       price: price,
       discount: discount,
     );
+  }
+
+  String localizedName(BuildContext ctx) {
+    final code = Localizations.localeOf(ctx).languageCode;
+    switch (code) {
+      case 'ku':
+        return nameKu.isNotEmpty ? nameKu : nameEn;
+      case 'ar':
+        return nameAr.isNotEmpty ? nameAr : nameEn;
+      default:
+        return nameEn;
+    }
   }
 }
 
@@ -97,6 +131,19 @@ class _HomeScreenState extends State<HomeScreen> {
   List<_SectionData> _sections = [];
   Map<int, VideoPlayerController> _videoControllers = {};
   int _cartCount = 0;
+  String? avatarUrl;
+  final host = apiBase.replaceAll('/api', '');
+
+  String? get rawPath {
+    if (avatarUrl == null) return null;
+    return avatarUrl!.startsWith('/') ? avatarUrl!.substring(1) : avatarUrl!;
+  }
+
+  String? get mediaUrl {
+    if (rawPath == null) return null;
+    // Make sure 'host' is defined somewhere in your code.
+    return '$host/$rawPath';
+  }
 
   @override
   void initState() {
@@ -105,6 +152,13 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadAds();
     _startCarousel();
     _loadSections();
+    _loadUserAvatar();
+    // get user avatar url from shared preferences
+  }
+
+  Future<void> _loadUserAvatar() async {
+    final prefs = await SharedPreferences.getInstance();
+    avatarUrl = prefs.getString('userAvatar');
   }
 
   Future<void> _loadCartCount() async {
@@ -158,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final decoded = jsonDecode(catRes.body);
 
       // 1) Debug print so you can see what keys the API actually returns:
-      print('🟢 categories payload: $decoded');
+      // print('🟢 categories payload: $decoded');
 
       // 2) Try a few spots for the array, then default to []:
       List<dynamic> catsJson;
@@ -181,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final itDecoded = jsonDecode(itRes.body);
 
         // Debug print your items response too
-        print('🟢 items for category ${cat.id}: $itDecoded');
+        // print('🟢 items for category ${cat.id}: $itDecoded');
 
         List<dynamic> itemsJson;
         if (itDecoded is List) {
@@ -219,6 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // common host for all media
     final host = apiBase.replaceAll('/api', '');
+    final s = S.of(context);
 
     return Scaffold(
       backgroundColor: Colors.grey[200],
@@ -228,17 +283,18 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Row(
           children: [
             // 1) the rounded image avatar
+            // if the image is not available, show a placeholder
             CircleAvatar(
               radius: 16,
-              backgroundImage: AssetImage(
-                'assets/logo.jpeg',
-              ),
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(mediaUrl!)
+                  : const AssetImage('assets/logo.jpeg'),
               backgroundColor: Colors.grey[300],
             ),
             const SizedBox(width: 8),
             // 2) your original title
-            const Text(
-              'Welcome Back',
+            Text(
+              s.welcomeBack,
               style: TextStyle(
                 color: secondaryColor,
                 fontWeight: FontWeight.w800,
@@ -359,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(sec.category.name,
+                Text(sec.category.localizedName(context),
                     style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -369,10 +425,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => SeeMoreScreen(
-                        title: sec.category.name,
+                        title: sec.category.localizedName(context),
                         items: sec.items
-                            .map((it) =>
-                                {'icon': Icons.fastfood, 'name': it.name})
+                            .map((it) => {
+                                  'icon': Icons.fastfood,
+                                  'name': it.localizedName(context)
+                                })
                             .toList(),
                       ),
                     ),
@@ -401,9 +459,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         context,
                         MaterialPageRoute(
                             builder: (_) => SingleItem(
+                                  id: it.id, // ← the real integer ID
+
                                   icon: Icons.fastfood,
-                                  name: it.name,
-                                  description: 'Delicious ${it.name}',
+                                  name: it.localizedName(context),
+                                  description:
+                                      'Delicious ${it.localizedName(context)}',
                                   unitPrice: it.price,
                                   imageUrl: imgUrl,
                                   discount: it.discount,
@@ -473,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 6),
                             child: Text(
-                              it.name,
+                              it.localizedName(context),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 14,

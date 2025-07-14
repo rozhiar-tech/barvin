@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 const Color primaryColor = Color(0xFF567765);
 
 class SingleItem extends StatefulWidget {
+  final int id;
   final IconData icon;
   final String name;
   final String description;
@@ -15,6 +16,7 @@ class SingleItem extends StatefulWidget {
 
   const SingleItem({
     Key? key,
+    required this.id,
     required this.icon,
     required this.name,
     required this.description,
@@ -51,7 +53,7 @@ class _SingleItemState extends State<SingleItem> {
     final cart =
         cartList.map((e) => jsonDecode(e) as Map<String, dynamic>).toList();
 
-    final itemId = widget.name.hashCode.toString();
+    final itemId = widget.id.toString();
     final idx = cart.indexWhere((e) => e['id'].toString() == itemId);
 
     if (idx >= 0) {

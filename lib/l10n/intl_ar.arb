@@ -1,0 +1,16 @@
+{
+  "@@locale": "ar",
+  "appTitle": "تطبيق بارڤين",
+  "profileTitle":"الملف الشخصي",
+  "language":"اللغة",
+  "logout":"تسجيل الخروج",
+  "footerCredit":"تم التصميم والتطوير بواسطة وكالة يو إس تي",
+  "login":"تسجيل الدخول",
+   "guestModeMessage": "يرجى تسجيل الدخول لإجراء الطلب",
+  "@guestModeMessage": {
+    "description": "Shown in basket when the user is not signed in",
+    "type": "text"
+  },
+  "welcomeBack": "مرحبًا بعودتك!",
+  "itemsCount": "{howMany, plural, =0{لا عناصر} =1{عنصر واحد} other{{howMany} عناصر}}"
+}

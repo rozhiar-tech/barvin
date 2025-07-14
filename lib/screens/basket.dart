@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:barvin/screens/home.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 const Color primaryColor = Color(0xFF567765);
 
@@ -20,18 +21,30 @@ class CartEntry {
 
 class _BasketPageState extends State<BasketPage> {
   List<CartEntry> _entries = [];
-  bool _freeDelivery = false;
   final double _deliveryFee = 2.0;
+  bool _isLoggedIn = false;
+  bool _freeDelivery = false;
+  bool _isLoadingOrder = false;
+  String apiBase = 'http://95.111.224.58:4000/api';
 
   @override
   void initState() {
     super.initState();
-    _loadCart();
+    _checkLoginAndLoadCart();
+  }
+
+  Future<void> _checkLoginAndLoadCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isLoggedIn = prefs.getBool('loggedIn') ?? false;
+    await _loadCart(); // your existing cart loader
+    setState(() {});
   }
 
   Future<void> _loadCart() async {
     final prefs = await SharedPreferences.getInstance();
     final rawList = prefs.getStringList('cart') ?? [];
+    final loggedIn = prefs.getBool('loggedIn') ?? false;
+    final hasDebt = prefs.getBool('debt') ?? false;
 
     // Decode & ensure every entry has a quantity
     final raw = rawList.map((e) {
@@ -50,7 +63,9 @@ class _BasketPageState extends State<BasketPage> {
       final qty = int.tryParse(m['quantity'].toString()) ?? 1;
       final item = Item(
         id: int.parse(m['id']),
-        name: name,
+        nameEn: name,
+        nameKu: name,
+        nameAr: name,
         imageUrl: m['imageUrl'] ?? '',
         price: price,
         discount: 0.0,
@@ -66,7 +81,7 @@ class _BasketPageState extends State<BasketPage> {
     final cleaned = grouped.values
         .map((e) => jsonEncode({
               'id': e.item.id.toString(),
-              'name': e.item.name,
+              'name': e.item.nameEn,
               'price': e.item.price.toString(),
               'quantity': e.quantity.toString(),
             }))
@@ -75,6 +90,8 @@ class _BasketPageState extends State<BasketPage> {
 
     setState(() {
       _entries = grouped.values.toList();
+      _isLoggedIn = loggedIn;
+      _freeDelivery = hasDebt;
     });
   }
 
@@ -92,15 +109,61 @@ class _BasketPageState extends State<BasketPage> {
   }
 
   Future<void> _sendOrder() async {
-    // TODO: integrate with API order endpoint
-    // For now just clear cart
+    if (!_isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to place an order.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoadingOrder = true);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('cart');
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Order sent!')));
-    setState(() {
-      _entries.clear();
-    });
+    final token = prefs.getString('token');
+
+    // build payload
+    final payload = {
+      'items': _entries
+          .map((e) => {
+                'item_id': e.item.id,
+                'quantity': e.quantity,
+              })
+          .toList(),
+    };
+
+    try {
+      final res = await http.post(
+        Uri.parse('$apiBase/orders'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(payload),
+      );
+
+      if (res.statusCode == 201) {
+        // success!
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order placed successfully!')),
+        );
+        // clear cart
+        await prefs.remove('cart');
+        setState(() {
+          _entries.clear();
+        });
+      } else {
+        final err = jsonDecode(res.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(err['error'] ?? 'Failed to place order')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Network error — please try again')),
+      );
+      print(e);
+    } finally {
+      setState(() => _isLoadingOrder = false);
+    }
   }
 
   Future<void> _clearBasket() async {
@@ -114,6 +177,8 @@ class _BasketPageState extends State<BasketPage> {
 
   @override
   Widget build(BuildContext context) {
+    final canOrder = _isLoggedIn && !_isLoadingOrder && _entries.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -148,7 +213,7 @@ class _BasketPageState extends State<BasketPage> {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
-                      title: Text(entry.item.name),
+                      title: Text(entry.item.localizedName(context)),
                       subtitle: Text(
                           '\$${entry.item.price.toStringAsFixed(2)} x ${entry.quantity}'),
                       trailing: Row(
@@ -204,25 +269,39 @@ class _BasketPageState extends State<BasketPage> {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _entries.isEmpty ? null : _sendOrder,
-                child: const Text('Send Order',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    )),
+            // ─── sign-in prompt for guests ───────────────────────────────
+            if (!_isLoggedIn)
+              const Text(
+                'Please sign in to place your order',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+
+            const SizedBox(height: 8),
+            // ─── send order button ───────────────────────────────────────
+          ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16),
+        child: SizedBox(
+          height: 48,
+          child: ElevatedButton(
+            onPressed: canOrder ? _sendOrder : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-          ],
+            child: _isLoadingOrder
+                ? const CircularProgressIndicator(color: Colors.white)
+                : Text(
+                    !_isLoggedIn
+                        ? 'Sign in to Order'
+                        : (_entries.isEmpty ? 'Basket is empty' : 'Send Order'),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+          ),
         ),
       ),
     );

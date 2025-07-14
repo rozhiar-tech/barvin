@@ -27,44 +27,85 @@ class _OrdersState extends State<Orders> {
 
   Future<void> _checkLoginAndFetch() async {
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('userId');
-    if (userId == null) {
+    final token = prefs.getString('token');
+    if (token == null) {
       setState(() {
         _isLoggedIn = false;
         _isLoading = false;
       });
     } else {
       setState(() => _isLoggedIn = true);
-      await _fetchOrders(userId);
+      await _fetchOrders(token);
     }
   }
 
-  Future<void> _fetchOrders(int userId) async {
+  Future<void> _fetchOrders(String token) async {
     try {
-      final res = await http.get(Uri.parse('$apiBase/orders?userId=$userId'));
+      final res = await http.get(
+        Uri.parse('$apiBase/orders/user'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
       if (res.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(res.body);
+        final data = jsonDecode(res.body) as List<dynamic>;
+
+        final orders = data
+            .map<Map<String, dynamic>>((raw) {
+              // pull out the order ID
+              final idNum = raw['id'];
+              final int id = idNum is int
+                  ? idNum
+                  : idNum is String
+                      ? int.tryParse(idNum) ?? 0
+                      : 0;
+
+              // placed_at might be a string
+              final date = raw['placed_at']?.toString() ?? '—';
+
+              // count up quantities
+              final itemsList = raw['orderItems'] as List<dynamic>? ?? [];
+              final int itemCount = itemsList.fold<int>(0, (sum, itm) {
+                final q = itm['quantity'];
+                if (q is int) return sum + q;
+                if (q is String) return sum + (int.tryParse(q) ?? 0);
+                return sum;
+              });
+
+              // total_amount
+              final amtRaw = raw['total_amount'];
+              final double amount = amtRaw is num
+                  ? amtRaw.toDouble()
+                  : double.tryParse(amtRaw?.toString() ?? '') ?? 0.0;
+
+              return {
+                'id': id,
+                'date': date,
+                'items': itemCount,
+                'amount': amount,
+              };
+            })
+            .where((o) => o['id'] != 0)
+            .toList(); // drop any invalid
+
         setState(() {
-          _orders = data
-              .map((o) => {
-                    'date': o['date'],
-                    'items': o['items_count'],
-                    'amount': o['total_amount'],
-                  })
-              .toList();
+          _orders = orders;
         });
       } else {
-        // handle API error
+        // you could show an error SnackBar here
       }
     } catch (e) {
-      // handle network error
+      // network or JSON error
+      print('Fetch orders failed: $e');
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
   double get _totalSpent =>
-      _orders.fold(0.0, (sum, order) => sum + (order['amount'] as double));
+      _orders.fold(0.0, (sum, o) => sum + (o['amount'] as double));
 
   @override
   Widget build(BuildContext context) {
@@ -76,10 +117,7 @@ class _OrdersState extends State<Orders> {
         iconTheme: const IconThemeData(color: primaryColor),
         title: const Text(
           'Your Orders',
-          style: TextStyle(
-            color: primaryColor,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
         ),
       ),
       body: _isLoading
@@ -93,14 +131,10 @@ class _OrdersState extends State<Orders> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/login');
-                    },
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
                     child: const Text(
                       'Sign In to View Orders',
-                      style: TextStyle(
-                        color: Colors.white,
-                      ),
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
                 )
@@ -109,7 +143,7 @@ class _OrdersState extends State<Orders> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Total spent summary
+                      // ─── Total Spent ─────────────────────
                       Card(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -120,27 +154,22 @@ class _OrdersState extends State<Orders> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'Total Spent',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                '\$${_totalSpent.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryColor,
-                                ),
-                              ),
+                              const Text('Total Spent',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600)),
+                              Text('\$${_totalSpent.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryColor)),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      // Past orders list
+
+                      // ─── Order List ──────────────────────
                       Expanded(
                         child: _orders.isEmpty
                             ? const Center(child: Text('No orders found.'))
@@ -148,8 +177,8 @@ class _OrdersState extends State<Orders> {
                                 itemCount: _orders.length,
                                 separatorBuilder: (_, __) =>
                                     const SizedBox(height: 12),
-                                itemBuilder: (context, index) {
-                                  final order = _orders[index];
+                                itemBuilder: (ctx, idx) {
+                                  final order = _orders[idx];
                                   return Card(
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
@@ -162,16 +191,13 @@ class _OrdersState extends State<Orders> {
                                       leading: CircleAvatar(
                                         backgroundColor:
                                             primaryColor.withOpacity(0.1),
-                                        child: Icon(
-                                          Icons.receipt_long,
-                                          color: primaryColor,
-                                        ),
+                                        child: Icon(Icons.receipt_long,
+                                            color: primaryColor),
                                       ),
                                       title: Text(
                                         'Order on ${order['date']}',
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                            fontWeight: FontWeight.w600),
                                       ),
                                       subtitle: Text(
                                           '${order['items']} items — \$${(order['amount'] as double).toStringAsFixed(2)}'),
@@ -179,7 +205,12 @@ class _OrdersState extends State<Orders> {
                                           Icons.arrow_forward_ios,
                                           size: 16),
                                       onTap: () {
-                                        // TODO: Navigate to order detail
+                                        // now order['id'] is guaranteed non-null
+                                        // Navigator.pushNamed(
+                                        //   context,
+                                        //   '/orderDetail',
+                                        //   arguments: order['id'] as int,
+                                        // );
                                       },
                                     ),
                                   );
