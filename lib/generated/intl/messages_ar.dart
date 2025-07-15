@@ -26,6 +26,11 @@ class MessageLookup extends MessageLookupByLibrary {
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "appTitle": MessageLookupByLibrary.simpleMessage("تطبيق بارڤين"),
+    "basket": MessageLookupByLibrary.simpleMessage("سلتك"),
+    "basketEmpty": MessageLookupByLibrary.simpleMessage("السلة فارغة"),
+    "clearBasket": MessageLookupByLibrary.simpleMessage("تم مسح السلة"),
+    "delivery": MessageLookupByLibrary.simpleMessage("توصيل"),
+    "dontHaveAnAccount": MessageLookupByLibrary.simpleMessage("ليس لديك حساب؟"),
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "تم التصميم والتطوير بواسطة وكالة يو إس تي",
     ),
@@ -36,7 +41,22 @@ class MessageLookup extends MessageLookupByLibrary {
     "language": MessageLookupByLibrary.simpleMessage("اللغة"),
     "login": MessageLookupByLibrary.simpleMessage("تسجيل الدخول"),
     "logout": MessageLookupByLibrary.simpleMessage("تسجيل الخروج"),
+    "noOrder": MessageLookupByLibrary.simpleMessage("لم يتم العثور على طلبات."),
+    "orderOn": MessageLookupByLibrary.simpleMessage("طلب على"),
+    "pSignin": MessageLookupByLibrary.simpleMessage(
+      "الرجاء تسجيل الدخول لتقديم طلبك",
+    ),
+    "pSignin2": MessageLookupByLibrary.simpleMessage("تسجيل الدخول للطلب"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("الملف الشخصي"),
+    "seeMore": MessageLookupByLibrary.simpleMessage("زیادە"),
+    "sendOrder": MessageLookupByLibrary.simpleMessage("إرسال الطلب"),
+    "singInOrder": MessageLookupByLibrary.simpleMessage(
+      "تسجيل الدخول لعرض الطلبات",
+    ),
+    "subtotal": MessageLookupByLibrary.simpleMessage("المجموع الفرعي"),
+    "total": MessageLookupByLibrary.simpleMessage("المجموع"),
+    "totalSpent": MessageLookupByLibrary.simpleMessage("إجمالي الإنفاق"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("مرحبًا بعودتك!"),
+    "yourOrders": MessageLookupByLibrary.simpleMessage("طلباتك"),
   };
 }

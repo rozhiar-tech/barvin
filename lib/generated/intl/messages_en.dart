@@ -26,6 +26,13 @@ class MessageLookup extends MessageLookupByLibrary {
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "appTitle": MessageLookupByLibrary.simpleMessage("My Barvin App"),
+    "basket": MessageLookupByLibrary.simpleMessage("Your basket"),
+    "basketEmpty": MessageLookupByLibrary.simpleMessage("Basket is empty"),
+    "clearBasket": MessageLookupByLibrary.simpleMessage("Basket cleared"),
+    "delivery": MessageLookupByLibrary.simpleMessage("Delivery"),
+    "dontHaveAnAccount": MessageLookupByLibrary.simpleMessage(
+      "Don\'t Have an Account?",
+    ),
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "Designed and Developed by UST Agency",
     ),
@@ -36,7 +43,22 @@ class MessageLookup extends MessageLookupByLibrary {
     "language": MessageLookupByLibrary.simpleMessage("language"),
     "login": MessageLookupByLibrary.simpleMessage("Login"),
     "logout": MessageLookupByLibrary.simpleMessage("logout"),
+    "noOrder": MessageLookupByLibrary.simpleMessage("No orders found."),
+    "orderOn": MessageLookupByLibrary.simpleMessage("Order on"),
+    "pSignin": MessageLookupByLibrary.simpleMessage(
+      "Please sign in to place your order",
+    ),
+    "pSignin2": MessageLookupByLibrary.simpleMessage("Sign in to Order"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("Profile"),
+    "seeMore": MessageLookupByLibrary.simpleMessage("See More"),
+    "sendOrder": MessageLookupByLibrary.simpleMessage("Send Order"),
+    "singInOrder": MessageLookupByLibrary.simpleMessage(
+      "Sign In to View Orders",
+    ),
+    "subtotal": MessageLookupByLibrary.simpleMessage("Subtotal"),
+    "total": MessageLookupByLibrary.simpleMessage("Total"),
+    "totalSpent": MessageLookupByLibrary.simpleMessage("Total Spent"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("Welcome back!"),
+    "yourOrders": MessageLookupByLibrary.simpleMessage("Your Orders"),
   };
 }

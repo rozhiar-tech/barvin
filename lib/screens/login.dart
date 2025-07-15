@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:barvin/generated/l10n.dart';
+import 'package:barvin/screens/signup.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -172,6 +174,23 @@ class _LoginPageState extends State<LoginPage> {
 
                     const SizedBox(height: 16),
                     // Sign Up link...
+                    TextButton(
+                      onPressed: () {
+                        // if you’ve registered a named route:
+                        // Navigator.of(context).pushNamed('/signup');
+
+                        //–– or –– use a MaterialPageRoute directly:
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const SignUpPage()),
+                        );
+                      },
+                      child: Text(
+                        S
+                            .of(context)
+                            .dontHaveAnAccount, // or just "Don't have an account?"
+                        style: TextStyle(color: primaryColor),
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -26,6 +26,11 @@ class MessageLookup extends MessageLookupByLibrary {
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "appTitle": MessageLookupByLibrary.simpleMessage("برڤین بەرنامە"),
+    "basket": MessageLookupByLibrary.simpleMessage("سەتلی داواکاری"),
+    "basketEmpty": MessageLookupByLibrary.simpleMessage("سەتلەکە بەتالە"),
+    "clearBasket": MessageLookupByLibrary.simpleMessage("سەتلەکە بەتال کرا"),
+    "delivery": MessageLookupByLibrary.simpleMessage("گەیاندن"),
+    "dontHaveAnAccount": MessageLookupByLibrary.simpleMessage("ئەکاونتت نییە؟"),
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "دیزاین کردنو پەرە پێدان لەلایەن یوئێستی ئەیجنسی",
     ),
@@ -36,7 +41,24 @@ class MessageLookup extends MessageLookupByLibrary {
     "language": MessageLookupByLibrary.simpleMessage("زمان"),
     "login": MessageLookupByLibrary.simpleMessage("چوونە ژوەرەوە"),
     "logout": MessageLookupByLibrary.simpleMessage("چونە دەرەوە"),
+    "noOrder": MessageLookupByLibrary.simpleMessage(
+      "هیچ داواکاریەک نەدۆزرایەوە",
+    ),
+    "orderOn": MessageLookupByLibrary.simpleMessage("داواکاری لە"),
+    "pSignin": MessageLookupByLibrary.simpleMessage(
+      "تکایە داخل ببە بۆ داوا کردن",
+    ),
+    "pSignin2": MessageLookupByLibrary.simpleMessage("داخل بە بۆ داواکاری"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("پەڕەی تایبەت"),
+    "seeMore": MessageLookupByLibrary.simpleMessage("بینینی زیاتر"),
+    "sendOrder": MessageLookupByLibrary.simpleMessage("ناردنی داواکاری"),
+    "singInOrder": MessageLookupByLibrary.simpleMessage(
+      "داخل بوون بۆ بینینی داواکاریەکان",
+    ),
+    "subtotal": MessageLookupByLibrary.simpleMessage("نرخی پێش کۆتا"),
+    "total": MessageLookupByLibrary.simpleMessage("کۆتا"),
+    "totalSpent": MessageLookupByLibrary.simpleMessage("کۆی مەسرەف"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("بەخێربێیتەوە!"),
+    "yourOrders": MessageLookupByLibrary.simpleMessage("داواکاریەکانت"),
   };
 }

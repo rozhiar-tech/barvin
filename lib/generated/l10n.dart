@@ -75,6 +75,11 @@ class S {
     return Intl.message('logout', name: 'logout', desc: '', args: []);
   }
 
+  /// `See More`
+  String get seeMore {
+    return Intl.message('See More', name: 'seeMore', desc: '', args: []);
+  }
+
   /// `Designed and Developed by UST Agency`
   String get footerCredit {
     return Intl.message(
@@ -98,6 +103,116 @@ class S {
       desc: 'Shown in basket when the user is not signed in',
       args: [],
     );
+  }
+
+  /// `Your basket`
+  String get basket {
+    return Intl.message('Your basket', name: 'basket', desc: '', args: []);
+  }
+
+  /// `Delivery`
+  String get delivery {
+    return Intl.message('Delivery', name: 'delivery', desc: '', args: []);
+  }
+
+  /// `Subtotal`
+  String get subtotal {
+    return Intl.message('Subtotal', name: 'subtotal', desc: '', args: []);
+  }
+
+  /// `Total`
+  String get total {
+    return Intl.message('Total', name: 'total', desc: '', args: []);
+  }
+
+  /// `Basket cleared`
+  String get clearBasket {
+    return Intl.message(
+      'Basket cleared',
+      name: 'clearBasket',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Total Spent`
+  String get totalSpent {
+    return Intl.message('Total Spent', name: 'totalSpent', desc: '', args: []);
+  }
+
+  /// `No orders found.`
+  String get noOrder {
+    return Intl.message(
+      'No orders found.',
+      name: 'noOrder',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Order on`
+  String get orderOn {
+    return Intl.message('Order on', name: 'orderOn', desc: '', args: []);
+  }
+
+  /// `Your Orders`
+  String get yourOrders {
+    return Intl.message('Your Orders', name: 'yourOrders', desc: '', args: []);
+  }
+
+  /// `Sign In to View Orders`
+  String get singInOrder {
+    return Intl.message(
+      'Sign In to View Orders',
+      name: 'singInOrder',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Don't Have an Account?`
+  String get dontHaveAnAccount {
+    return Intl.message(
+      'Don\'t Have an Account?',
+      name: 'dontHaveAnAccount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Please sign in to place your order`
+  String get pSignin {
+    return Intl.message(
+      'Please sign in to place your order',
+      name: 'pSignin',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sign in to Order`
+  String get pSignin2 {
+    return Intl.message(
+      'Sign in to Order',
+      name: 'pSignin2',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Basket is empty`
+  String get basketEmpty {
+    return Intl.message(
+      'Basket is empty',
+      name: 'basketEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Send Order`
+  String get sendOrder {
+    return Intl.message('Send Order', name: 'sendOrder', desc: '', args: []);
   }
 
   /// `Welcome back!`

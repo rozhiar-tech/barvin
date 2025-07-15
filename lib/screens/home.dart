@@ -436,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   child:
-                      Text('See More', style: TextStyle(color: secondaryColor)),
+                      Text(s.seeMore, style: TextStyle(color: secondaryColor)),
                 ),
               ],
             ),

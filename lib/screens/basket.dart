@@ -1,5 +1,6 @@
 // BasketPage to show items in cart with grouping and order
 import 'dart:convert';
+import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/screens/home.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -178,12 +179,13 @@ class _BasketPageState extends State<BasketPage> {
   @override
   Widget build(BuildContext context) {
     final canOrder = _isLoggedIn && !_isLoadingOrder && _entries.isNotEmpty;
+    final s = S.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Your Basket',
-          style: TextStyle(
+        title: Text(
+          s.basket,
+          style: const TextStyle(
             color: Colors.white,
           ),
         ),
@@ -194,7 +196,7 @@ class _BasketPageState extends State<BasketPage> {
             onPressed: () async {
               await _clearBasket();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Basket cleared')),
+                SnackBar(content: Text(s.clearBasket)),
               );
             },
             tooltip: 'Clear Basket',
@@ -239,11 +241,7 @@ class _BasketPageState extends State<BasketPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Delivery', style: TextStyle(fontSize: 16)),
-                // Switch(
-                //   value: _freeDelivery,
-                //   onChanged: (v) => setState(() => _freeDelivery = v),
-                // ),
+                Text(s.delivery, style: TextStyle(fontSize: 16)),
                 if (!_freeDelivery)
                   Text('\$${_deliveryFee.toStringAsFixed(2)}'),
               ],
@@ -252,7 +250,7 @@ class _BasketPageState extends State<BasketPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Subtotal', style: TextStyle(fontSize: 16)),
+                Text(s.subtotal, style: TextStyle(fontSize: 16)),
                 Text('\$${_subtotal.toStringAsFixed(2)}'),
               ],
             ),
@@ -260,7 +258,7 @@ class _BasketPageState extends State<BasketPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Total',
+                Text(s.total,
                     style:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 Text('\$${_total.toStringAsFixed(2)}',
@@ -271,8 +269,8 @@ class _BasketPageState extends State<BasketPage> {
             const SizedBox(height: 16),
             // ─── sign-in prompt for guests ───────────────────────────────
             if (!_isLoggedIn)
-              const Text(
-                'Please sign in to place your order',
+              Text(
+                s.pSignin,
                 style: TextStyle(color: Colors.redAccent),
               ),
 
@@ -297,8 +295,8 @@ class _BasketPageState extends State<BasketPage> {
                 ? const CircularProgressIndicator(color: Colors.white)
                 : Text(
                     !_isLoggedIn
-                        ? 'Sign in to Order'
-                        : (_entries.isEmpty ? 'Basket is empty' : 'Send Order'),
+                        ? s.pSignin2
+                        : (_entries.isEmpty ? s.basketEmpty : s.sendOrder),
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),
           ),

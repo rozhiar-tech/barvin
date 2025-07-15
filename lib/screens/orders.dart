@@ -1,8 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+
+extension StringCap on String {
+  String capitalize() => isEmpty ? '' : this[0].toUpperCase() + substring(1);
+}
 
 const Color primaryColor = Color(0xFF567765);
 const String apiBase = 'http://95.111.224.58:4000/api';
@@ -64,6 +70,7 @@ class _OrdersState extends State<Orders> {
 
               // placed_at might be a string
               final date = raw['placed_at']?.toString() ?? '—';
+              final status = raw['status'].toString();
 
               // count up quantities
               final itemsList = raw['orderItems'] as List<dynamic>? ?? [];
@@ -85,6 +92,7 @@ class _OrdersState extends State<Orders> {
                 'date': date,
                 'items': itemCount,
                 'amount': amount,
+                'status': status,
               };
             })
             .where((o) => o['id'] != 0)
@@ -109,14 +117,16 @@ class _OrdersState extends State<Orders> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
         iconTheme: const IconThemeData(color: primaryColor),
-        title: const Text(
-          'Your Orders',
+        title: Text(
+          s.yourOrders,
           style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
         ),
       ),
@@ -132,8 +142,8 @@ class _OrdersState extends State<Orders> {
                       ),
                     ),
                     onPressed: () => Navigator.pushNamed(context, '/login'),
-                    child: const Text(
-                      'Sign In to View Orders',
+                    child: Text(
+                      s.singInOrder,
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -154,7 +164,7 @@ class _OrdersState extends State<Orders> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Total Spent',
+                              Text(s.totalSpent,
                                   style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600)),
@@ -172,13 +182,30 @@ class _OrdersState extends State<Orders> {
                       // ─── Order List ──────────────────────
                       Expanded(
                         child: _orders.isEmpty
-                            ? const Center(child: Text('No orders found.'))
+                            ? Center(child: Text(s.noOrder))
                             : ListView.separated(
                                 itemCount: _orders.length,
                                 separatorBuilder: (_, __) =>
                                     const SizedBox(height: 12),
                                 itemBuilder: (ctx, idx) {
                                   final order = _orders[idx];
+                                  final statusRaw =
+                                      (order['status'] as String).toLowerCase();
+
+                                  // helper to pick a colour based on status
+                                  final statusColor = {
+                                        'pending': Colors.orange,
+                                        'shipped': Colors.blue,
+                                        'delivered': Colors.green,
+                                      }[statusRaw] ??
+                                      Colors.grey;
+
+                                  // Inside your itemBuilder:
+                                  final raw = order['date'] as String;
+                                  DateTime dt = DateTime.parse(raw);
+
+                                  String pretty =
+                                      DateFormat.yMMMMd('en').format(dt);
                                   return Card(
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
@@ -195,15 +222,22 @@ class _OrdersState extends State<Orders> {
                                             color: primaryColor),
                                       ),
                                       title: Text(
-                                        'Order on ${order['date']}',
+                                        '${s.orderOn} $pretty',
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w600),
                                       ),
                                       subtitle: Text(
                                           '${order['items']} items — \$${(order['amount'] as double).toStringAsFixed(2)}'),
-                                      trailing: const Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 16),
+                                      trailing: Chip(
+                                        label: Text(
+                                          statusRaw.capitalize(),
+                                          style: TextStyle(
+                                              color: statusColor,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        backgroundColor:
+                                            statusColor.withOpacity(0.15),
+                                      ),
                                       onTap: () {
                                         // now order['id'] is guaranteed non-null
                                         // Navigator.pushNamed(
