@@ -13,6 +13,7 @@ import 'seeMore.dart';
 
 const Color primaryColor = Color(0xFFbed6be);
 const Color secondaryColor = Color(0xFF6D8474);
+const Color textColor = Color(0xFF212121);
 const String apiBase = 'http://95.111.224.58:4000/api';
 
 class Ad {
@@ -276,9 +277,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final s = S.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Color(0xFFd8dcd9),
       appBar: AppBar(
-        backgroundColor: Colors.grey[200],
+        backgroundColor: Color(0xFFd8dcd9),
         // instead of a plain Text, make your title a Row:
         title: Row(
           children: [
@@ -296,7 +297,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               s.welcomeBack,
               style: TextStyle(
-                color: secondaryColor,
+                color: textColor,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -419,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black)),
+                        color: textColor)),
                 TextButton(
                   onPressed: () => Navigator.push(
                     context,
@@ -435,8 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  child:
-                      Text(s.seeMore, style: TextStyle(color: secondaryColor)),
+                  child: Text(s.seeMore, style: TextStyle(color: textColor)),
                 ),
               ],
             ),
@@ -477,8 +477,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       margin: const EdgeInsets.only(right: 12),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: Colors.white,
-                        boxShadow: [/* … */],
+                        color: Color(0xFFbbbdbc),
+                        boxShadow: [],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -539,7 +539,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: textColor,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -570,7 +570,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                          color: textColor,
                                         ),
                                       ),
                                     ],
@@ -581,7 +581,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
+                                      color: textColor,
                                     ),
                                   ),
                           ),

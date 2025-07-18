@@ -36,9 +36,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           initialCenter: LatLng(36.2021, 43.6150), // Erbil coordinates
           initialZoom: 13,
           onTap: (tapPos, latlng) {
-            setState(() {
-              _picked = latlng;
-            });
+            // immediately return the picked LatLng
+            Navigator.of(context).pop(latlng);
           },
         ),
         children: [
