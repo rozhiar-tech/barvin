@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barvin/generated/l10n.dart';
 import '../main.dart'; // for MyApp.setLocale
 import 'login.dart';
+import 'package:http/http.dart' as http;
 
 const Color primaryColor = Color(0xFF567765);
 
@@ -110,10 +113,66 @@ class _ProfileState extends State<Profile> {
     setState(() => _selectedLanguage = lang);
   }
 
+  Future<void> _deleteAccount() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text(
+          'This will delete your account. You can always contact support to reactivate.',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final userId = prefs.getInt('userId');
+    if (token == null || userId == null) return;
+
+    try {
+      final res = await http.patch(
+        Uri.parse('$apiBase/users/$userId/deactivate'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (res.statusCode == 204) {
+        // success: clear local state and send back to login
+        await prefs.clear();
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => LoginPage()),
+          (_) => false,
+        );
+      } else {
+        final msg = jsonDecode(res.body)['error'] ?? 'Server error';
+        print(msg);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Deactivate failed: $msg')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Network error — please try again')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Color.fromARGB(255, 234, 236, 234),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
@@ -179,6 +238,7 @@ class _ProfileState extends State<Profile> {
 
             // ───── Language Picker ─────
             Card(
+              color: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               child: Padding(
@@ -215,6 +275,21 @@ class _ProfileState extends State<Profile> {
                 onPressed: _logOut,
                 child: Text(S.of(context).logout,
                     style: const TextStyle(color: Colors.white)),
+              ),
+
+            const SizedBox(height: 12),
+
+            // ───── Delete Account ─────
+            if (_loggedIn)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: _deleteAccount,
+                child: const Text('Delete Account',
+                    style: TextStyle(color: Colors.white)),
               ),
 
             const SizedBox(height: 16),

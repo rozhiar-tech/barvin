@@ -120,10 +120,10 @@ class _OrdersState extends State<Orders> {
     final s = S.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Color.fromARGB(255, 234, 236, 234),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
+        backgroundColor: Color.fromARGB(255, 234, 236, 234),
+        elevation: 0,
         iconTheme: const IconThemeData(color: primaryColor),
         title: Text(
           s.yourOrders,
@@ -155,6 +155,7 @@ class _OrdersState extends State<Orders> {
                     children: [
                       // ─── Total Spent ─────────────────────
                       Card(
+                        color: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

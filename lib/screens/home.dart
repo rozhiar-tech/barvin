@@ -277,9 +277,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final s = S.of(context);
 
     return Scaffold(
-      backgroundColor: Color(0xFFd8dcd9),
+      backgroundColor: Color.fromARGB(255, 234, 236, 234),
       appBar: AppBar(
-        backgroundColor: Color(0xFFd8dcd9),
+        backgroundColor: Color.fromARGB(255, 234, 236, 234),
         // instead of a plain Text, make your title a Row:
         title: Row(
           children: [

@@ -101,12 +101,30 @@ class _BasketPageState extends State<BasketPage> {
 
   double get _total => _subtotal + (_freeDelivery ? 0.0 : _deliveryFee);
 
-  void _updateQuantity(int index, int delta) async {
+  Future<void> _updateQuantity(int index, int delta) async {
+    final prefs = await SharedPreferences.getInstance();
+
     setState(() {
-      _entries[index].quantity += delta;
-      if (_entries[index].quantity < 1) _entries[index].quantity = 1;
+      final newQty = _entries[index].quantity + delta;
+
+      if (newQty < 1) {
+        // remove the entry entirely
+        _entries.removeAt(index);
+      } else {
+        _entries[index].quantity = newQty;
+      }
     });
-    // Optionally persist back to prefs
+
+    // persist back to prefs:
+    final cleaned = _entries
+        .map((e) => jsonEncode({
+              'id': e.item.id.toString(),
+              'name': e.item.nameEn,
+              'price': e.item.price.toString(),
+              'quantity': e.quantity.toString(),
+            }))
+        .toList();
+    await prefs.setStringList('cart', cleaned);
   }
 
   Future<void> _sendOrder() async {
@@ -182,6 +200,7 @@ class _BasketPageState extends State<BasketPage> {
     final s = S.of(context);
 
     return Scaffold(
+      backgroundColor: Color.fromARGB(255, 234, 236, 234),
       appBar: AppBar(
         title: Text(
           s.basket,
