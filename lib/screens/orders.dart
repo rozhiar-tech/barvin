@@ -169,7 +169,7 @@ class _OrdersState extends State<Orders> {
                                   style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600)),
-                              Text('\$${_totalSpent.toStringAsFixed(2)}',
+                              Text('${_totalSpent.toStringAsFixed(0)} IQD',
                                   style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
@@ -228,7 +228,7 @@ class _OrdersState extends State<Orders> {
                                             fontWeight: FontWeight.w600),
                                       ),
                                       subtitle: Text(
-                                          '${order['items']} items — \$${(order['amount'] as double).toStringAsFixed(2)}'),
+                                          '${order['items']} items — \$${(order['amount'] as double).toStringAsFixed(0)} IQD'),
                                       trailing: Chip(
                                         label: Text(
                                           statusRaw.capitalize(),

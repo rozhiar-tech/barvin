@@ -22,10 +22,11 @@ class CartEntry {
 
 class _BasketPageState extends State<BasketPage> {
   List<CartEntry> _entries = [];
-  final double _deliveryFee = 2.0;
+  final double _deliveryFee = 2000;
   bool _isLoggedIn = false;
   bool _freeDelivery = false;
   bool _isLoadingOrder = false;
+  String token = '';
   String apiBase = 'http://95.111.224.58:4000/api';
 
   @override
@@ -37,6 +38,8 @@ class _BasketPageState extends State<BasketPage> {
   Future<void> _checkLoginAndLoadCart() async {
     final prefs = await SharedPreferences.getInstance();
     _isLoggedIn = prefs.getBool('loggedIn') ?? false;
+    token = prefs.getString('token') ?? '';
+    print(token);
     await _loadCart(); // your existing cart loader
     setState(() {});
   }
@@ -70,6 +73,7 @@ class _BasketPageState extends State<BasketPage> {
         imageUrl: m['imageUrl'] ?? '',
         price: price,
         discount: 0.0,
+        description: m['description'] ?? '',
       );
       if (grouped.containsKey(name)) {
         // grouped[name]!.quantity += qty;
@@ -150,6 +154,7 @@ class _BasketPageState extends State<BasketPage> {
     };
 
     try {
+      print('token is $token');
       final res = await http.post(
         Uri.parse('$apiBase/orders'),
         headers: {
@@ -171,6 +176,7 @@ class _BasketPageState extends State<BasketPage> {
         });
       } else {
         final err = jsonDecode(res.body);
+        print(err);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(err['error'] ?? 'Failed to place order')),
         );
@@ -236,7 +242,7 @@ class _BasketPageState extends State<BasketPage> {
                     child: ListTile(
                       title: Text(entry.item.localizedName(context)),
                       subtitle: Text(
-                          '\$${entry.item.price.toStringAsFixed(2)} x ${entry.quantity}'),
+                          '${entry.item.price.toStringAsFixed(0)} x ${entry.quantity} IQD'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -262,7 +268,7 @@ class _BasketPageState extends State<BasketPage> {
               children: [
                 Text(s.delivery, style: TextStyle(fontSize: 16)),
                 if (!_freeDelivery)
-                  Text('\$${_deliveryFee.toStringAsFixed(2)}'),
+                  Text('${_deliveryFee.toStringAsFixed(0)} IQD'),
               ],
             ),
             const SizedBox(height: 8),
@@ -270,7 +276,7 @@ class _BasketPageState extends State<BasketPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(s.subtotal, style: TextStyle(fontSize: 16)),
-                Text('\$${_subtotal.toStringAsFixed(2)}'),
+                Text('${_subtotal.toStringAsFixed(0)} IQD'),
               ],
             ),
             const SizedBox(height: 4),
@@ -280,7 +286,7 @@ class _BasketPageState extends State<BasketPage> {
                 Text(s.total,
                     style:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('\$${_total.toStringAsFixed(2)}',
+                Text('${_total.toStringAsFixed(0)} IQD',
                     style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.bold)),
               ],

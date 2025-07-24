@@ -108,7 +108,7 @@ class _SingleItemState extends State<SingleItem> {
           children: [
             // ───────────── IMAGE ─────────────
             Container(
-              height: 200,
+              height: 300,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -125,7 +125,7 @@ class _SingleItemState extends State<SingleItem> {
                 child: widget.imageUrl.isNotEmpty
                     ? Image.network(
                         widget.imageUrl,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.fitHeight,
                         errorBuilder: (_, __, ___) => Center(
                             child: Icon(widget.icon,
                                 size: 80, color: primaryColor)),
@@ -143,7 +143,7 @@ class _SingleItemState extends State<SingleItem> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    '\$${widget.unitPrice.toStringAsFixed(2)}',
+                    '${widget.unitPrice.toStringAsFixed(0)} IQD',
                     style: const TextStyle(
                       fontSize: 14,
                       decoration: TextDecoration.lineThrough,
@@ -152,7 +152,7 @@ class _SingleItemState extends State<SingleItem> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '\$${_effectiveUnitPrice.toStringAsFixed(2)}',
+                    '${_effectiveUnitPrice.toStringAsFixed(0)} IQD',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -176,7 +176,7 @@ class _SingleItemState extends State<SingleItem> {
               ),
             ] else ...[
               Text(
-                '\$${widget.unitPrice.toStringAsFixed(2)}',
+                '${widget.unitPrice.toStringAsFixed(0)} IQD',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 18,
@@ -224,7 +224,7 @@ class _SingleItemState extends State<SingleItem> {
                     ],
                   ),
                 ),
-                Text('\$${_totalPrice.toStringAsFixed(2)}',
+                Text('${_totalPrice.toStringAsFixed(0)} IQD',
                     style: const TextStyle(
                         fontSize: 22, fontWeight: FontWeight.bold)),
               ],

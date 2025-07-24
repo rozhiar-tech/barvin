@@ -69,16 +69,17 @@ class Item {
   final String nameEn, nameKu, nameAr;
   final String imageUrl;
   final double price, discount;
+  final String description;
 
-  Item({
-    required this.id,
-    required this.nameEn,
-    required this.nameKu,
-    required this.nameAr,
-    required this.imageUrl,
-    required this.price,
-    required this.discount,
-  });
+  Item(
+      {required this.id,
+      required this.nameEn,
+      required this.nameKu,
+      required this.nameAr,
+      required this.imageUrl,
+      required this.price,
+      required this.discount,
+      required this.description});
 
   factory Item.fromJson(Map<String, dynamic> j) {
     double price = (j['price'] is num)
@@ -95,6 +96,7 @@ class Item {
       imageUrl: j['image_url'] ?? '',
       price: price,
       discount: discount,
+      description: j['description']?.toString().trim() ?? '',
     );
   }
 
@@ -422,20 +424,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.bold,
                         color: textColor)),
                 TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SeeMoreScreen(
-                        title: sec.category.localizedName(context),
-                        items: sec.items
-                            .map((it) => {
-                                  'icon': Icons.fastfood,
-                                  'name': it.localizedName(context)
-                                })
-                            .toList(),
-                      ),
-                    ),
-                  ),
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SeeMoreScreen(
+                            title: sec.category.localizedName(context),
+                            items: sec.items, // ← pass the whole List<Item>
+                            host: apiBase.replaceAll('/api', ''),
+                          ),
+                        ));
+                  },
                   child: Text(s.seeMore, style: TextStyle(color: textColor)),
                 ),
               ],
@@ -463,8 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                   icon: Icons.fastfood,
                                   name: it.localizedName(context),
-                                  description:
-                                      'Delicious ${it.localizedName(context)}',
+                                  description: it.description,
                                   unitPrice: it.price,
                                   imageUrl: imgUrl,
                                   discount: it.discount,
@@ -494,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         imgUrl,
                                         width: double.infinity,
                                         height: 80,
-                                        fit: BoxFit.cover,
+                                        fit: BoxFit.fitWidth,
                                       )
                                     : Container(
                                         width: double.infinity,
@@ -557,7 +555,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         CrossAxisAlignment.center,
                                     children: [
                                       Text(
-                                        '\$${it.price.toStringAsFixed(2)}',
+                                        '${it.price.toStringAsFixed(0)} IQD',
                                         style: const TextStyle(
                                           fontSize: 12,
                                           decoration:
@@ -566,7 +564,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                       Text(
-                                        '\$${(it.price * (1 - it.discount / 100)).toStringAsFixed(2)}',
+                                        '${(it.price * (1 - it.discount / 100)).toStringAsFixed(0)} IQD',
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
@@ -576,7 +574,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ],
                                   )
                                 : Text(
-                                    '\$${it.price.toStringAsFixed(2)}',
+                                    '${it.price.toStringAsFixed(0)} IQD',
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       fontSize: 14,
