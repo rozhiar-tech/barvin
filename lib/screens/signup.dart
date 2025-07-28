@@ -119,6 +119,10 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
+  bool _isValidEmail(String v) =>
+      RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[a-zA-Z]{2,}$').hasMatch(v);
+  bool _isValidPhone(String v) => RegExp(r'^\+?\d{7,15}$').hasMatch(v);
+
   Widget _buildField(
       {required TextEditingController ctrl,
       required String label,
@@ -140,7 +144,19 @@ class _SignUpPageState extends State<SignUpPage> {
           borderRadius: BorderRadius.circular(8),
         ),
       ),
-      validator: (v) => (v == null || v.isEmpty) ? 'Enter $label' : null,
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) return 'Enter $label';
+        switch (label) {
+          case 'Email':
+            return _isValidEmail(v.trim()) ? null : 'Invalid email';
+          case 'Password':
+            return v.length >= 8 ? null : 'Password must be ≥8 characters';
+          case 'Phone':
+            return _isValidPhone(v.trim()) ? null : 'Invalid phone number';
+          default:
+            return null; // for Name, Address, etc, the non-empty check above is enough
+        }
+      },
     );
   }
 
@@ -173,10 +189,21 @@ class _SignUpPageState extends State<SignUpPage> {
                     : null,
               ),
             ),
+
+            // if you like, show an inline error under the avatar
+            if (_avatarFile == null && _avatarError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  _avatarError!,
+                  style: TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
             const SizedBox(height: 20),
 
             Form(
               key: _formKey,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               child: Column(
                 children: [
                   _buildField(
@@ -236,7 +263,26 @@ class _SignUpPageState extends State<SignUpPage> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _loading ? null : _signup,
+                      onPressed: _loading
+                          ? null
+                          : () {
+                              // first, validate all text fields:
+                              if (!_formKey.currentState!.validate()) return;
+
+                              // then enforce avatar:
+                              if (_avatarFile == null) {
+                                setState(
+                                    () => _avatarError = 'Please pick a photo');
+                                return;
+                              }
+
+                              // all good, clear any avatar error and submit:
+                              setState(() {
+                                _avatarError = null;
+                                _loading = true;
+                              });
+                              _signup();
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
                         shape: RoundedRectangleBorder(
@@ -245,11 +291,11 @@ class _SignUpPageState extends State<SignUpPage> {
                       ),
                       child: _loading
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('Sign Up',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              )),
+                          : const Text(
+                              'Sign Up',
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white),
+                            ),
                     ),
                   ),
                 ],
@@ -260,4 +306,6 @@ class _SignUpPageState extends State<SignUpPage> {
       ),
     );
   }
+
+  String? _avatarError;
 }

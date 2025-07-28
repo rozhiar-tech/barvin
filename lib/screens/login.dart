@@ -19,6 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   String _password = '';
   bool _rememberMe = false;
   bool _isLoading = false;
+  String _identifier = '';
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -26,29 +27,35 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
     try {
+      final body = <String, String>{'password': _password};
+      if (_identifier.contains('@')) {
+        body['email'] = _identifier;
+      } else {
+        body['phone'] = _identifier;
+      }
       final res = await http.post(
         Uri.parse('$apiBase/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': _email, 'password': _password}),
+        body: jsonEncode(body),
       );
-      final body = jsonDecode(res.body);
+      final data = jsonDecode(res.body);
 
-      if (res.statusCode == 200 && body['token'] != null) {
+      if (res.statusCode == 200 && data['token'] != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('loggedIn', true);
-        await prefs.setString('userName', body['user']['name']);
+        await prefs.setString('userName', data['user']['name']);
 
-        await prefs.setString('userAddress', body['user']['address']);
+        await prefs.setString('userAddress', data['user']['address']);
 
-        await prefs.setString('userPhone', body['user']['phone']);
-        await prefs.setString('userAvatar', body['user']['avatar']);
-        await prefs.setBool('delivery', body['user']['delivery']);
-        await prefs.setBool('debt', body['user']['debt']);
-        await prefs.setString('latitude', body['user']['latitude']);
+        await prefs.setString('userPhone', data['user']['phone']);
+        await prefs.setString('userAvatar', data['user']['avatar']);
+        await prefs.setBool('delivery', data['user']['delivery']);
+        await prefs.setBool('debt', data['user']['debt']);
+        await prefs.setString('latitude', data['user']['latitude']);
 
-        await prefs.setString('longitude', body['user']['longitude']);
-        await prefs.setInt('userId', body['user']['id']);
-        await prefs.setString('token', body['token']);
+        await prefs.setString('longitude', data['user']['longitude']);
+        await prefs.setInt('userId', data['user']['id']);
+        await prefs.setString('token', data['token']);
 
         if (_rememberMe) {
           await prefs.setString('email', _email);
@@ -58,7 +65,8 @@ class _LoginPageState extends State<LoginPage> {
         );
         Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
       } else {
-        final msg = body['error'] ?? 'Invalid credentials';
+        final msg = data['error'] ?? 'Invalid credentials';
+        print(data['error']);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg)),
         );
@@ -71,6 +79,15 @@ class _LoginPageState extends State<LoginPage> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  String? _validateIdentifier(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Required';
+    final t = v.trim();
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+    if (emailRegex.hasMatch(t) || phoneRegex.hasMatch(t)) return null;
+    return 'Enter valid email or phone';
   }
 
   @override
@@ -97,17 +114,15 @@ class _LoginPageState extends State<LoginPage> {
                     // Email Field
                     TextFormField(
                       decoration: InputDecoration(
-                        labelText: 'Email Address',
+                        labelText: 'Email or Phone',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        prefixIcon: Icon(Icons.email, color: primaryColor),
+                        prefixIcon: Icon(Icons.person, color: primaryColor),
                       ),
                       keyboardType: TextInputType.emailAddress,
-                      onSaved: (v) => _email = v!.trim(),
-                      validator: (v) => v != null && v.contains('@')
-                          ? null
-                          : 'Enter a valid email',
+                      onSaved: (v) => _identifier = v!.trim(),
+                      validator: _validateIdentifier,
                     ),
                     const SizedBox(height: 16),
 
@@ -122,9 +137,8 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       obscureText: true,
                       onSaved: (v) => _password = v!.trim(),
-                      validator: (v) => v != null && v.length >= 6
-                          ? null
-                          : 'Password too short',
+                      validator: (v) =>
+                          v != null && v.length >= 6 ? null : 'Minimum 6 chars',
                     ),
                     const SizedBox(height: 8),
 
