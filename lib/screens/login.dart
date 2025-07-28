@@ -191,9 +191,7 @@ class _LoginPageState extends State<LoginPage> {
                     TextButton(
                       onPressed: () {
                         // if you’ve registered a named route:
-                        // Navigator.of(context).pushNamed('/signup');
 
-                        //–– or –– use a MaterialPageRoute directly:
                         Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => const SignUpPage()),
                         );
