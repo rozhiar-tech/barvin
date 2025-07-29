@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
+const Color _kPrimaryGreen = Color(0xFF4BCF7B);
+
 const Color primaryColor = Color(0xFF567765);
 const String apiBase = 'http://95.111.224.58:4000/api';
 
@@ -20,6 +22,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _rememberMe = false;
   bool _isLoading = false;
   String _identifier = '';
+  bool _obscure = true;
+  void _togglePassword() => setState(() => _obscure = !_obscure);
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -93,118 +97,197 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            elevation: 6,
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Logo & Title omitted for brevity...
-
-                    // Email Field
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Email or Phone',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        prefixIcon: Icon(Icons.person, color: primaryColor),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      onSaved: (v) => _identifier = v!.trim(),
-                      validator: _validateIdentifier,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password Field
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        prefixIcon: Icon(Icons.lock, color: primaryColor),
-                      ),
-                      obscureText: true,
-                      onSaved: (v) => _password = v!.trim(),
-                      validator: (v) =>
-                          v != null && v.length >= 6 ? null : 'Minimum 6 chars',
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Remember Me
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _rememberMe,
-                          activeColor: primaryColor,
-                          onChanged: (v) => setState(() => _rememberMe = v!),
-                        ),
-                        const Text('Remember me'),
+      // extend body behind status bar
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFE8F4E8),
+              Color(0xFFF1FAF5),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                children: [
+                  // ───────── top icon ─────────
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: primaryColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
                       ],
                     ),
+                    child: const Icon(
+                      Icons.local_shipping,
+                      color: Colors.white,
+                      size: 46,
+                    ),
+                  ),
 
-                    const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                    // Sign In Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: primaryColor,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: _isLoading ? null : _login,
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 16,
-                                width: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
+                  // ───────── white card ─────────
+                  Card(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24)),
+                    elevation: 6,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            // identifier
+                            const SizedBox(height: 46),
+
+                            TextFormField(
+                              decoration: InputDecoration(
+                                hintText: 'Enter email or phone number',
+                                labelText: 'Email or Phone',
+                                filled: true,
+                                fillColor: Colors.grey[200],
+                                prefixIcon:
+                                    Icon(Icons.person, color: _kPrimaryGreen),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
                                 ),
-                              )
-                            : const Text(
-                                'Sign In',
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
                               ),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: _validateIdentifier,
+                              onSaved: (v) => _identifier = v!.trim(),
+                            ),
+                            const SizedBox(height: 46),
+
+                            // password
+                            TextFormField(
+                              decoration: InputDecoration(
+                                hintText: 'Enter your password',
+                                labelText: 'Password',
+                                filled: true,
+                                fillColor: Colors.grey[200],
+                                prefixIcon:
+                                    Icon(Icons.lock, color: _kPrimaryGreen),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                      _obscure
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                      color: Colors.grey),
+                                  onPressed: _togglePassword,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              obscureText: _obscure,
+                              validator: (v) => v != null && v.length >= 6
+                                  ? null
+                                  : 'Minimum 6 chars',
+                              onSaved: (v) => _password = v!.trim(),
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            const SizedBox(height: 36),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : () => _login(),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryColor,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text('Log In',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        )),
+                              ),
+                            ),
+
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) => SignUpPage())),
+                              child: const Text(
+                                  "Don't have an account? Sign Up",
+                                  style: TextStyle(color: _kPrimaryGreen)),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 16),
-                    // Sign Up link...
-                    TextButton(
-                      onPressed: () {
-                        // if you’ve registered a named route:
+                  const SizedBox(height: 24),
 
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const SignUpPage()),
-                        );
-                      },
-                      child: Text(
-                        S
-                            .of(context)
-                            .dontHaveAnAccount, // or just "Don't have an account?"
-                        style: TextStyle(color: primaryColor),
-                      ),
+                  // ───────── guest banner ─────────
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'You can browse as a guest, but need an account to order.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            // TODO: guest flow
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text(
+                            'Continue as Guest',
+                            style: TextStyle(
+                              color: _kPrimaryGreen,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

@@ -1,6 +1,7 @@
 // BasketPage to show items in cart with grouping and order
 import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
+import 'package:barvin/screens/checkout.dart';
 import 'package:barvin/screens/home.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -131,6 +132,7 @@ class _BasketPageState extends State<BasketPage> {
     await prefs.setStringList('cart', cleaned);
   }
 
+  // ignore: unused_element
   Future<void> _sendOrder() async {
     if (!_isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,6 +193,7 @@ class _BasketPageState extends State<BasketPage> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _clearBasket() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('cart');
@@ -206,127 +209,249 @@ class _BasketPageState extends State<BasketPage> {
     final s = S.of(context);
 
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 234, 236, 234),
+      backgroundColor: Color(0xFFE8F4E8), // soft green
       appBar: AppBar(
-        title: Text(
-          s.basket,
-          style: const TextStyle(
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: primaryColor,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_forever),
-            onPressed: () async {
-              await _clearBasket();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(s.clearBasket)),
-              );
-            },
-            tooltip: 'Clear Basket',
-          ),
-        ],
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: IconThemeData(color: primaryColor),
+        title: Text('Your Basket', style: TextStyle(color: textColor)),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           children: [
+            // ─── Item List ────────────────────────────────────────────
             Expanded(
-              child: ListView.builder(
+              child: ListView.separated(
                 itemCount: _entries.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (_, idx) {
                   final entry = _entries[idx];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      title: Text(entry.item.localizedName(context)),
-                      subtitle: Text(
-                          '${entry.item.price.toStringAsFixed(0)} x ${entry.quantity} IQD'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove),
-                            onPressed: () => _updateQuantity(idx, -1),
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        )
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        // thumbnail
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: entry.item.imageUrl.isNotEmpty
+                              ? Image.network(entry.item.imageUrl,
+                                  width: 64, height: 64, fit: BoxFit.cover)
+                              : Container(
+                                  width: 64,
+                                  height: 64,
+                                  color: Colors.grey[200],
+                                  child:
+                                      Icon(Icons.fastfood, color: Colors.grey)),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // title + subtitle + quantity buttons
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(entry.item.localizedName(context),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  )),
+                              const SizedBox(height: 4),
+                              Text(entry.item.description,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.grey[600])),
+                              const SizedBox(height: 8),
+
+                              // quantity controls
+                              Row(
+                                children: [
+                                  _QuantityButton(
+                                    icon: Icons.remove,
+                                    onTap: () => _updateQuantity(idx, -1),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8),
+                                    child: Text('${entry.quantity}',
+                                        style: TextStyle(fontSize: 16)),
+                                  ),
+                                  _QuantityButton(
+                                    icon: Icons.add,
+                                    onTap: () => _updateQuantity(idx, 1),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          Text('${entry.quantity}'),
-                          IconButton(
-                            icon: const Icon(Icons.add),
-                            onPressed: () => _updateQuantity(idx, 1),
-                          ),
-                        ],
-                      ),
+                        ),
+
+                        // price + delete
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                                '${(entry.item.price * entry.quantity).toStringAsFixed(2)} IQD',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                )),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () =>
+                                  _updateQuantity(idx, -entry.quantity),
+                              child: Icon(Icons.delete_forever,
+                                  color: Colors.redAccent),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   );
                 },
               ),
             ),
-            const Divider(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(s.delivery, style: TextStyle(fontSize: 16)),
-                if (!_freeDelivery)
-                  Text('${_deliveryFee.toStringAsFixed(0)} IQD'),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(s.subtotal, style: TextStyle(fontSize: 16)),
-                Text('${_subtotal.toStringAsFixed(0)} IQD'),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(s.total,
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('${_total.toStringAsFixed(0)} IQD',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // ─── sign-in prompt for guests ───────────────────────────────
-            if (!_isLoggedIn)
-              Text(
-                s.pSignin,
-                style: TextStyle(color: Colors.redAccent),
-              ),
 
-            const SizedBox(height: 8),
-            // ─── send order button ───────────────────────────────────────
+            const SizedBox(height: 16),
+
+            // ─── Order Summary ───────────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  )
+                ],
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _SummaryRow(label: s.subtotal, value: _subtotal),
+                  const SizedBox(height: 8),
+                  _SummaryRow(
+                    label: s.delivery,
+                    value: _freeDelivery ? 0 : _deliveryFee,
+                  ),
+                  const Divider(height: 24),
+                  _SummaryRow(
+                    label: s.total,
+                    value: _total,
+                    isBold: true,
+                    fontSize: 18,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ─── Checkout Button ─────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: canOrder
+                    ? () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const CheckoutPage()),
+                        );
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Proceed to Checkout',
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ),
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SizedBox(
-          height: 48,
-          child: ElevatedButton(
-            onPressed: canOrder ? _sendOrder : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: _isLoadingOrder
-                ? const CircularProgressIndicator(color: Colors.white)
-                : Text(
-                    !_isLoggedIn
-                        ? s.pSignin2
-                        : (_entries.isEmpty ? s.basketEmpty : s.sendOrder),
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-          ),
+    );
+  }
+}
+
+/// Small round button for “–” and “+”
+class _QuantityButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _QuantityButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 2,
+              offset: Offset(0, 1),
+            )
+          ],
         ),
+        child: Icon(icon, size: 20, color: primaryColor),
       ),
+    );
+  }
+}
+
+/// A single row in the order summary
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final double value;
+  final bool isBold;
+  final double fontSize;
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.isBold = false,
+    this.fontSize = 16,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+            )),
+        Text('${value.toStringAsFixed(0)} IQD',
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+            )),
+      ],
     );
   }
 }
