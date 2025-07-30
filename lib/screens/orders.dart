@@ -1,260 +1,231 @@
-import 'dart:async';
 import 'dart:convert';
-import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+
+const Color primaryColor = Color(0xFF567765);
+const String apiBase = 'http://95.111.224.58:4000/api';
 
 extension StringCap on String {
   String capitalize() => isEmpty ? '' : this[0].toUpperCase() + substring(1);
 }
 
-const Color primaryColor = Color(0xFF567765);
-const String apiBase = 'http://95.111.224.58:4000/api';
-
 class Orders extends StatefulWidget {
-  const Orders({super.key});
+  const Orders({Key? key}) : super(key: key);
 
   @override
-  State<Orders> createState() => _OrdersState();
+  _OrdersState createState() => _OrdersState();
 }
 
 class _OrdersState extends State<Orders> {
-  bool _isLoading = true;
-  bool _isLoggedIn = false;
+  bool _loading = true;
+  bool _loggedIn = false;
+  String? _token;
   List<Map<String, dynamic>> _orders = [];
 
   @override
   void initState() {
     super.initState();
-    _checkLoginAndFetch();
+    _initAndFetch();
   }
 
-  Future<void> _checkLoginAndFetch() async {
+  Future<void> _initAndFetch() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    if (token == null) {
+    final t = prefs.getString('token');
+    if (t == null) {
       setState(() {
-        _isLoggedIn = false;
-        _isLoading = false;
+        _loggedIn = false;
+        _loading = false;
       });
     } else {
-      setState(() => _isLoggedIn = true);
-      await _fetchOrders(token);
+      setState(() {
+        _loggedIn = true;
+        _token = t;
+      });
+      await _fetchOrders();
     }
   }
 
-  Future<void> _fetchOrders(String token) async {
+  Future<void> _fetchOrders() async {
     try {
       final res = await http.get(
         Uri.parse('$apiBase/orders/user'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $_token',
         },
       );
-
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as List<dynamic>;
+        final list = <Map<String, dynamic>>[];
+        for (var raw in data) {
+          final idNum = raw['id'];
+          final id = idNum is int ? idNum : int.tryParse(idNum.toString()) ?? 0;
+          final dateStr = raw['placed_at']?.toString() ?? '';
+          final status = raw['status']?.toString().toLowerCase() ?? 'pending';
 
-        final orders = data
-            .map<Map<String, dynamic>>((raw) {
-              // pull out the order ID
-              final idNum = raw['id'];
-              final int id = idNum is int
-                  ? idNum
-                  : idNum is String
-                      ? int.tryParse(idNum) ?? 0
-                      : 0;
+          // collect item names
+          final items = <String>[];
+          final rawItems = raw['orderItems'] as List<dynamic>? ?? [];
+          for (var oi in rawItems) {
+            final name = oi['item']?['name']?.toString() ?? '';
+            if (name.isNotEmpty) items.add(name);
+          }
 
-              // placed_at might be a string
-              final date = raw['placed_at']?.toString() ?? '—';
-              final status = raw['status'].toString();
+          // total amount
+          final amtRaw = raw['total_amount'];
+          final total = amtRaw is num
+              ? amtRaw.toDouble()
+              : double.tryParse(amtRaw.toString()) ?? 0.0;
 
-              // count up quantities
-              final itemsList = raw['orderItems'] as List<dynamic>? ?? [];
-              final int itemCount = itemsList.fold<int>(0, (sum, itm) {
-                final q = itm['quantity'];
-                if (q is int) return sum + q;
-                if (q is String) return sum + (int.tryParse(q) ?? 0);
-                return sum;
-              });
-
-              // total_amount
-              final amtRaw = raw['total_amount'];
-              final double amount = amtRaw is num
-                  ? amtRaw.toDouble()
-                  : double.tryParse(amtRaw?.toString() ?? '') ?? 0.0;
-
-              return {
-                'id': id,
-                'date': date,
-                'items': itemCount,
-                'amount': amount,
-                'status': status,
-              };
-            })
-            .where((o) => o['id'] != 0)
-            .toList(); // drop any invalid
-
-        setState(() {
-          _orders = orders;
-        });
-      } else {
-        // you could show an error SnackBar here
+          list.add({
+            'id': id,
+            'date': dateStr,
+            'status': status,
+            'names': items,
+            'total': total,
+          });
+        }
+        setState(() => _orders = list);
       }
     } catch (e) {
-      // network or JSON error
-      print('Fetch orders failed: $e');
+      print('Error fetching orders: $e');
     } finally {
-      setState(() => _isLoading = false);
+      setState(() => _loading = false);
     }
   }
 
-  double get _totalSpent =>
-      _orders.fold(0.0, (sum, o) => sum + (o['amount'] as double));
+  Widget _buildTab(String status) {
+    final filtered = _orders.where((o) => o['status'] == status).toList();
+    if (filtered.isEmpty) {
+      return Center(child: Text('No ${status.capitalize()} orders'));
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      itemCount: filtered.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, idx) {
+        final o = filtered[idx];
+        final dt = DateTime.tryParse(o['date']) ?? DateTime.now();
+        final dateLabel = DateFormat.yMMMd().format(dt);
+        final id = o['id'] as int;
+        final names = List<String>.from(o['names']);
+        final summary = names.length <= 2
+            ? names.join(', ')
+            : '${names[0]}, ${names[1]} +${names.length - 2} more';
+        final color = {
+          'pending': Colors.orange,
+          'ordered': primaryColor,
+          'completed': Colors.green,
+        }[status]!;
 
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-
-    return Scaffold(
-      backgroundColor: Color.fromARGB(255, 234, 236, 234),
-      appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 234, 236, 234),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: primaryColor),
-        title: Text(
-          s.yourOrders,
-          style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : !_isLoggedIn
-              ? Center(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () => Navigator.pushNamed(context, '/login'),
-                    child: Text(
-                      s.singInOrder,
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // date + badge
+                  Row(
                     children: [
-                      // ─── Total Spent ─────────────────────
-                      Card(
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
+                      const Icon(Icons.calendar_today,
+                          size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(dateLabel,
+                          style: const TextStyle(color: Colors.grey)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        elevation: 4,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(s.totalSpent,
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600)),
-                              Text('${_totalSpent.toStringAsFixed(0)} IQD',
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: primaryColor)),
-                            ],
-                          ),
+                        child: Text(
+                          status.capitalize(),
+                          style: TextStyle(
+                              color: color, fontWeight: FontWeight.w600),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ─── Order List ──────────────────────
-                      Expanded(
-                        child: _orders.isEmpty
-                            ? Center(child: Text(s.noOrder))
-                            : ListView.separated(
-                                itemCount: _orders.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 12),
-                                itemBuilder: (ctx, idx) {
-                                  final order = _orders[idx];
-                                  final statusRaw =
-                                      (order['status'] as String).toLowerCase();
-
-                                  // helper to pick a colour based on status
-                                  final statusColor = {
-                                        'pending': Colors.orange,
-                                        'shipped': Colors.blue,
-                                        'delivered': Colors.green,
-                                      }[statusRaw] ??
-                                      Colors.grey;
-
-                                  // Inside your itemBuilder:
-                                  final raw = order['date'] as String;
-                                  DateTime dt = DateTime.parse(raw);
-
-                                  String pretty =
-                                      DateFormat.yMMMMd('en').format(dt);
-                                  return Card(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    elevation: 2,
-                                    child: ListTile(
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              vertical: 8, horizontal: 16),
-                                      leading: CircleAvatar(
-                                        backgroundColor:
-                                            primaryColor.withOpacity(0.1),
-                                        child: Icon(Icons.receipt_long,
-                                            color: primaryColor),
-                                      ),
-                                      title: Text(
-                                        '${s.orderOn} $pretty',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                      subtitle: Text(
-                                          '${order['items']} items — \$${(order['amount'] as double).toStringAsFixed(0)} IQD'),
-                                      trailing: Chip(
-                                        label: Text(
-                                          statusRaw.capitalize(),
-                                          style: TextStyle(
-                                              color: statusColor,
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                        backgroundColor:
-                                            statusColor.withOpacity(0.15),
-                                      ),
-                                      onTap: () {
-                                        // now order['id'] is guaranteed non-null
-                                        // Navigator.pushNamed(
-                                        //   context,
-                                        //   '/orderDetail',
-                                        //   arguments: order['id'] as int,
-                                        // );
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  // order #
+                  Text('#ORD-${id.toString().padLeft(4, '0')}',
+                      style: TextStyle(color: Colors.grey[600])),
+                  const SizedBox(height: 8),
+                  // items summary
+                  Text(summary, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 8),
+                  // total amount
+                  Text('Total: ${o['total'].toStringAsFixed(0)} IQD',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (!_loggedIn) {
+      return Scaffold(
+        body: Center(
+          child: ElevatedButton(
+            onPressed: () => Navigator.pushNamed(context, '/login'),
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+            child: const Text('Sign in to view orders'),
+          ),
+        ),
+      );
+    }
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF0F6F0),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: BackButton(color: primaryColor),
+          title: Text('My Orders',
+              style:
+                  TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+          bottom: TabBar(
+            indicatorColor: primaryColor,
+            labelColor: primaryColor,
+            unselectedLabelColor: Colors.grey,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            tabs: const [
+              Tab(text: 'Pending'),
+              Tab(text: 'Ordered'),
+              Tab(text: 'Completed'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildTab('pending'),
+            _buildTab('ordered'),
+            _buildTab('completed'),
+          ],
+        ),
+      ),
     );
   }
 }

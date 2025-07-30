@@ -380,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // ─── Ads Carousel ──────────────────────────────────────────────────────
 
               SizedBox(
-                height: 140, // whatever height your card needs
+                height: 180,
                 child: PageView.builder(
                   controller: _pageController,
                   itemCount: _ads.length,
@@ -392,104 +392,57 @@ class _HomeScreenState extends State<HomeScreen> {
                         : ad.filePath;
                     final mediaUrl = '$host/$rawPath';
 
-                    return GestureDetector(
-                      onTap: () async {
-                        final url = ad.link;
-                        final open = await showDialog<bool>(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text('Open Link?'),
-                            content: Text('Go to: $url'),
-                            actions: [
-                              TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                  child: const Text('Cancel')),
-                              TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Yes')),
-                            ],
-                          ),
-                        );
-                        if (open == true &&
-                            await canLaunchUrl(Uri.parse(url))) {
-                          await launchUrl(Uri.parse(url));
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            // light green gradient matching your theme
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Color(0xFFE8F4E8),
-                                Color(0xFFDFF0DF),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: GestureDetector(
+                        onTap: () async {
+                          final url = ad.link;
+                          final open = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('Open Link?'),
+                              content: Text('Go to: $url'),
+                              actions: [
+                                TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('Cancel')),
+                                TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text('Yes')),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          child: Row(
-                            children: [
-                              // Text column
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Text(
-                                      "Hot Offers",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF2E5F2E),
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "Special deals just for you",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Color(0xFF4A6F4A),
-                                      ),
-                                    ),
-                                  ],
+                          );
+                          if (open == true &&
+                              await canLaunchUrl(Uri.parse(url))) {
+                            await launchUrl(Uri.parse(url));
+                          }
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: ad.mediaType == 'image'
+                              ? Image.network(
+                                  mediaUrl,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover, // ← fills the entire card
+                                )
+                              : FittedBox(
+                                  fit: BoxFit.cover,
+                                  child: SizedBox(
+                                    width: _videoControllers[ad.id]!
+                                        .value
+                                        .size
+                                        .width,
+                                    height: _videoControllers[ad.id]!
+                                        .value
+                                        .size
+                                        .height,
+                                    child:
+                                        VideoPlayer(_videoControllers[ad.id]!),
+                                  ),
                                 ),
-                              ),
-
-                              // Circular image
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
-                                  // white “frame” behind the image
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.15),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                clipBehavior:
-                                    Clip.antiAlias, // clip to the circle
-                                child: ad.mediaType == 'image'
-                                    ? Image.network(
-                                        mediaUrl,
-                                        width: 100,
-                                        height: 100,
-                                        fit: BoxFit.cover, // fill the circle
-                                      )
-                                    : VideoPlayer(_videoControllers[ad.id]!),
-                              ),
-                            ],
-                          ),
                         ),
                       ),
                     );

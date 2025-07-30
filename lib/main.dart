@@ -81,7 +81,7 @@ class _MyAppState extends State<MyApp> {
         '/login': (c) => LoginPage(),
         '/main': (c) => const MainScreen(),
         '/splash': (c) => Splash(),
-        '/orders': (c) => const Orders(),
+        '/orders': (c) => Orders(),
         // '/signup': (c) => const SignUpPage(),
       },
     );
