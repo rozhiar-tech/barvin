@@ -25,11 +25,24 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "addNewAddress": MessageLookupByLibrary.simpleMessage(
+      "ناونیشانی نوێ زیاد بکە",
+    ),
+    "address": MessageLookupByLibrary.simpleMessage("ناونیشان"),
     "appTitle": MessageLookupByLibrary.simpleMessage("برڤین بەرنامە"),
     "basket": MessageLookupByLibrary.simpleMessage("سەتلی داواکاری"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("سەتلەکە بەتالە"),
+    "cashOnDelivery": MessageLookupByLibrary.simpleMessage(
+      "پارەدان کاتی پێ گەیشتن",
+    ),
+    "checkout": MessageLookupByLibrary.simpleMessage("داوا کردن"),
     "clearBasket": MessageLookupByLibrary.simpleMessage("سەتلەکە بەتال کرا"),
+    "deals": MessageLookupByLibrary.simpleMessage("ئۆفەرەکان"),
     "delivery": MessageLookupByLibrary.simpleMessage("گەیاندن"),
+    "deliveryFee": MessageLookupByLibrary.simpleMessage("نرخی گەیاندن"),
+    "deliveryInformation": MessageLookupByLibrary.simpleMessage(
+      "زانیاری گەیاندن",
+    ),
     "dontHaveAnAccount": MessageLookupByLibrary.simpleMessage("ئەکاونتت نییە؟"),
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "دیزاین کردنو پەرە پێدان لەلایەن یوئێستی ئەیجنسی",
@@ -39,8 +52,10 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "itemsCount": m0,
     "language": MessageLookupByLibrary.simpleMessage("زمان"),
+    "latitude": MessageLookupByLibrary.simpleMessage("پانی"),
     "login": MessageLookupByLibrary.simpleMessage("چوونە ژوەرەوە"),
     "logout": MessageLookupByLibrary.simpleMessage("چونە دەرەوە"),
+    "longitude": MessageLookupByLibrary.simpleMessage("درێژایی"),
     "noOrder": MessageLookupByLibrary.simpleMessage(
       "هیچ داواکاریەک نەدۆزرایەوە",
     ),
@@ -49,13 +64,21 @@ class MessageLookup extends MessageLookupByLibrary {
       "تکایە داخل ببە بۆ داوا کردن",
     ),
     "pSignin2": MessageLookupByLibrary.simpleMessage("داخل بە بۆ داواکاری"),
+    "paymentMethod": MessageLookupByLibrary.simpleMessage("Pشێوازی پارەدان"),
+    "placeOrder": MessageLookupByLibrary.simpleMessage("داواکاری دابنێ"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("پەڕەی تایبەت"),
+    "requiredField": MessageLookupByLibrary.simpleMessage("مەیدانی پێویست"),
+    "reviewBasket": MessageLookupByLibrary.simpleMessage("پێداچوونەوە سەبەتە"),
+    "save": MessageLookupByLibrary.simpleMessage("هەڵگرتن"),
     "seeMore": MessageLookupByLibrary.simpleMessage("بینینی زیاتر"),
     "sendOrder": MessageLookupByLibrary.simpleMessage("ناردنی داواکاری"),
     "singInOrder": MessageLookupByLibrary.simpleMessage(
       "داخل بوون بۆ بینینی داواکاریەکان",
     ),
     "subtotal": MessageLookupByLibrary.simpleMessage("نرخی پێش کۆتا"),
+    "tapToPickLocation": MessageLookupByLibrary.simpleMessage(
+      "بۆ هەڵبژاردنی شوێن پەنجە بنێ",
+    ),
     "total": MessageLookupByLibrary.simpleMessage("کۆتا"),
     "totalSpent": MessageLookupByLibrary.simpleMessage("کۆی مەسرەف"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("بەخێربێیتەوە!"),

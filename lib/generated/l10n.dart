@@ -28,10 +28,9 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name =
-        (locale.countryCode?.isEmpty ?? false)
-            ? locale.languageCode
-            : locale.toString();
+    final name = (locale.countryCode?.isEmpty ?? false)
+        ? locale.languageCode
+        : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -155,6 +154,106 @@ class S {
     return Intl.message('Order on', name: 'orderOn', desc: '', args: []);
   }
 
+  /// `Checkout`
+  String get checkout {
+    return Intl.message('Checkout', name: 'checkout', desc: '', args: []);
+  }
+
+  /// `Delivery Information`
+  String get deliveryInformation {
+    return Intl.message(
+      'Delivery Information',
+      name: 'deliveryInformation',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Add New Address`
+  String get addNewAddress {
+    return Intl.message(
+      'Add New Address',
+      name: 'addNewAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Payment Method`
+  String get paymentMethod {
+    return Intl.message(
+      'Payment Method',
+      name: 'paymentMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cash On Delivery`
+  String get cashOnDelivery {
+    return Intl.message(
+      'Cash On Delivery',
+      name: 'cashOnDelivery',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Review Basket`
+  String get reviewBasket {
+    return Intl.message(
+      'Review Basket',
+      name: 'reviewBasket',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Delivery Fee`
+  String get deliveryFee {
+    return Intl.message(
+      'Delivery Fee',
+      name: 'deliveryFee',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Place Order`
+  String get placeOrder {
+    return Intl.message('Place Order', name: 'placeOrder', desc: '', args: []);
+  }
+
+  /// `Address`
+  String get address {
+    return Intl.message('Address', name: 'address', desc: '', args: []);
+  }
+
+  /// `Required Field`
+  String get requiredField {
+    return Intl.message(
+      'Required Field',
+      name: 'requiredField',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `latitude`
+  String get latitude {
+    return Intl.message('latitude', name: 'latitude', desc: '', args: []);
+  }
+
+  /// `longitude`
+  String get longitude {
+    return Intl.message('longitude', name: 'longitude', desc: '', args: []);
+  }
+
+  /// `Save`
+  String get save {
+    return Intl.message('Save', name: 'save', desc: '', args: []);
+  }
+
   /// `Your Orders`
   String get yourOrders {
     return Intl.message('Your Orders', name: 'yourOrders', desc: '', args: []);
@@ -210,6 +309,16 @@ class S {
     );
   }
 
+  /// `Tap To Pick Location`
+  String get tapToPickLocation {
+    return Intl.message(
+      'Tap To Pick Location',
+      name: 'tapToPickLocation',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Send Order`
   String get sendOrder {
     return Intl.message('Send Order', name: 'sendOrder', desc: '', args: []);
@@ -223,6 +332,11 @@ class S {
       desc: '',
       args: [],
     );
+  }
+
+  /// `Deals`
+  String get deals {
+    return Intl.message('Deals', name: 'deals', desc: '', args: []);
   }
 
   /// `{howMany, plural, =0{No items} =1{1 item} other{{howMany} items}}`

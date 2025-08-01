@@ -25,11 +25,20 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "addNewAddress": MessageLookupByLibrary.simpleMessage("Add New Address"),
+    "address": MessageLookupByLibrary.simpleMessage("Address"),
     "appTitle": MessageLookupByLibrary.simpleMessage("My Barvin App"),
     "basket": MessageLookupByLibrary.simpleMessage("Your basket"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("Basket is empty"),
+    "cashOnDelivery": MessageLookupByLibrary.simpleMessage("Cash On Delivery"),
+    "checkout": MessageLookupByLibrary.simpleMessage("Checkout"),
     "clearBasket": MessageLookupByLibrary.simpleMessage("Basket cleared"),
+    "deals": MessageLookupByLibrary.simpleMessage("Deals"),
     "delivery": MessageLookupByLibrary.simpleMessage("Delivery"),
+    "deliveryFee": MessageLookupByLibrary.simpleMessage("Delivery Fee"),
+    "deliveryInformation": MessageLookupByLibrary.simpleMessage(
+      "Delivery Information",
+    ),
     "dontHaveAnAccount": MessageLookupByLibrary.simpleMessage(
       "Don\'t Have an Account?",
     ),
@@ -41,21 +50,31 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "itemsCount": m0,
     "language": MessageLookupByLibrary.simpleMessage("language"),
+    "latitude": MessageLookupByLibrary.simpleMessage("latitude"),
     "login": MessageLookupByLibrary.simpleMessage("Login"),
     "logout": MessageLookupByLibrary.simpleMessage("logout"),
+    "longitude": MessageLookupByLibrary.simpleMessage("longitude"),
     "noOrder": MessageLookupByLibrary.simpleMessage("No orders found."),
     "orderOn": MessageLookupByLibrary.simpleMessage("Order on"),
     "pSignin": MessageLookupByLibrary.simpleMessage(
       "Please sign in to place your order",
     ),
     "pSignin2": MessageLookupByLibrary.simpleMessage("Sign in to Order"),
+    "paymentMethod": MessageLookupByLibrary.simpleMessage("Payment Method"),
+    "placeOrder": MessageLookupByLibrary.simpleMessage("Place Order"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("Profile"),
+    "requiredField": MessageLookupByLibrary.simpleMessage("Required Field"),
+    "reviewBasket": MessageLookupByLibrary.simpleMessage("Review Basket"),
+    "save": MessageLookupByLibrary.simpleMessage("Save"),
     "seeMore": MessageLookupByLibrary.simpleMessage("See More"),
     "sendOrder": MessageLookupByLibrary.simpleMessage("Send Order"),
     "singInOrder": MessageLookupByLibrary.simpleMessage(
       "Sign In to View Orders",
     ),
     "subtotal": MessageLookupByLibrary.simpleMessage("Subtotal"),
+    "tapToPickLocation": MessageLookupByLibrary.simpleMessage(
+      "Tap To Pick Location",
+    ),
     "total": MessageLookupByLibrary.simpleMessage("Total"),
     "totalSpent": MessageLookupByLibrary.simpleMessage("Total Spent"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("Welcome back!"),
