@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
+import 'package:barvin/widgets/search_widget.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -38,18 +41,32 @@ class Ad {
 class Category {
   final int id;
   final String nameEn, nameKu, nameAr;
+  final List<Item> items;
+
   Category({
     required this.id,
     required this.nameEn,
     required this.nameKu,
     required this.nameAr,
+    this.items = const [],
   });
-  factory Category.fromJson(Map<String, dynamic> j) => Category(
-        id: j['id'],
-        nameEn: j['name_en'] ?? '',
-        nameKu: j['name_ku'] ?? '',
-        nameAr: j['name_ar'] ?? '',
-      );
+
+  factory Category.fromJson(Map<String, dynamic> j) {
+    // if the server embedded an "items" array, decode it
+    final rawItems = j['items'] as List<dynamic>?;
+    final parsedItems = rawItems
+            ?.map((m) => Item.fromJson(m as Map<String, dynamic>))
+            .toList() ??
+        <Item>[];
+
+    return Category(
+      id: j['id'],
+      nameEn: j['name_en'] ?? '',
+      nameKu: j['name_ku'] ?? '',
+      nameAr: j['name_ar'] ?? '',
+      items: parsedItems, // ← shove it in here
+    );
+  }
 
   String localizedName(BuildContext ctx) {
     final code = Localizations.localeOf(ctx).languageCode;
@@ -125,8 +142,25 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+/// Parse either a raw JSON list or a JSON object
+/// with an array under one of the keys.
+List<dynamic> parseSectionsPayload(String jsonStr) {
+  print(jsonStr);
+  final decoded = jsonDecode(jsonStr);
+  if (decoded is List) {
+    return decoded;
+  }
+  if (decoded is Map<String, dynamic>) {
+    if (decoded['categories'] is List) return decoded['categories'];
+    if (decoded['data'] is List) return decoded['data'];
+    if (decoded['items'] is List) return decoded['items'];
+  }
+  throw Exception("Unexpected JSON format for sections:\n$jsonStr");
+}
+
 class _HomeScreenState extends State<HomeScreen> {
   List<Ad> _ads = [];
+
   int _currentPage = 0;
   // final PageController _pageController = PageController();
   Timer? _carouselTimer;
@@ -218,55 +252,31 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadSections() async {
+    setState(() => _loading = true);
     try {
-      final catRes = await http.get(Uri.parse('$apiBase/categories'));
-      final decoded = jsonDecode(catRes.body);
-
-      // 1) Debug print so you can see what keys the API actually returns:
-      // print('🟢 categories payload: $decoded');
-
-      // 2) Try a few spots for the array, then default to []:
-      List<dynamic> catsJson;
-      if (decoded is List) {
-        catsJson = decoded;
-      } else if (decoded['data'] is List) {
-        catsJson = decoded['data'];
-      } else if (decoded['categories'] is List) {
-        catsJson = decoded['categories'];
-      } else {
-        catsJson = [];
-      }
-
-      final cats = catsJson.map((j) => Category.fromJson(j)).toList();
-      final List<_SectionData> secData = [];
-
-      for (var cat in cats) {
-        final itRes =
-            await http.get(Uri.parse('$apiBase/items?categoryId=${cat.id}'));
-        final itDecoded = jsonDecode(itRes.body);
-
-        // Debug print your items response too
-        // print('🟢 items for category ${cat.id}: $itDecoded');
-
-        List<dynamic> itemsJson;
-        if (itDecoded is List) {
-          itemsJson = itDecoded;
-        } else if (itDecoded['data'] is List) {
-          itemsJson = itDecoded['data'];
-        } else if (itDecoded['items'] is List) {
-          itemsJson = itDecoded['items'];
-        } else {
-          itemsJson = [];
-        }
-
-        final items = itemsJson.map((j) => Item.fromJson(j)).toList();
-        secData.add(_SectionData(cat, items));
-      }
-
-      setState(() => _sections = secData);
+      final res = await http.get(Uri.parse('$apiBase/categories/with-items'));
+      print("response is ${res.body}");
+      // offload the peeling‐and‐casting to the isolate:
+      final rawList = await compute(parseSectionsPayload, res.body);
+      final sections = rawList.map((entry) {
+        final map = entry as Map<String, dynamic>;
+        final cat = Category.fromJson(map);
+        final items = (map['items'] as List)
+            .cast<Map<String, dynamic>>()
+            .map((j) => Item.fromJson(j))
+            .toList();
+        return _SectionData(cat, items);
+      }).toList();
+      setState(() {
+        _sections = sections;
+        _loading = false;
+      });
     } catch (e, st) {
-      print('❌ Failed loading sections: $e\n$st');
-      setState(() => _sections = []);
+      print("❌ Failed loading sections: $e\n$st");
+      setState(() {
+        _sections = [];
+        _loading = false;
+      });
     }
   }
 
@@ -290,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Container(
-          margin: EdgeInsets.symmetric(horizontal: 12),
+          margin: EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -303,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(8),
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -377,6 +387,10 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(
                 height: 20,
               ),
+              const SearchBar1(hint: 'Search items...'),
+              SizedBox(
+                height: 20,
+              ),
               // ─── Ads Carousel ──────────────────────────────────────────────────────
 
               SizedBox(
@@ -422,11 +436,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: ad.mediaType == 'image'
-                              ? Image.network(
-                                  mediaUrl,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  fit: BoxFit.cover, // ← fills the entire card
+                              ? CachedNetworkImage(
+                                  imageUrl: mediaUrl,
+                                  placeholder: (_, __) => Center(
+                                      child: CircularProgressIndicator()),
+                                  errorWidget: (_, __, ___) =>
+                                      Icon(Icons.error),
                                 )
                               : FittedBox(
                                   fit: BoxFit.cover,
@@ -562,216 +577,215 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // ─── Dynamic Category Sections ────────────────────────────────────────
-                for (var sec in _sections) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(sec.category.localizedName(context),
-                          style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: textColor)),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => SeeMoreScreen(
-                                  title: sec.category.localizedName(context),
-                                  items:
-                                      sec.items, // ← pass the whole List<Item>
-                                  host: apiBase.replaceAll('/api', ''),
-                                ),
-                              ));
-                        },
-                        child:
-                            Text(s.seeMore, style: TextStyle(color: textColor)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 200,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: sec.items.length,
-                      itemBuilder: (_, idx) {
-                        final it = sec.items[idx];
-                        final rawPath = it.imageUrl.startsWith('/')
-                            ? it.imageUrl.substring(1)
-                            : it.imageUrl;
-                        final imgUrl = '$host/$rawPath';
-
-                        return InkWell(
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => SingleItem(
-                                        id: it.id, // ← the real integer ID
-
-                                        icon: Icons.fastfood,
-                                        name: it.localizedName(context),
-                                        description: it.description,
-                                        unitPrice: it.price,
-                                        imageUrl: imgUrl,
-                                        discount: it.discount,
-                                      )),
-                            );
-                            _loadCartCount(); // ← now we reload the badge *after* you pop back
-                          },
-                          child: Container(
-                            width: 200,
-                            margin: const EdgeInsets.only(right: 12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              color: Colors.white,
-                              boxShadow: [],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // 1) Image + discount badge
-                                Stack(
-                                  children: [
-                                    Container(
-                                      height: 120,
-                                      child: ClipRRect(
-                                        borderRadius:
-                                            const BorderRadius.vertical(
-                                                top: Radius.circular(16)),
-                                        child: it.imageUrl.isNotEmpty
-                                            ? Image.network(
-                                                imgUrl,
-                                                width: double.infinity,
-                                                height: 80,
-                                                fit: BoxFit.fitWidth,
-                                              )
-                                            : Container(
-                                                width: double.infinity,
-                                                height: 80,
-                                                color: Colors.grey[300],
-                                                child: const Icon(
-                                                  Icons.fastfood,
-                                                  size: 40,
-                                                  color: Colors.black54,
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                    if (it.discount > 0)
-                                      Positioned(
-                                        top: 8,
-                                        right: 8,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.redAccent,
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            '-${it.discount.toStringAsFixed(0)}%',
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 8),
-
-                                // 2) Name
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 6),
-                                  child: Text(
-                                    it.localizedName(context),
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: textColor,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 4),
-
-                                // 3) Price / Discounted price
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 6),
-                                  child: it.discount > 0
-                                      ? Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '${it.price.toStringAsFixed(0)} IQD',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                decoration:
-                                                    TextDecoration.lineThrough,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              width: 12,
-                                            ),
-                                            Text(
-                                              '${(it.price * (1 - it.discount / 100)).toStringAsFixed(0)} IQD',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                color: textColor,
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      : Text(
-                                          '${it.price.toStringAsFixed(0)} IQD',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                ),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 6),
-                                  child: Text(
-                                    '${it.description}',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: textColor,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 4),
-                              ],
-                            ),
-                          ),
-                        );
+              ],
+              // ─── Dynamic Category Sections ────────────────────────────────────────
+              for (var sec in _sections) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(sec.category.localizedName(context),
+                        style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: textColor)),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SeeMoreScreen(
+                                title: sec.category.localizedName(context),
+                                items: sec.items, // ← pass the whole List<Item>
+                                host: apiBase.replaceAll('/api', ''),
+                              ),
+                            ));
                       },
+                      child:
+                          Text(s.seeMore, style: TextStyle(color: textColor)),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 200,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: sec.items.length,
+                    itemBuilder: (_, idx) {
+                      final it = sec.items[idx];
+                      final rawPath = it.imageUrl.startsWith('/')
+                          ? it.imageUrl.substring(1)
+                          : it.imageUrl;
+                      final imgUrl = '$host/$rawPath';
+
+                      return InkWell(
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => SingleItem(
+                                      id: it.id, // ← the real integer ID
+
+                                      icon: Icons.fastfood,
+                                      name: it.localizedName(context),
+                                      description: it.description,
+                                      unitPrice: it.price,
+                                      imageUrl: imgUrl,
+                                      discount: it.discount,
+                                    )),
+                          );
+                          _loadCartCount(); // ← now we reload the badge *after* you pop back
+                        },
+                        child: Container(
+                          width: 150,
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.white,
+                            boxShadow: [],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // 1) Image + discount badge
+                              Stack(
+                                children: [
+                                  Container(
+                                    height: 120,
+                                    child: ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(16)),
+                                      child: it.imageUrl.isNotEmpty
+                                          ? CachedNetworkImage(
+                                              imageUrl: imgUrl,
+                                              placeholder: (_, __) => Center(
+                                                  child:
+                                                      CircularProgressIndicator()),
+                                              errorWidget: (_, __, ___) =>
+                                                  Icon(Icons.error),
+                                            )
+                                          : Container(
+                                              width: double.infinity,
+                                              height: 80,
+                                              color: Colors.grey[300],
+                                              child: const Icon(
+                                                Icons.fastfood,
+                                                size: 40,
+                                                color: Colors.black54,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  if (it.discount > 0)
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          '-${it.discount.toStringAsFixed(0)}%',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              // 2) Name
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 6),
+                                child: Text(
+                                  it.localizedName(context),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+
+                              const SizedBox(height: 4),
+
+                              // 3) Price / Discounted price
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 6),
+                                child: it.discount > 0
+                                    ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            '${it.price.toStringAsFixed(0)} IQD',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: 12,
+                                          ),
+                                          Text(
+                                            '${(it.price * (1 - it.discount / 100)).toStringAsFixed(0)} IQD',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: textColor,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Text(
+                                        '${it.price.toStringAsFixed(0)} IQD',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                      ),
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 6),
+                                child: Text(
+                                  '${it.description}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+
+                              const SizedBox(height: 4),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  const SizedBox(height: 24),
-                ],
+                ),
+                const SizedBox(height: 24),
               ],
             ],
           ),

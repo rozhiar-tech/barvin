@@ -48,12 +48,16 @@ class MessageLookup extends MessageLookupByLibrary {
     "guestModeMessage": MessageLookupByLibrary.simpleMessage(
       "يرجى تسجيل الدخول لإجراء الطلب",
     ),
+    "hint": MessageLookupByLibrary.simpleMessage("اكتب للبحث"),
     "itemsCount": m0,
     "language": MessageLookupByLibrary.simpleMessage("اللغة"),
     "latitude": MessageLookupByLibrary.simpleMessage("خط العرض"),
     "login": MessageLookupByLibrary.simpleMessage("تسجيل الدخول"),
     "logout": MessageLookupByLibrary.simpleMessage("تسجيل الخروج"),
     "longitude": MessageLookupByLibrary.simpleMessage("خط الطول"),
+    "newSearch": MessageLookupByLibrary.simpleMessage(
+      "أدخل المصطلح واضغط على البحث",
+    ),
     "noOrder": MessageLookupByLibrary.simpleMessage("لم يتم العثور على طلبات."),
     "orderOn": MessageLookupByLibrary.simpleMessage("طلب على"),
     "pSignin": MessageLookupByLibrary.simpleMessage(
@@ -77,6 +81,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "total": MessageLookupByLibrary.simpleMessage("المجموع"),
     "totalSpent": MessageLookupByLibrary.simpleMessage("إجمالي الإنفاق"),
+    "typeSearch": MessageLookupByLibrary.simpleMessage("اكتب للبحث"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("مرحبًا بعودتك!"),
     "yourOrders": MessageLookupByLibrary.simpleMessage("طلباتك"),
   };

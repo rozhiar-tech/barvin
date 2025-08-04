@@ -238,6 +238,9 @@ class _SignUpPageState extends State<SignUpPage> {
                             validator: (v) {
                               if (v == null || v.length < 8)
                                 return 'Password must be ≥8 chars';
+                              // only letters, numbers and dot
+                              if (!RegExp(r'^[A-Za-z0-9.]+$').hasMatch(v))
+                                return 'Password may only contain letters, numbers, and “.”';
                               return null;
                             },
                           ),

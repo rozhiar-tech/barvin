@@ -74,6 +74,12 @@ class _LoginPageState extends State<LoginPage> {
           SnackBar(content: Text(msg)),
         );
       }
+      // e.g. after login:
+      final jwtParts = data['token'].split('.');
+      final payload = jsonDecode(
+          utf8.decode(base64Url.decode(base64Url.normalize(jwtParts[1]))));
+      final exp = DateTime.fromMillisecondsSinceEpoch(payload['exp'] * 1000);
+      print('Now: ${DateTime.now()} – Token expires at: $exp');
     } catch (e) {
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(

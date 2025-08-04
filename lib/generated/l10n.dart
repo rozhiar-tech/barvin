@@ -249,6 +249,31 @@ class S {
     return Intl.message('longitude', name: 'longitude', desc: '', args: []);
   }
 
+  /// `Type To Search`
+  String get typeSearch {
+    return Intl.message(
+      'Type To Search',
+      name: 'typeSearch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter a term and press search`
+  String get newSearch {
+    return Intl.message(
+      'Enter a term and press search',
+      name: 'newSearch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Type To Search`
+  String get hint {
+    return Intl.message('Type To Search', name: 'hint', desc: '', args: []);
+  }
+
   /// `Save`
   String get save {
     return Intl.message('Save', name: 'save', desc: '', args: []);

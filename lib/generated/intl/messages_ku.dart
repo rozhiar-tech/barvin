@@ -50,12 +50,16 @@ class MessageLookup extends MessageLookupByLibrary {
     "guestModeMessage": MessageLookupByLibrary.simpleMessage(
       "تکایە بچۆ ژوورەوە بۆ داواکردنی داواکاری",
     ),
+    "hint": MessageLookupByLibrary.simpleMessage("بنووسە بۆ گەڕان"),
     "itemsCount": m0,
     "language": MessageLookupByLibrary.simpleMessage("زمان"),
     "latitude": MessageLookupByLibrary.simpleMessage("پانی"),
     "login": MessageLookupByLibrary.simpleMessage("چوونە ژوەرەوە"),
     "logout": MessageLookupByLibrary.simpleMessage("چونە دەرەوە"),
     "longitude": MessageLookupByLibrary.simpleMessage("درێژایی"),
+    "newSearch": MessageLookupByLibrary.simpleMessage(
+      "زاراوەیەک داخڵ بکە و گەڕان بکە",
+    ),
     "noOrder": MessageLookupByLibrary.simpleMessage(
       "هیچ داواکاریەک نەدۆزرایەوە",
     ),
@@ -81,6 +85,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "total": MessageLookupByLibrary.simpleMessage("کۆتا"),
     "totalSpent": MessageLookupByLibrary.simpleMessage("کۆی مەسرەف"),
+    "typeSearch": MessageLookupByLibrary.simpleMessage("بنووسە بۆ گەڕان"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("بەخێربێیتەوە!"),
     "yourOrders": MessageLookupByLibrary.simpleMessage("داواکاریەکانت"),
   };

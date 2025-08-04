@@ -1,5 +1,8 @@
+// ignore_for_file: unused_local_variable
+
 import 'package:barvin/screens/home.dart';
 import 'package:barvin/screens/single_item.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -66,10 +69,10 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
           child: GridView.builder(
             itemCount: widget.items.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.7,
+              crossAxisCount: 3,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.55, // fine-tune this until it feels right
             ),
             itemBuilder: (context, index) {
               final it = widget.items[index];
@@ -87,112 +90,116 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
                   : it.imageUrl;
               final imgUrl = '${widget.host}/$rawPath';
 
-              return Card(
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                elevation: 3,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => SingleItem(
-                                id: it.id, // ← the real integer ID
+              return InkWell(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => SingleItem(
+                              id: it.id, // ← the real integer ID
 
-                                icon: Icons.fastfood,
-                                name: it.localizedName(context),
-                                description: it.description,
-                                unitPrice: it.price,
-                                imageUrl: imgUrl,
-                                discount: it.discount,
-                              )),
-                    );
-                    _loadCartCount(); // ← now we reload the badge *after* you pop back
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // image
-                      Container(
-                        height: 185,
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(12)),
-                          child: it.imageUrl.isNotEmpty
-                              ? Image.network(url,
-                                  height: 100, fit: BoxFit.cover)
-                              : Container(
-                                  height: 100,
-                                  color: Colors.grey[300],
-                                  child: Icon(Icons.fastfood,
-                                      size: 40, color: secondaryColor),
-                                ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-                      // name
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          it.localizedName(context),
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.bold),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-
-                      const SizedBox(height: 2),
-                      // description
-                      if (it.description.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          child: Text(
-                            it.description,
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey[700]),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                              icon: Icons.fastfood,
+                              name: it.localizedName(context),
+                              description: it.description,
+                              unitPrice: it.price,
+                              imageUrl: imgUrl,
+                              discount: it.discount,
+                            )),
+                  );
+                  _loadCartCount(); // ← now we reload the badge *after* you pop back
+                },
+                child: Card(
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  elevation: 3,
+                  child: AspectRatio(
+                    aspectRatio: 0.6, // ~ width / height of the card
+                    child: Column(
+                      children: [
+                        // ─── Image takes 60% of the card’s height ──────────────
+                        Expanded(
+                          flex: 6,
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(12)),
+                            child: it.imageUrl.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl:
+                                        '${widget.host}/${it.imageUrl.substring(1)}',
+                                    placeholder: (_, __) => Center(
+                                        child: CircularProgressIndicator()),
+                                    errorWidget: (_, __, ___) =>
+                                        Icon(Icons.error),
+                                  )
+                                : Container(color: Colors.grey[300]),
                           ),
                         ),
 
-                      const Spacer(),
-                      // price
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: discountedIqd != null
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
+                        // ─── Text block takes 40% ────────────────────────────────
+                        Expanded(
+                          flex: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 4),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Text(
+                                  it.localizedName(context),
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                                if (it.description.isNotEmpty)
                                   Text(
-                                    '$priceIqd IQD',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        decoration: TextDecoration.lineThrough,
-                                        color: Colors.grey),
-                                  ),
-                                  SizedBox(
-                                    width: 4,
-                                  ),
-                                  Text(
-                                    '$discountedIqd IQD',
+                                    it.description,
                                     style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold),
+                                        fontSize: 10, color: Colors.grey),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ],
-                              )
-                            : Text(
-                                '$priceIqd IQD',
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
-                      ),
-                    ],
+
+                                // Wrap the price row in a FittedBox so it never overflows
+                                FittedBox(
+                                  child: it.discount > 0
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              '${it.price.round()} IQD',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                decoration:
+                                                    TextDecoration.lineThrough,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${(it.price * (1 - it.discount / 100)).round()} IQD',
+                                              style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        )
+                                      : Text(
+                                          '${it.price.round()} IQD',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

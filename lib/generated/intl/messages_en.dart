@@ -48,12 +48,16 @@ class MessageLookup extends MessageLookupByLibrary {
     "guestModeMessage": MessageLookupByLibrary.simpleMessage(
       "Please sign in to place your order",
     ),
+    "hint": MessageLookupByLibrary.simpleMessage("Type To Search"),
     "itemsCount": m0,
     "language": MessageLookupByLibrary.simpleMessage("language"),
     "latitude": MessageLookupByLibrary.simpleMessage("latitude"),
     "login": MessageLookupByLibrary.simpleMessage("Login"),
     "logout": MessageLookupByLibrary.simpleMessage("logout"),
     "longitude": MessageLookupByLibrary.simpleMessage("longitude"),
+    "newSearch": MessageLookupByLibrary.simpleMessage(
+      "Enter a term and press search",
+    ),
     "noOrder": MessageLookupByLibrary.simpleMessage("No orders found."),
     "orderOn": MessageLookupByLibrary.simpleMessage("Order on"),
     "pSignin": MessageLookupByLibrary.simpleMessage(
@@ -77,6 +81,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "total": MessageLookupByLibrary.simpleMessage("Total"),
     "totalSpent": MessageLookupByLibrary.simpleMessage("Total Spent"),
+    "typeSearch": MessageLookupByLibrary.simpleMessage("Type To Search"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("Welcome back!"),
     "yourOrders": MessageLookupByLibrary.simpleMessage("Your Orders"),
   };
