@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
+import 'package:barvin/screens/discounts_screen.dart';
 import 'package:barvin/widgets/search_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
@@ -168,6 +169,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<_SectionData> _sections = [];
   Map<int, VideoPlayerController> _videoControllers = {};
   int _cartCount = 0;
+  double _cartTotal = 0;
+
   String? avatarUrl;
   final host = apiBase.replaceAll('/api', '');
   final _pageController = PageController(viewportFraction: 0.92);
@@ -190,6 +193,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return '$host/$rawPath';
   }
 
+// Normalize URLs just like you do elsewhere:
+  String _formatImageUrl(String raw) {
+    final path = raw.startsWith('/') ? raw.substring(1) : raw;
+    return '$host/$path';
+  }
+
+// Navigate into your SingleItem detail screen:
+  void _openDeal(BuildContext ctx, Item it) {
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(
+        builder: (_) => SingleItem(
+          id: it.id,
+          icon: Icons.fastfood,
+          name: it.localizedName(ctx),
+          description: it.description,
+          unitPrice: it.price,
+          imageUrl: _formatImageUrl(it.imageUrl),
+          discount: it.discount,
+        ),
+      ),
+    ).then((_) => _loadCartCount());
+  }
+
   @override
   void initState() {
     super.initState();
@@ -209,7 +236,32 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadCartCount() async {
     final prefs = await SharedPreferences.getInstance();
     final items = prefs.getStringList('cart') ?? [];
-    setState(() => _cartCount = items.length);
+
+    double total = 0;
+    int qty = 0;
+
+    for (var s in items) {
+      final m = jsonDecode(s) as Map<String, dynamic>;
+
+      // parse quantity whether it's an int or a string
+      final rawQty = m['quantity'];
+      final itemQty =
+          rawQty is int ? rawQty : int.tryParse(rawQty.toString()) ?? 0;
+
+      // parse unit price whether it's num or string
+      final rawPrice = m['price'];
+      final unitPrice = rawPrice is num
+          ? rawPrice.toDouble()
+          : double.tryParse(rawPrice.toString()) ?? 0.0;
+
+      qty += itemQty;
+      total += itemQty * unitPrice;
+    }
+
+    setState(() {
+      _cartCount = qty;
+      _cartTotal = total;
+    });
   }
 
   Future<void> _loadAds() async {
@@ -299,23 +351,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return SafeArea(
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Container(
-          margin: EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color.fromARGB(255, 213, 236, 221),
-                Color(0xFFF1FAF5),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ListView(
-            padding: const EdgeInsets.all(8),
-            children: [
-              Row(
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CircleAvatar(
@@ -384,411 +424,609 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              SizedBox(
-                height: 20,
-              ),
-              const SearchBar1(hint: 'Search items...'),
-              SizedBox(
-                height: 20,
-              ),
-              // ─── Ads Carousel ──────────────────────────────────────────────────────
+            ),
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color.fromARGB(255, 213, 236, 221),
+                      Color(0xFFF1FAF5),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ListView(
+                  padding: const EdgeInsets.all(8),
+                  children: [
+                    SizedBox(
+                      height: 20,
+                    ),
+                    const SearchBar1(hint: 'Search items...'),
+                    SizedBox(
+                      height: 20,
+                    ),
+                    // ─── Ads Carousel ──────────────────────────────────────────────────────
 
-              SizedBox(
-                height: 180,
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _ads.length,
-                  onPageChanged: (i) => setState(() => _currentPage = i),
-                  itemBuilder: (context, i) {
-                    final ad = _ads[i];
-                    final rawPath = ad.filePath.startsWith('/')
-                        ? ad.filePath.substring(1)
-                        : ad.filePath;
-                    final mediaUrl = '$host/$rawPath';
+                    SizedBox(
+                      height: 180,
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: _ads.length,
+                        onPageChanged: (i) => setState(() => _currentPage = i),
+                        itemBuilder: (context, i) {
+                          final ad = _ads[i];
+                          final rawPath = ad.filePath.startsWith('/')
+                              ? ad.filePath.substring(1)
+                              : ad.filePath;
+                          final mediaUrl = '$host/$rawPath';
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: GestureDetector(
-                        onTap: () async {
-                          final url = ad.link;
-                          final open = await showDialog<bool>(
-                            context: context,
-                            builder: (_) => AlertDialog(
-                              title: const Text('Open Link?'),
-                              content: Text('Go to: $url'),
-                              actions: [
-                                TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: const Text('Cancel')),
-                                TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: const Text('Yes')),
-                              ],
+                          return Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: GestureDetector(
+                              onTap: () async {
+                                final url = ad.link;
+                                final open = await showDialog<bool>(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: const Text('Open Link?'),
+                                    content: Text('Go to: $url'),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text('Cancel')),
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: const Text('Yes')),
+                                    ],
+                                  ),
+                                );
+                                if (open == true &&
+                                    await canLaunchUrl(Uri.parse(url))) {
+                                  await launchUrl(Uri.parse(url));
+                                }
+                              },
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: ad.mediaType == 'image'
+                                    ? CachedNetworkImage(
+                                        imageUrl: mediaUrl,
+                                        placeholder: (_, __) => Center(
+                                            child: CircularProgressIndicator()),
+                                        errorWidget: (_, __, ___) =>
+                                            Icon(Icons.error),
+                                      )
+                                    : FittedBox(
+                                        fit: BoxFit.cover,
+                                        child: SizedBox(
+                                          width: _videoControllers[ad.id]!
+                                              .value
+                                              .size
+                                              .width,
+                                          height: _videoControllers[ad.id]!
+                                              .value
+                                              .size
+                                              .height,
+                                          child: VideoPlayer(
+                                              _videoControllers[ad.id]!),
+                                        ),
+                                      ),
+                              ),
                             ),
                           );
-                          if (open == true &&
-                              await canLaunchUrl(Uri.parse(url))) {
-                            await launchUrl(Uri.parse(url));
-                          }
                         },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: ad.mediaType == 'image'
-                              ? CachedNetworkImage(
-                                  imageUrl: mediaUrl,
-                                  placeholder: (_, __) => Center(
-                                      child: CircularProgressIndicator()),
-                                  errorWidget: (_, __, ___) =>
-                                      Icon(Icons.error),
-                                )
-                              : FittedBox(
-                                  fit: BoxFit.cover,
-                                  child: SizedBox(
-                                    width: _videoControllers[ad.id]!
-                                        .value
-                                        .size
-                                        .width,
-                                    height: _videoControllers[ad.id]!
-                                        .value
-                                        .size
-                                        .height,
-                                    child:
-                                        VideoPlayer(_videoControllers[ad.id]!),
-                                  ),
-                                ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        _ads.length,
+                        (index) => Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: _currentPage == index ? 12 : 8,
+                          height: _currentPage == index ? 12 : 8,
+                          decoration: BoxDecoration(
+                            color: _currentPage == index
+                                ? primaryColor
+                                : secondaryColor.withOpacity(0.4),
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  _ads.length,
-                  (index) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _currentPage == index ? 12 : 8,
-                    height: _currentPage == index ? 12 : 8,
-                    decoration: BoxDecoration(
-                      color: _currentPage == index
-                          ? primaryColor
-                          : secondaryColor.withOpacity(0.4),
-                      shape: BoxShape.circle,
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (_hotDeals.isNotEmpty) ...[
-                Text(
-                  "Today's Deals",
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: textColor),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 140,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _hotDeals.length,
-                    itemBuilder: (_, idx) {
-                      final it = _hotDeals[idx];
-                      final rawPath = it.imageUrl.startsWith('/')
-                          ? it.imageUrl.substring(1)
-                          : it.imageUrl;
-                      final imgUrl = '$host/$rawPath';
-                      return GestureDetector(
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => SingleItem(
-                                      id: it.id, // ← the real integer ID
-
-                                      icon: Icons.fastfood,
-                                      name: it.localizedName(context),
-                                      description: it.description,
-                                      unitPrice: it.price,
-                                      imageUrl: imgUrl,
-                                      discount: it.discount,
-                                    )),
-                          );
-                          _loadCartCount(); // ← now we reload the badge *after* you pop back
-                        },
-                        child: Container(
-                          width: 120,
-                          margin: const EdgeInsets.only(right: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black12, blurRadius: 4)
-                            ],
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 8),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Big percentage
-                              Text(
-                                '${it.discount.toStringAsFixed(0)}%',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.redAccent,
-                                ),
-                              ),
-                              // “xx OFF” pill
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.redAccent.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '${(it.discount * 0.8).round()}% OFF',
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.redAccent),
-                                ),
-                              ),
-                              // Item name
-                              Text(
-                                it.localizedName(context),
-                                textAlign: TextAlign.center,
-                                style:
-                                    TextStyle(fontSize: 14, color: textColor),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
+                    const SizedBox(height: 24),
+                    if (_hotDeals.isNotEmpty) ...[
+                      // Section title
+                      Text(
+                        s.tDeals,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
                         ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-              // ─── Dynamic Category Sections ────────────────────────────────────────
-              for (var sec in _sections) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(sec.category.localizedName(context),
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: textColor)),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SeeMoreScreen(
-                                title: sec.category.localizedName(context),
-                                items: sec.items, // ← pass the whole List<Item>
-                                host: apiBase.replaceAll('/api', ''),
-                              ),
-                            ));
-                      },
-                      child:
-                          Text(s.seeMore, style: TextStyle(color: textColor)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 200,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: sec.items.length,
-                    itemBuilder: (_, idx) {
-                      final it = sec.items[idx];
-                      final rawPath = it.imageUrl.startsWith('/')
-                          ? it.imageUrl.substring(1)
-                          : it.imageUrl;
-                      final imgUrl = '$host/$rawPath';
+                      ),
+                      const SizedBox(height: 12),
 
-                      return InkWell(
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => SingleItem(
-                                      id: it.id, // ← the real integer ID
-
-                                      icon: Icons.fastfood,
-                                      name: it.localizedName(context),
-                                      description: it.description,
-                                      unitPrice: it.price,
-                                      imageUrl: imgUrl,
-                                      discount: it.discount,
-                                    )),
-                          );
-                          _loadCartCount(); // ← now we reload the badge *after* you pop back
-                        },
-                        child: Container(
-                          width: 150,
-                          margin: const EdgeInsets.only(right: 4),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            color: Colors.white,
-                            boxShadow: [],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // 1) Image + discount badge
-                              Stack(
+                      // ─── Single vs. Multiple ──────────────────────────────────────────────
+                      if (_hotDeals.length == 1)
+                        // Single large card
+                        GestureDetector(
+                          onTap: () => _openDeal(context, _hotDeals.first),
+                          child: Container(
+                            height: 200,
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 4))
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Stack(
+                                fit: StackFit.expand,
                                 children: [
-                                  Container(
-                                    height: 120,
-                                    child: ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(
-                                          top: Radius.circular(16)),
-                                      child: it.imageUrl.isNotEmpty
-                                          ? CachedNetworkImage(
-                                              imageUrl: imgUrl,
-                                              placeholder: (_, __) => Center(
-                                                  child:
-                                                      CircularProgressIndicator()),
-                                              errorWidget: (_, __, ___) =>
-                                                  Icon(Icons.error),
-                                            )
-                                          : Container(
-                                              width: double.infinity,
-                                              height: 80,
-                                              color: Colors.grey[300],
-                                              child: const Icon(
-                                                Icons.fastfood,
-                                                size: 40,
-                                                color: Colors.black54,
-                                              ),
+                                  // Background image
+                                  CachedNetworkImage(
+                                    imageUrl: _formatImageUrl(
+                                        _hotDeals.first.imageUrl),
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => const Center(
+                                        child: CircularProgressIndicator()),
+                                    errorWidget: (_, __, ___) =>
+                                        const Icon(Icons.error, size: 40),
+                                  ),
+
+                                  // Gradient overlay at bottom
+                                  Positioned(
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: const BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.transparent,
+                                            Colors.black54,
+                                          ],
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Item name
+                                          Text(
+                                            _hotDeals.first
+                                                .localizedName(context),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
                                             ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Price row
+                                          Row(
+                                            children: [
+                                              Text(
+                                                '${_hotDeals.first.price.toStringAsFixed(0)} IQD',
+                                                style: const TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 14,
+                                                  decoration: TextDecoration
+                                                      .lineThrough,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                '${(_hotDeals.first.price * (1 - _hotDeals.first.discount / 100)).toStringAsFixed(0)} IQD',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  if (it.discount > 0)
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.redAccent,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          '-${it.discount.toStringAsFixed(0)}%',
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10),
+
+                                  // Discount badge
+                                  Positioned(
+                                    top: 12,
+                                    left: 12,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.redAccent,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                              color: Colors.black26,
+                                              blurRadius: 4)
+                                        ],
+                                      ),
+                                      child: Text(
+                                        '-${_hotDeals.first.discount.toStringAsFixed(0)}%',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
+                                  ),
                                 ],
                               ),
-
-                              const SizedBox(height: 8),
-
-                              // 2) Name
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 6),
-                                child: Text(
-                                  it.localizedName(context),
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
+                            ),
+                          ),
+                        )
+                      else
+                        // Original small-card carousel
+                        SizedBox(
+                          height: 140,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _hotDeals.length,
+                            itemBuilder: (_, idx) {
+                              final it = _hotDeals[idx];
+                              return GestureDetector(
+                                onTap: () => _openDeal(context, it),
+                                child: Container(
+                                  width: 120,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                          color: Colors.black12, blurRadius: 4)
+                                    ],
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-
-                              const SizedBox(height: 4),
-
-                              // 3) Price / Discounted price
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 6),
-                                child: it.discount > 0
-                                    ? Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            '${it.price.toStringAsFixed(0)} IQD',
-                                            style: const TextStyle(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12, horizontal: 8),
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '${it.discount.toStringAsFixed(0)}%',
+                                        style: const TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              Colors.redAccent.withOpacity(0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '${(it.discount * 0.8).round()}% OFF',
+                                          style: const TextStyle(
                                               fontSize: 12,
-                                              decoration:
-                                                  TextDecoration.lineThrough,
-                                              color: Colors.grey,
+                                              color: Colors.redAccent),
+                                        ),
+                                      ),
+                                      Text(
+                                        it.localizedName(context),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            fontSize: 14, color: textColor),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                      const SizedBox(height: 16),
+                      // “All Discounts” button
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          style: ButtonStyle(
+                            backgroundColor:
+                                WidgetStateProperty.all(primaryColor),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DiscountsScreen(),
+                              ),
+                            );
+                          },
+                          child: Text(s.allDiscount,
+                              style: TextStyle(
+                                color: Colors.white,
+                              )),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+                    ],
+                    // ─── Dynamic Category Sections ────────────────────────────────────────
+                    for (var sec in _sections) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(sec.category.localizedName(context),
+                              style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor)),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => SeeMoreScreen(
+                                      title:
+                                          sec.category.localizedName(context),
+                                      items: sec
+                                          .items, // ← pass the whole List<Item>
+                                      host: apiBase.replaceAll('/api', ''),
+                                    ),
+                                  ));
+                            },
+                            child: Text(s.seeMore,
+                                style: TextStyle(color: textColor)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: sec.items.length,
+                          itemBuilder: (_, idx) {
+                            final it = sec.items[idx];
+                            final rawPath = it.imageUrl.startsWith('/')
+                                ? it.imageUrl.substring(1)
+                                : it.imageUrl;
+                            final imgUrl = '$host/$rawPath';
+
+                            return InkWell(
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => SingleItem(
+                                            id: it.id, // ← the real integer ID
+
+                                            icon: Icons.fastfood,
+                                            name: it.localizedName(context),
+                                            description: it.description,
+                                            unitPrice: it.price,
+                                            imageUrl: imgUrl,
+                                            discount: it.discount,
+                                          )),
+                                );
+                                _loadCartCount(); // ← now we reload the badge *after* you pop back
+                              },
+                              child: Container(
+                                width: 150,
+                                margin: const EdgeInsets.only(right: 4),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: Colors.white,
+                                  boxShadow: [],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // 1) Image + discount badge
+                                    Stack(
+                                      children: [
+                                        Container(
+                                          height: 120,
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                const BorderRadius.vertical(
+                                                    top: Radius.circular(16)),
+                                            child: it.imageUrl.isNotEmpty
+                                                ? CachedNetworkImage(
+                                                    imageUrl: imgUrl,
+                                                    placeholder: (_, __) => Center(
+                                                        child:
+                                                            CircularProgressIndicator()),
+                                                    errorWidget: (_, __, ___) =>
+                                                        Icon(Icons.error),
+                                                  )
+                                                : Container(
+                                                    width: double.infinity,
+                                                    height: 80,
+                                                    color: Colors.grey[300],
+                                                    child: const Icon(
+                                                      Icons.fastfood,
+                                                      size: 40,
+                                                      color: Colors.black54,
+                                                    ),
+                                                  ),
+                                          ),
+                                        ),
+                                        if (it.discount > 0)
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.redAccent,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                '-${it.discount.toStringAsFixed(0)}%',
+                                                style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10),
+                                              ),
                                             ),
                                           ),
-                                          SizedBox(
-                                            width: 12,
-                                          ),
-                                          Text(
-                                            '${(it.price * (1 - it.discount / 100)).toStringAsFixed(0)} IQD',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: textColor,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Text(
-                                        '${it.price.toStringAsFixed(0)} IQD',
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 8),
+
+                                    // 2) Name
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6),
+                                      child: Text(
+                                        it.localizedName(context),
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
                                           color: textColor,
                                         ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                              ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 6),
-                                child: Text(
-                                  '${it.description}',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                    ),
+
+                                    const SizedBox(height: 4),
+
+                                    // 3) Price / Discounted price
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6),
+                                      child: it.discount > 0
+                                          ? Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  '${it.price.toStringAsFixed(0)} IQD',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    decoration: TextDecoration
+                                                        .lineThrough,
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                  width: 12,
+                                                ),
+                                                Text(
+                                                  '${(it.price * (1 - it.discount / 100)).toStringAsFixed(0)} IQD',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: textColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          : Text(
+                                              '${it.price.toStringAsFixed(0)} IQD',
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: textColor,
+                                              ),
+                                            ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6),
+                                      child: Text(
+                                        '${it.description}',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 4),
+                                  ],
                                 ),
                               ),
-
-                              const SizedBox(height: 4),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            if (_cartCount > 0)
+              GestureDetector(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BasketPage()),
+                  );
+                  _loadCartCount(); // refresh when you come back
+                },
+                child: Container(
+                  color: primaryColor,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.shopping_basket, color: Colors.white),
+                      const SizedBox(width: 12),
+                      Text(
+                        '$_cartCount items • ${_cartTotal.toStringAsFixed(0)} IQD',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'View Basket',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-              ],
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

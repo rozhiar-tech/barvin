@@ -27,6 +27,7 @@ class MessageLookup extends MessageLookupByLibrary {
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "addNewAddress": MessageLookupByLibrary.simpleMessage("إضافة عنوان جديد"),
     "address": MessageLookupByLibrary.simpleMessage("عنوان"),
+    "allDiscount": MessageLookupByLibrary.simpleMessage("جميع الخصومات"),
     "appTitle": MessageLookupByLibrary.simpleMessage("تطبيق بارڤين"),
     "basket": MessageLookupByLibrary.simpleMessage("سلتك"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("السلة فارغة"),
@@ -76,6 +77,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "تسجيل الدخول لعرض الطلبات",
     ),
     "subtotal": MessageLookupByLibrary.simpleMessage("المجموع الفرعي"),
+    "tDeals": MessageLookupByLibrary.simpleMessage("عروض اليوم"),
     "tapToPickLocation": MessageLookupByLibrary.simpleMessage(
       "انقر لاختيار الموقع",
     ),

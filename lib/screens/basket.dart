@@ -63,11 +63,13 @@ class _BasketPageState extends State<BasketPage> {
     // Group by name and sum quantities
     final Map<String, CartEntry> grouped = {};
     for (var m in raw) {
+      final idStr = m['id'].toString();
       final name = m['name'] as String;
       final price = double.tryParse(m['price'].toString()) ?? 0;
       final qty = int.tryParse(m['quantity'].toString()) ?? 1;
+
       final item = Item(
-        id: int.parse(m['id']),
+        id: int.parse(idStr),
         nameEn: name,
         nameKu: name,
         nameAr: name,
@@ -76,10 +78,12 @@ class _BasketPageState extends State<BasketPage> {
         discount: 0.0,
         description: m['description'] ?? '',
       );
-      if (grouped.containsKey(name)) {
-        // grouped[name]!.quantity += qty;
+
+      if (grouped.containsKey(idStr)) {
+        // if it’s already in the map, bump the quantity
+        grouped[idStr]!.quantity += qty;
       } else {
-        grouped[name] = CartEntry(item: item, quantity: qty);
+        grouped[idStr] = CartEntry(item: item, quantity: qty);
       }
     }
 

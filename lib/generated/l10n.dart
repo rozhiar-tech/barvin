@@ -284,6 +284,21 @@ class S {
     return Intl.message('Your Orders', name: 'yourOrders', desc: '', args: []);
   }
 
+  /// `Today's Deals`
+  String get tDeals {
+    return Intl.message('Today\'s Deals', name: 'tDeals', desc: '', args: []);
+  }
+
+  /// `All Discounts`
+  String get allDiscount {
+    return Intl.message(
+      'All Discounts',
+      name: 'allDiscount',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Sign In to View Orders`
   String get singInOrder {
     return Intl.message(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -214,6 +215,8 @@ class _OrdersState extends State<Orders> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
+
     if (_loading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -225,7 +228,12 @@ class _OrdersState extends State<Orders> {
           child: ElevatedButton(
             onPressed: () => Navigator.pushNamed(context, '/login'),
             style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-            child: const Text('Sign in to view orders'),
+            child: Text(
+              s.singInOrder,
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
           ),
         ),
       );

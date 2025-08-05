@@ -29,6 +29,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "ناونیشانی نوێ زیاد بکە",
     ),
     "address": MessageLookupByLibrary.simpleMessage("ناونیشان"),
+    "allDiscount": MessageLookupByLibrary.simpleMessage("هەموو دەسکاونتەکان"),
     "appTitle": MessageLookupByLibrary.simpleMessage("برڤین بەرنامە"),
     "basket": MessageLookupByLibrary.simpleMessage("سەتلی داواکاری"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("سەتلەکە بەتالە"),
@@ -80,6 +81,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "داخل بوون بۆ بینینی داواکاریەکان",
     ),
     "subtotal": MessageLookupByLibrary.simpleMessage("نرخی پێش کۆتا"),
+    "tDeals": MessageLookupByLibrary.simpleMessage("دیسکاونتەکانی ئەمرۆ"),
     "tapToPickLocation": MessageLookupByLibrary.simpleMessage(
       "بۆ هەڵبژاردنی شوێن پەنجە بنێ",
     ),

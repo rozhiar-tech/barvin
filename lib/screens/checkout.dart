@@ -3,7 +3,6 @@
 import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/screens/add_address.dart';
-import 'package:barvin/screens/orders.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -93,8 +92,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
         await prefs.remove('cart');
         // navigate to orders
         if (!mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const Orders()),
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/main',
           (Route<dynamic> route) => false,
         );
       } else {

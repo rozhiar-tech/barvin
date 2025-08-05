@@ -27,6 +27,7 @@ class MessageLookup extends MessageLookupByLibrary {
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "addNewAddress": MessageLookupByLibrary.simpleMessage("Add New Address"),
     "address": MessageLookupByLibrary.simpleMessage("Address"),
+    "allDiscount": MessageLookupByLibrary.simpleMessage("All Discounts"),
     "appTitle": MessageLookupByLibrary.simpleMessage("My Barvin App"),
     "basket": MessageLookupByLibrary.simpleMessage("Your basket"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("Basket is empty"),
@@ -76,6 +77,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Sign In to View Orders",
     ),
     "subtotal": MessageLookupByLibrary.simpleMessage("Subtotal"),
+    "tDeals": MessageLookupByLibrary.simpleMessage("Today\'s Deals"),
     "tapToPickLocation": MessageLookupByLibrary.simpleMessage(
       "Tap To Pick Location",
     ),
