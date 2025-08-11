@@ -3,7 +3,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
-const Color primaryColor = Color(0xFF567765);
+const Color splashBackground = Color(0xFF7AA089);
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
@@ -19,25 +19,19 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    // 1) set up your Lottie controller
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..forward();
 
-    // 2) check connectivity once
     Connectivity().checkConnectivity().then((result) {
-      setState(() {
-        _isOnline = result != ConnectivityResult.none;
-      });
+      setState(() => _isOnline = result != ConnectivityResult.none);
     });
 
-    // 3) schedule navigation, but only if we're still online
     Timer(const Duration(seconds: 3), () {
       if (mounted && _isOnline) {
         Navigator.pushReplacementNamed(context, '/main');
       }
-      // else: do nothing, remain on splash
     });
   }
 
@@ -49,55 +43,45 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // pick one of two Lottie animations based on connectivity
     final asset = _isOnline ? 'assets/splash.json' : 'assets/nointernet.json';
 
     return Scaffold(
-      backgroundColor: primaryColor,
+      backgroundColor: splashBackground,
       body: Center(
-        child: ScaleTransition(
-          scale: CurvedAnimation(
-            parent: _controller,
-            curve: Curves.elasticOut,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 4) Lottie animation in place of icon
-              SizedBox(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Lottie animation with enlarged logo overlay
+
+            Padding(
+              padding: const EdgeInsets.only(left: 12.0),
+              child: Image.asset(
+                'assets/logo.png',
                 width: 250,
                 height: 250,
-                child: Lottie.asset(
-                  asset,
-                  controller: _controller,
-                  onLoaded: (composition) {
-                    _controller.duration = composition.duration;
-                    _controller.repeat();
-                  },
-                ),
               ),
+            ),
+            SizedBox(
+              width: 220,
+              height: 220,
+              child: Lottie.asset(
+                asset,
+                controller: _controller,
+                onLoaded: (composition) {
+                  _controller
+                    ..duration = composition.duration
+                    ..repeat();
+                },
+              ),
+            ),
+            if (!_isOnline) ...[
               const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.only(left: 15.0),
-                child: Text(
-                  'Barvin',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.2,
-                  ),
-                ),
+              Text(
+                'No internet connection',
+                style: TextStyle(color: Colors.white.withOpacity(0.8)),
               ),
-              if (!_isOnline) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'No internet connection',
-                  style: TextStyle(color: Colors.white.withOpacity(0.8)),
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );

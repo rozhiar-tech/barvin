@@ -36,50 +36,83 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         body['phone'] = _identifier;
       }
+
       final res = await http.post(
         Uri.parse('$apiBase/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
-      final data = jsonDecode(res.body);
 
-      if (res.statusCode == 200 && data['token'] != null) {
+      Map<String, dynamic> data = {};
+      try {
+        data = jsonDecode(res.body) as Map<String, dynamic>;
+      } catch (_) {}
+
+      if (res.statusCode == 200 && data['token'] is String) {
+        final token = data['token'] as String;
+        final user = (data['user'] as Map<String, dynamic>?) ?? {};
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('loggedIn', true);
-        await prefs.setString('userName', data['user']['name']);
+        await prefs.setString('token', token);
+        await prefs.setInt('userId', (user['id'] ?? 0) as int);
 
-        await prefs.setString('userAddress', data['user']['address']);
-
-        await prefs.setString('userPhone', data['user']['phone']);
-        await prefs.setString('userAvatar', data['user']['avatar']);
-        await prefs.setBool('delivery', data['user']['delivery']);
-        await prefs.setBool('debt', data['user']['debt']);
-        await prefs.setString('latitude', data['user']['latitude']);
-
-        await prefs.setString('longitude', data['user']['longitude']);
-        await prefs.setInt('userId', data['user']['id']);
-        await prefs.setString('token', data['token']);
-
-        if (_rememberMe) {
-          await prefs.setString('email', _email);
+        // Strings: store empty or remove if null
+        await prefs.setString('userName', (user['name'] ?? '').toString());
+        await prefs.setString(
+            'userAddress', (user['address'] ?? '').toString());
+        await prefs.setString('userPhone', (user['phone'] ?? '').toString());
+        if (user['avatar'] != null) {
+          await prefs.setString('userAvatar', user['avatar'].toString());
+        } else {
+          await prefs.remove('userAvatar');
         }
+        if (user['latitude'] != null) {
+          await prefs.setString('latitude', user['latitude'].toString());
+        } else {
+          await prefs.remove('latitude');
+        }
+        if (user['longitude'] != null) {
+          await prefs.setString('longitude', user['longitude'].toString());
+        } else {
+          await prefs.remove('longitude');
+        }
+
+        // Bools: coerce null -> false
+        await prefs.setBool('delivery', (user['delivery'] ?? false) == true);
+        await prefs.setBool('debt', (user['debt'] ?? false) == true);
+
+        // Remember last identifier instead of _email (since you accept phone OR email)
+        if (_rememberMe) {
+          await prefs.setString('identifier', _identifier);
+        }
+
+        // (Optional) decode JWT expiry safely
+        try {
+          final parts = token.split('.');
+          if (parts.length == 3) {
+            final payload = jsonDecode(
+              utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+            );
+            if (payload is Map && payload['exp'] is int) {
+              final exp =
+                  DateTime.fromMillisecondsSinceEpoch(payload['exp'] * 1000);
+              print('Now: ${DateTime.now()} – Token expires at: $exp');
+            }
+          }
+        } catch (e) {
+          print('JWT decode skipped: $e');
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Signed in successfully!')),
         );
-        Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/main', (_) => false);
       } else {
-        final msg = data['error'] ?? 'Invalid credentials';
-        print(data['error']);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
-        );
+        final msg = (data['error'] ?? 'Invalid credentials').toString();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
       }
-      // e.g. after login:
-      final jwtParts = data['token'].split('.');
-      final payload = jsonDecode(
-          utf8.decode(base64Url.decode(base64Url.normalize(jwtParts[1]))));
-      final exp = DateTime.fromMillisecondsSinceEpoch(payload['exp'] * 1000);
-      print('Now: ${DateTime.now()} – Token expires at: $exp');
     } catch (e) {
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(

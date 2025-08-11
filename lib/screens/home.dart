@@ -362,7 +362,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     radius: 16,
                     backgroundImage: avatarUrl != null
                         ? NetworkImage(mediaUrl!)
-                        : const AssetImage('assets/logo.jpeg'),
+                        : const AssetImage('assets/logo.png'),
                     backgroundColor: Colors.grey[300],
                   ),
                   // const SizedBox(width: 8),
@@ -933,7 +933,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 Text(
                                                   '${it.price.toStringAsFixed(0)} IQD',
                                                   style: const TextStyle(
-                                                    fontSize: 12,
+                                                    fontSize: 10,
                                                     decoration: TextDecoration
                                                         .lineThrough,
                                                     color: Colors.grey,
@@ -945,7 +945,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 Text(
                                                   '${(it.price * (1 - it.discount / 100)).toStringAsFixed(0)} IQD',
                                                   style: const TextStyle(
-                                                    fontSize: 14,
+                                                    fontSize: 12,
                                                     fontWeight: FontWeight.bold,
                                                     color: textColor,
                                                   ),

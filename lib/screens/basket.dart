@@ -23,7 +23,7 @@ class CartEntry {
 
 class _BasketPageState extends State<BasketPage> {
   List<CartEntry> _entries = [];
-  final double _deliveryFee = 2000;
+  double _deliveryFee = 0; // ← was const 2000
   bool _isLoggedIn = false;
   bool _freeDelivery = false;
   bool _isLoadingOrder = false;
@@ -34,6 +34,28 @@ class _BasketPageState extends State<BasketPage> {
   void initState() {
     super.initState();
     _checkLoginAndLoadCart();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final res = await http.get(Uri.parse('$apiBase/settings'));
+      if (res.statusCode == 200) {
+        final m = jsonDecode(res.body) as Map<String, dynamic>;
+        final raw = m['delivery_fee_iqd'];
+        final fee = raw is num
+            ? raw.toDouble()
+            : double.tryParse(raw?.toString() ?? '');
+        if (fee != null) {
+          setState(() => _deliveryFee = fee);
+        }
+      } else {
+        // optional: keep previous _deliveryFee or set a default
+        print('Settings load failed: ${res.statusCode} ${res.body}');
+      }
+    } catch (e) {
+      print('Settings load error: $e');
+    }
   }
 
   Future<void> _checkLoginAndLoadCart() async {
