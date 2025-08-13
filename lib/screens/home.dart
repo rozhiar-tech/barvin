@@ -794,6 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       items: sec
                                           .items, // ← pass the whole List<Item>
                                       host: apiBase.replaceAll('/api', ''),
+                                      categoryId: sec.category.id, // ← add this
                                     ),
                                   ));
                             },
@@ -842,8 +843,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   boxShadow: [],
                                 ),
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     // 1) Image + discount badge
                                     Stack(

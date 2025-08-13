@@ -133,14 +133,19 @@ class _SearchScreenState extends State<SearchScreen> {
                       ..._catResults.map((c) => ListTile(
                             leading: const Icon(Icons.category),
                             title: Text(c.localizedName(context)),
-                            subtitle: Text("${c.items.length} items"),
+                            subtitle: Text(c.items.isNotEmpty
+                                ? "${c.items.length} items"
+                                : ""),
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => SeeMoreScreen(
                                   title: c.localizedName(context),
-                                  items: c.items,
+                                  items: c
+                                      .items, // can be empty; SeeMore will refetch
                                   host: apiBase.replaceAll('/api', ''),
+                                  categoryId:
+                                      c.id, // ← FIX: was `sec.category.id`
                                 ),
                               ),
                             ),
