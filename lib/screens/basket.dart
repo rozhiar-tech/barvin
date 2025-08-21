@@ -7,6 +7,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:barvin/screens/home.dart' show apiBase;
+import 'package:url_launcher/url_launcher.dart'; // NEW
+
+const Color whatsAppGreen = Color(0xFF25D366);
+
+// Use international format (no leading 0, country code first)
+// Example uses Iraq (+964) and your first number 07502312211
+const String kWhatsAppNumber = '9647502312211';
 
 const Color primaryColor = Color(0xFF567765);
 
@@ -23,6 +30,9 @@ class CartEntry {
 }
 
 class _BasketPageState extends State<BasketPage> {
+  String _userName = '';
+  String _userPhone = '';
+  String _userAddress = '';
   List<CartEntry> _entries = [];
   double _deliveryFee = 0; // ← was const 2000
   bool _isLoggedIn = false;
@@ -64,7 +74,73 @@ class _BasketPageState extends State<BasketPage> {
     token = prefs.getString('token') ?? '';
     print(token);
     await _loadCart(); // your existing cart loader
-    setState(() {});
+    setState(() {
+      if (_isLoggedIn) {
+        _userName = prefs.getString('userName') ?? '';
+        _userPhone = prefs.getString('userPhone') ?? '';
+        _userAddress = prefs.getString('userAddress') ?? '';
+      }
+    });
+  }
+
+  String _buildWhatsAppMessage(BuildContext context) {
+    final b = StringBuffer();
+
+    b.writeln('🧾 Barvin – New order');
+    if (_isLoggedIn) {
+      if (_userName.isNotEmpty) b.writeln('👤 Name: $_userName');
+      if (_userPhone.isNotEmpty) b.writeln('📞 Phone: $_userPhone');
+      if (_userAddress.isNotEmpty) b.writeln('📍 Address: $_userAddress');
+    }
+    b.writeln('—' * 18);
+
+    for (final e in _entries) {
+      final lineTotal = (e.item.price * e.quantity).toStringAsFixed(0);
+      b.writeln(
+          '• ${e.item.localizedName(context)}  x${e.quantity}  = $lineTotal IQD');
+    }
+
+    b.writeln('—' * 18);
+    b.writeln('Subtotal: ${_subtotal.toStringAsFixed(0)} IQD');
+    b.writeln(
+        'Delivery: ${_freeDelivery ? "FREE" : "${_deliveryFee.toStringAsFixed(0)} IQD"}');
+    b.writeln('TOTAL: ${_total.toStringAsFixed(0)} IQD');
+
+    return b.toString();
+  }
+
+  Future<void> _sendOrderViaWhatsApp() async {
+    if (_entries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Your basket is empty.')),
+      );
+      return;
+    }
+
+    final msg = _buildWhatsAppMessage(context);
+    final phone = kWhatsAppNumber.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // Try the app scheme first
+    final uriApp = Uri.parse(
+        'whatsapp://send?phone=$phone&text=${Uri.encodeComponent(msg)}');
+    // Fallback to web
+    final uriWeb =
+        Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(msg)}');
+
+    try {
+      if (await canLaunchUrl(uriApp)) {
+        await launchUrl(uriApp, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(uriWeb)) {
+        await launchUrl(uriWeb, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Cannot open WhatsApp';
+      }
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Could not open WhatsApp on this device.')),
+      );
+    }
   }
 
   Future<void> _loadCart() async {
@@ -382,6 +458,27 @@ class _BasketPageState extends State<BasketPage> {
                     fontSize: 18,
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.chat, color: Colors.white),
+                label: const Text(
+                  'Send via WhatsApp',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                onPressed: _entries.isEmpty ? null : _sendOrderViaWhatsApp,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: whatsAppGreen,
+                  side: const BorderSide(color: whatsAppGreen),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
               ),
             ),
 

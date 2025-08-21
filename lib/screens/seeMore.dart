@@ -101,6 +101,32 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   String _query = '';
   String? _selectedSupplier; // null => all suppliers
   Timer? _debounce;
+  void showTopNotice(BuildContext context, String text) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentMaterialBanner();
+
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        backgroundColor: primaryColor,
+        elevation: 2,
+        content: Text(text,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600)),
+        leading: const Icon(Icons.check_circle, color: Colors.white),
+        actions: [
+          TextButton(
+            onPressed: messenger.hideCurrentMaterialBanner,
+            child: const Text('OK', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    // auto-hide after 2s
+    Future.delayed(const Duration(seconds: 2), () {
+      if (messenger.mounted) messenger.hideCurrentMaterialBanner();
+    });
+  }
 
   // data
   List<Item> _items = [];
@@ -464,7 +490,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
 
                         return InkWell(
                           onTap: () async {
-                            await Navigator.push(
+                            final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => SingleItem(
@@ -478,6 +504,10 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                                 ),
                               ),
                             );
+
+                            if (result is String && result.isNotEmpty) {
+                              showTopNotice(context, result);
+                            }
                           },
                           child: Container(
                             decoration: BoxDecoration(

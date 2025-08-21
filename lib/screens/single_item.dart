@@ -75,7 +75,6 @@ class _SingleItemState extends State<SingleItem> {
         'supplierName': widget.supplierName ?? '',
       });
     }
-
     final newCartList = cart.map((m) => jsonEncode(m)).toList();
     await prefs.setStringList('cart', newCartList);
 
@@ -84,9 +83,10 @@ class _SingleItemState extends State<SingleItem> {
         : _quantity;
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${widget.name} added to basket (x$newQty)')),
-    );
+
+// Send a message back to the previous screen & close this page
+    final message = '${widget.name} added to basket (x$newQty)';
+    Navigator.pop(context, message);
   }
 
   String? _supplier; // runtime supplier

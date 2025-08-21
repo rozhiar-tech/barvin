@@ -252,6 +252,33 @@ class _HomeScreenState extends State<HomeScreen> {
     ).then((_) => _loadCartCount());
   }
 
+  void showTopNotice(BuildContext context, String text) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentMaterialBanner();
+
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        backgroundColor: primaryColor,
+        elevation: 2,
+        content: Text(text,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600)),
+        leading: const Icon(Icons.check_circle, color: Colors.white),
+        actions: [
+          TextButton(
+            onPressed: messenger.hideCurrentMaterialBanner,
+            child: const Text('OK', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    // auto-hide after 2s
+    Future.delayed(const Duration(seconds: 2), () {
+      if (messenger.mounted) messenger.hideCurrentMaterialBanner();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -897,23 +924,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                 onTap: () async {
                                   // print("pressed");
                                   // print("supplier name ${it.supplier_name}");
-                                  await Navigator.push(
+                                  final result = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (_) => SingleItem(
-                                              id: it
-                                                  .id, // ← the real integer ID
-
-                                              icon: Icons.fastfood,
-                                              name: it.localizedName(context),
-                                              description: it.description,
-                                              unitPrice: it.price,
-                                              imageUrl: imgUrl,
-                                              discount: it.discount,
-                                              supplierName: it.supplier_name,
-                                            )),
+                                      builder: (_) => SingleItem(
+                                        id: it.id,
+                                        icon: Icons.fastfood,
+                                        name: it.localizedName(context),
+                                        description: it.description,
+                                        unitPrice: it.price,
+                                        imageUrl: imgUrl,
+                                        discount: it.discount,
+                                        supplierName: it.supplier_name,
+                                      ),
+                                    ),
                                   );
+
                                   _loadCartCount(); // ← now we reload the badge *after* you pop back
+                                  if (result is String && result.isNotEmpty) {
+                                    showTopNotice(context, result);
+                                  }
                                 },
                                 child: Container(
                                   width: 150,
