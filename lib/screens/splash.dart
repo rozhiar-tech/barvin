@@ -53,14 +53,6 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
           children: [
             // Lottie animation with enlarged logo overlay
 
-            Padding(
-              padding: const EdgeInsets.only(left: 12.0),
-              child: Image.asset(
-                'assets/logo.png',
-                width: 250,
-                height: 250,
-              ),
-            ),
             SizedBox(
               width: 220,
               height: 220,

@@ -6,6 +6,7 @@ import 'package:barvin/screens/home.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:barvin/screens/home.dart' show apiBase;
 
 const Color primaryColor = Color(0xFF567765);
 
@@ -28,7 +29,6 @@ class _BasketPageState extends State<BasketPage> {
   bool _freeDelivery = false;
   bool _isLoadingOrder = false;
   String token = '';
-  String apiBase = 'http://95.111.224.58:4000/api';
 
   @override
   void initState() {
@@ -99,6 +99,7 @@ class _BasketPageState extends State<BasketPage> {
         price: price,
         discount: 0.0,
         description: m['description'] ?? '',
+        supplier_name: m['supplier_name'] ?? '',
       );
 
       if (grouped.containsKey(idStr)) {

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:barvin/screens/home.dart'; // for Item & parseSectionsPayload
 import 'single_item.dart';
 
-const String apiBase = 'http://95.111.224.58:4000/api';
+const String apiBase = 'http://';
 const Color primaryColor = Color(0xFFbed6be);
 const Color secondaryColor = Color(0xFF6D8474);
 const Color textColor = Color(0xFF212121);

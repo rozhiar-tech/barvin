@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'LocationPickerPage.dart';
 
-const String apiBase = 'http://95.111.224.58:4000/api';
+const String apiBase = 'http://';
 const Color primaryColor = Color(0xFF567765);
 
 class SignUpPage extends StatefulWidget {

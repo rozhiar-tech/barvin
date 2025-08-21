@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
+import 'package:barvin/screens/order_receipt.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+// at the top of orders.dart
+import 'package:barvin/screens/home.dart' show apiBase;
 
 const Color primaryColor = Color(0xFF567765);
-const String apiBase = 'http://95.111.224.58:4000/api';
 
 extension StringCap on String {
   String capitalize() => isEmpty ? '' : this[0].toUpperCase() + substring(1);
@@ -158,53 +160,65 @@ class _OrdersState extends State<Orders> {
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // date + badge
-                  Row(
-                    children: [
-                      const Icon(Icons.calendar_today,
-                          size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(dateLabel,
-                          style: const TextStyle(color: Colors.grey)),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => OrderReceiptPage(orderId: id),
+                ),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // date + badge
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today,
+                            size: 16, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(dateLabel,
+                            style: const TextStyle(color: Colors.grey)),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            (status == 'all' ? o['status'] : status),
+                            style: TextStyle(
+                                color: statusColor,
+                                fontWeight: FontWeight.w600),
+                          ),
                         ),
-                        child: Text(
-                          (status == 'all' ? o['status'] : status),
-                          style: TextStyle(
-                              color: statusColor, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // order number
-                  Text('#ORD-${id.toString().padLeft(4, '0')}',
-                      style: TextStyle(color: Colors.grey[600])),
-                  const SizedBox(height: 8),
-                  // items summary
-                  Text(summary, style: const TextStyle(fontSize: 16)),
-                  const SizedBox(height: 8),
-                  // total amount
-                  Text('Total: ${o['total'].toStringAsFixed(0)} IQD',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // order number
+                    Text('#ORD-${id.toString().padLeft(4, '0')}',
+                        style: TextStyle(color: Colors.grey[600])),
+                    const SizedBox(height: 8),
+                    // items summary
+                    Text(summary, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 8),
+                    // total amount
+                    Text('Total: ${o['total'].toStringAsFixed(0)} IQD',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ),
           ),

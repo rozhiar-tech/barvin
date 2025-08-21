@@ -6,9 +6,9 @@ import 'package:barvin/screens/add_address.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:barvin/screens/home.dart' show apiBase;
 
 const Color primaryColor = Color(0xFF567765);
-const String apiBase = 'http://95.111.224.58:4000/api';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({Key? key}) : super(key: key);

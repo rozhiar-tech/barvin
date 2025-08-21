@@ -3,11 +3,12 @@ import 'package:barvin/screens/signup.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+// ignore: unused_shown_name
+import 'package:barvin/screens/home.dart' show apiUrl, apiBase;
 
 const Color _kPrimaryGreen = Color(0xFF4BCF7B);
 
 const Color primaryColor = Color(0xFF567765);
-const String apiBase = 'http://95.111.224.58:4000/api';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -16,7 +17,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  String _email = '';
+  // String _email = '';
   String _password = '';
   bool _rememberMe = false;
   bool _isLoading = false;
@@ -38,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       final res = await http.post(
-        Uri.parse('$apiBase/auth/login'),
+        apiUrl('/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );

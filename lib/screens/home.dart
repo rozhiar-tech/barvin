@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
+import 'package:barvin/screens/ads_screen.dart';
 import 'package:barvin/screens/discounts_screen.dart';
 import 'package:barvin/widgets/search_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -18,7 +19,20 @@ import 'seeMore.dart';
 const Color primaryColor = Color(0xFFbed6be);
 const Color secondaryColor = Color(0xFF6D8474);
 const Color textColor = Color(0xFF212121);
-const String apiBase = 'http://95.111.224.58:4000/api';
+// If you use a different host in dev/emulator, change here.
+const String apiOrigin = 'http://95.111.224.58:4000'; // ← no trailing slash
+const String apiBase = '$apiOrigin/api';
+
+Uri apiUrl(String path, [Map<String, dynamic>? query]) {
+  final p = path.startsWith('/') ? path : '/$path';
+  return Uri.parse('$apiBase$p').replace(queryParameters: query);
+}
+
+/// Backend often returns paths like "/uploads/…"
+String mediaUrlFrom(String rawPath) {
+  final path = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
+  return '$apiOrigin/$path';
+}
 
 class Ad {
   final int id;
@@ -42,6 +56,8 @@ class Ad {
 class Category {
   final int id;
   final String nameEn, nameKu, nameAr;
+  final String imageUrl; // 👈 NEW
+
   final List<Item> items;
 
   Category({
@@ -49,6 +65,8 @@ class Category {
     required this.nameEn,
     required this.nameKu,
     required this.nameAr,
+    this.imageUrl = "", // 👈 NEW
+
     this.items = const [],
   });
 
@@ -65,6 +83,8 @@ class Category {
       nameEn: j['name_en'] ?? '',
       nameKu: j['name_ku'] ?? '',
       nameAr: j['name_ar'] ?? '',
+      imageUrl: j['image_url'] ?? '', // 👈 NEW
+
       items: parsedItems, // ← shove it in here
     );
   }
@@ -88,16 +108,19 @@ class Item {
   final String imageUrl;
   final double price, discount;
   final String description;
+  final String supplier_name;
 
-  Item(
-      {required this.id,
-      required this.nameEn,
-      required this.nameKu,
-      required this.nameAr,
-      required this.imageUrl,
-      required this.price,
-      required this.discount,
-      required this.description});
+  Item({
+    required this.id,
+    required this.nameEn,
+    required this.nameKu,
+    required this.nameAr,
+    required this.imageUrl,
+    required this.price,
+    required this.discount,
+    required this.description,
+    required this.supplier_name,
+  });
 
   factory Item.fromJson(Map<String, dynamic> j) {
     double price = (j['price'] is num)
@@ -106,6 +129,14 @@ class Item {
     double discount = (j['discount'] is num)
         ? (j['discount'] as num).toDouble()
         : double.tryParse(j['discount'].toString()) ?? 0;
+
+    final supplier = (j['supplierName'] ??
+            j['supplier_name'] ??
+            j['supplierName'] ??
+            j['vendor'] ??
+            '')
+        .toString();
+
     return Item(
       id: j['id'],
       nameEn: j['name_en'] ?? '',
@@ -115,6 +146,7 @@ class Item {
       price: price,
       discount: discount,
       description: j['description']?.toString().trim() ?? '',
+      supplier_name: supplier, // ← now filled if any key matches
     );
   }
 
@@ -146,7 +178,7 @@ class HomeScreen extends StatefulWidget {
 /// Parse either a raw JSON list or a JSON object
 /// with an array under one of the keys.
 List<dynamic> parseSectionsPayload(String jsonStr) {
-  print(jsonStr);
+  // print(jsonStr);
   final decoded = jsonDecode(jsonStr);
   if (decoded is List) {
     return decoded;
@@ -170,6 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<int, VideoPlayerController> _videoControllers = {};
   int _cartCount = 0;
   double _cartTotal = 0;
+  bool _gridMode = true; // ← NEW
 
   String? avatarUrl;
   final host = apiBase.replaceAll('/api', '');
@@ -201,6 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // Navigate into your SingleItem detail screen:
   void _openDeal(BuildContext ctx, Item it) {
+    // print("supplier name ${it.supplier_name}");
     Navigator.push(
       ctx,
       MaterialPageRoute(
@@ -212,6 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
           unitPrice: it.price,
           imageUrl: _formatImageUrl(it.imageUrl),
           discount: it.discount,
+          supplierName: it.supplier_name,
         ),
       ),
     ).then((_) => _loadCartCount());
@@ -220,12 +255,25 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadGridPref(); // ← NEW
     _loadCartCount();
     _loadAds();
     _startCarousel();
     _loadSections();
     _loadUserAvatar();
     // get user avatar url from shared preferences
+  }
+
+  Future<void> _loadGridPref() async {
+    // ← NEW
+    final p = await SharedPreferences.getInstance();
+    setState(() => _gridMode = p.getBool('gridMode') ?? false);
+  }
+
+  Future<void> _saveGridPref(bool v) async {
+    // ← NEW
+    final p = await SharedPreferences.getInstance();
+    await p.setBool('gridMode', v);
   }
 
   Future<void> _loadUserAvatar() async {
@@ -266,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadAds() async {
     try {
-      final res = await http.get(Uri.parse('$apiBase/ads'));
+      final res = await http.get(apiUrl('/ads'));
       final List list = jsonDecode(res.body);
       final ads = list.map((j) => Ad.fromJson(j)).toList();
       for (var ad in ads) {
@@ -306,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadSections() async {
     setState(() => _loading = true);
     try {
-      final res = await http.get(Uri.parse('$apiBase/categories/with-items'));
+      final res = await http.get(apiUrl('/categories/with-items'));
       print("response is ${res.body}");
       // offload the peeling‐and‐casting to the isolate:
       final rawList = await compute(parseSectionsPayload, res.body);
@@ -348,30 +396,42 @@ class _HomeScreenState extends State<HomeScreen> {
     final host = apiBase.replaceAll('/api', '');
     final s = S.of(context);
 
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Column(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundImage: avatarUrl != null
-                        ? NetworkImage(mediaUrl!)
-                        : const AssetImage('assets/logo.png'),
-                    backgroundColor: Colors.grey[300],
+                  Row(
+                    children: [
+                      const Icon(Icons.view_carousel,
+                          color: secondaryColor, size: 18),
+                      Switch(
+                        value: _gridMode,
+                        onChanged: (v) {
+                          setState(() => _gridMode = v);
+                          _saveGridPref(v);
+                        },
+                        activeColor: secondaryColor,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      const Icon(Icons.grid_view,
+                          color: secondaryColor, size: 18),
+                    ],
                   ),
                   // const SizedBox(width: 8),
                   // 2) your original title
-                  Text(
-                    s.welcomeBack,
-                    style: TextStyle(
-                      color: textColor,
-                      fontWeight: FontWeight.w800,
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: SizedBox(
+                        height: 36,
+                        child: const SearchBar1(hint: 'Search items...'),
+                      ),
                     ),
                   ),
                   Stack(
@@ -440,17 +500,27 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: ListView(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(3),
                   children: [
-                    SizedBox(
-                      height: 20,
-                    ),
-                    const SearchBar1(hint: 'Search items...'),
-                    SizedBox(
-                      height: 20,
-                    ),
                     // ─── Ads Carousel ──────────────────────────────────────────────────────
-
+// below the row of dots, before the deals section
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.collections),
+                        label: const Text('See all ads'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AdsScreen(
+                                  initialAds:
+                                      _ads), // pass what you already loaded
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                     SizedBox(
                       height: 180,
                       child: PageView.builder(
@@ -523,7 +593,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 2),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -773,220 +843,237 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       const SizedBox(height: 24),
                     ],
-                    // ─── Dynamic Category Sections ────────────────────────────────────────
-                    for (var sec in _sections) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(sec.category.localizedName(context),
-                              style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor)),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => SeeMoreScreen(
-                                      title:
-                                          sec.category.localizedName(context),
-                                      items: sec
-                                          .items, // ← pass the whole List<Item>
-                                      host: apiBase.replaceAll('/api', ''),
-                                      categoryId: sec.category.id, // ← add this
-                                    ),
-                                  ));
-                            },
-                            child: Text(s.seeMore,
-                                style: TextStyle(color: textColor)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: sec.items.length,
-                          itemBuilder: (_, idx) {
-                            final it = sec.items[idx];
-                            final rawPath = it.imageUrl.startsWith('/')
-                                ? it.imageUrl.substring(1)
-                                : it.imageUrl;
-                            final imgUrl = '$host/$rawPath';
 
-                            return InkWell(
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => SingleItem(
-                                            id: it.id, // ← the real integer ID
-
-                                            icon: Icons.fastfood,
-                                            name: it.localizedName(context),
-                                            description: it.description,
-                                            unitPrice: it.price,
-                                            imageUrl: imgUrl,
-                                            discount: it.discount,
-                                          )),
-                                );
-                                _loadCartCount(); // ← now we reload the badge *after* you pop back
+                    if (_gridMode) ...[
+                      // CATEGORY GRID MODE (like the screenshot)
+                      _buildCategoryGrid(host),
+                      const SizedBox(height: 10),
+                    ] else ...[
+                      // ─── Dynamic Category Sections ────────────────────────────────────────
+                      for (var sec in _sections) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(sec.category.localizedName(context),
+                                style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor)),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => SeeMoreScreen(
+                                        title:
+                                            sec.category.localizedName(context),
+                                        items: sec
+                                            .items, // ← pass the whole List<Item>
+                                        host: apiBase.replaceAll('/api', ''),
+                                        categoryId:
+                                            sec.category.id, // ← add this
+                                      ),
+                                    ));
                               },
-                              child: Container(
-                                width: 150,
-                                margin: const EdgeInsets.only(right: 4),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  color: Colors.white,
-                                  boxShadow: [],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    // 1) Image + discount badge
-                                    Stack(
-                                      children: [
-                                        Container(
-                                          height: 120,
-                                          child: ClipRRect(
-                                            borderRadius:
-                                                const BorderRadius.vertical(
-                                                    top: Radius.circular(16)),
-                                            child: it.imageUrl.isNotEmpty
-                                                ? CachedNetworkImage(
-                                                    imageUrl: imgUrl,
-                                                    placeholder: (_, __) => Center(
-                                                        child:
-                                                            CircularProgressIndicator()),
-                                                    errorWidget: (_, __, ___) =>
-                                                        Icon(Icons.error),
-                                                  )
-                                                : Container(
-                                                    width: double.infinity,
-                                                    height: 80,
-                                                    color: Colors.grey[300],
-                                                    child: const Icon(
-                                                      Icons.fastfood,
-                                                      size: 40,
-                                                      color: Colors.black54,
+                              child: Text(s.seeMore,
+                                  style: TextStyle(color: textColor)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          height: 200,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: sec.items.length,
+                            itemBuilder: (_, idx) {
+                              final it = sec.items[idx];
+                              final rawPath = it.imageUrl.startsWith('/')
+                                  ? it.imageUrl.substring(1)
+                                  : it.imageUrl;
+                              final imgUrl = '$host/$rawPath';
+
+                              return InkWell(
+                                onTap: () async {
+                                  // print("pressed");
+                                  // print("supplier name ${it.supplier_name}");
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => SingleItem(
+                                              id: it
+                                                  .id, // ← the real integer ID
+
+                                              icon: Icons.fastfood,
+                                              name: it.localizedName(context),
+                                              description: it.description,
+                                              unitPrice: it.price,
+                                              imageUrl: imgUrl,
+                                              discount: it.discount,
+                                              supplierName: it.supplier_name,
+                                            )),
+                                  );
+                                  _loadCartCount(); // ← now we reload the badge *after* you pop back
+                                },
+                                child: Container(
+                                  width: 150,
+                                  // height: 370,
+                                  margin: const EdgeInsets.only(right: 4),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    color: Colors.white,
+                                    boxShadow: [],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      // 1) Image + discount badge
+                                      Stack(
+                                        children: [
+                                          Container(
+                                            height: 110,
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  const BorderRadius.vertical(
+                                                      top: Radius.circular(16)),
+                                              child: it.imageUrl.isNotEmpty
+                                                  ? CachedNetworkImage(
+                                                      imageUrl: imgUrl,
+                                                      placeholder: (_, __) =>
+                                                          Center(
+                                                              child:
+                                                                  CircularProgressIndicator()),
+                                                      errorWidget:
+                                                          (_, __, ___) =>
+                                                              Icon(Icons.error),
+                                                    )
+                                                  : Container(
+                                                      width: double.infinity,
+                                                      height: 80,
+                                                      color: Colors.grey[300],
+                                                      child: const Icon(
+                                                        Icons.fastfood,
+                                                        size: 40,
+                                                        color: Colors.black54,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                          if (it.discount > 0)
+                                            Positioned(
+                                              top: 8,
+                                              right: 8,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.redAccent,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Text(
+                                                  '-${it.discount.toStringAsFixed(0)}%',
+                                                  style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 8),
+
+                                      // 2) Name
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6),
+                                        child: Text(
+                                          it.localizedName(context),
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 2),
+
+                                      // 3) Price / Discounted price
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6),
+                                        child: it.discount > 0
+                                            ? Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    '${it.price.toStringAsFixed(0)} IQD',
+                                                    style: const TextStyle(
+                                                      fontSize: 9,
+                                                      decoration: TextDecoration
+                                                          .lineThrough,
+                                                      color: Colors.grey,
                                                     ),
                                                   ),
-                                          ),
-                                        ),
-                                        if (it.discount > 0)
-                                          Positioned(
-                                            top: 8,
-                                            right: 8,
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.redAccent,
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                '-${it.discount.toStringAsFixed(0)}%',
+                                                  SizedBox(
+                                                    width: 12,
+                                                  ),
+                                                  Text(
+                                                    '${(it.price * (1 - it.discount / 100)).toStringAsFixed(0)} IQD',
+                                                    style: const TextStyle(
+                                                      fontSize: 9,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: textColor,
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
+                                            : Text(
+                                                '${it.price.toStringAsFixed(0)} IQD',
+                                                textAlign: TextAlign.center,
                                                 style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10),
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: textColor,
+                                                ),
                                               ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-
-                                    const SizedBox(height: 8),
-
-                                    // 2) Name
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6),
-                                      child: Text(
-                                        it.localizedName(context),
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: textColor,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
+                                      // Padding(
+                                      //   padding: const EdgeInsets.symmetric(
+                                      //       horizontal: 6),
+                                      //   child: Text(
+                                      //     '${it.description}',
+                                      //     textAlign: TextAlign.center,
+                                      //     style: const TextStyle(
+                                      //       fontSize: 10,
+                                      //       fontWeight: FontWeight.bold,
+                                      //       color: textColor,
+                                      //     ),
+                                      //     maxLines: 1,
+                                      //     overflow: TextOverflow.ellipsis,
+                                      //   ),
+                                      // ),
 
-                                    const SizedBox(height: 4),
-
-                                    // 3) Price / Discounted price
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6),
-                                      child: it.discount > 0
-                                          ? Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  '${it.price.toStringAsFixed(0)} IQD',
-                                                  style: const TextStyle(
-                                                    fontSize: 10,
-                                                    decoration: TextDecoration
-                                                        .lineThrough,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
-                                                SizedBox(
-                                                  width: 12,
-                                                ),
-                                                Text(
-                                                  '${(it.price * (1 - it.discount / 100)).toStringAsFixed(0)} IQD',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: textColor,
-                                                  ),
-                                                ),
-                                              ],
-                                            )
-                                          : Text(
-                                              '${it.price.toStringAsFixed(0)} IQD',
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                color: textColor,
-                                              ),
-                                            ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6),
-                                      child: Text(
-                                        '${it.description}',
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: textColor,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 4),
-                                  ],
+                                      const SizedBox(height: 4),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 4),
+                      ],
                     ],
                   ],
                 ),
@@ -1029,6 +1116,112 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoryGrid(String host) {
+    final cats = _sections;
+
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        // fewer per row → bigger cards
+        final cross = constraints.maxWidth >= 420 ? 4 : 3;
+
+        // compute a comfortable aspect ratio for a taller tile
+        final totalSpacing = (cross - 1) * 12;
+        final tileW = (constraints.maxWidth - totalSpacing) / cross;
+        const tileH = 160; // 72 image + 10 gap + ~3 text lines
+        final ratio = tileW / tileH;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: cats.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cross,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: ratio, // <- taller than before
+          ),
+          itemBuilder: (_, i) {
+            final sec = cats[i];
+            final String? cover = sec.category.imageUrl.isNotEmpty
+                ? mediaUrlFrom(sec.category.imageUrl)
+                : null;
+
+            return InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SeeMoreScreen(
+                      title: sec.category.localizedName(context),
+                      items: sec.items,
+                      host: apiBase.replaceAll('/api', ''),
+                      categoryId: sec.category.id,
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFEFEFEF)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // bigger image bubble
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F7F7),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: cover != null
+                            ? CachedNetworkImage(
+                                imageUrl: cover,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) =>
+                                    const Icon(Icons.category, size: 28),
+                              )
+                            : const Icon(Icons.category, size: 28),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // allow longer names
+                    Text(
+                      sec.category.localizedName(context),
+                      textAlign: TextAlign.center,
+                      maxLines: 3, // was 2
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                        height: 1.25, // tighter line-height
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

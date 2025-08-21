@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 const Color primaryColor = Color(0xFF567765);
-const String apiBase = 'http://95.111.224.58:4000/api';
+const String apiBase = 'http://';
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
