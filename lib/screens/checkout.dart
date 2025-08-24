@@ -130,6 +130,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final lat = _lat ?? '';
     final lng = _lng ?? '';
     return Scaffold(
+      backgroundColor: Color(0xffD3E4C4),
       appBar: AppBar(
         title: Text(s.checkout, style: const TextStyle(color: Colors.white)),
         backgroundColor: primaryColor,

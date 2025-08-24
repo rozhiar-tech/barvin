@@ -238,6 +238,7 @@ class _OrdersState extends State<Orders> {
     }
     if (!_loggedIn) {
       return Scaffold(
+        backgroundColor: Color(0xffD3E4C4),
         body: Center(
           child: ElevatedButton(
             onPressed: () => Navigator.pushNamed(context, '/login'),
@@ -255,7 +256,7 @@ class _OrdersState extends State<Orders> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF0F6F0),
+        backgroundColor: const Color(0xFFD3E4C4),
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,

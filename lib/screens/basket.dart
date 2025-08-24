@@ -332,7 +332,7 @@ class BasketPageState extends State<BasketPage> {
     final s = S.of(context);
 
     return Scaffold(
-      backgroundColor: Color(0xFFE8F4E8), // soft green
+      backgroundColor: Color(0xFFD3E4C4), // soft green
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,

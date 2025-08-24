@@ -46,7 +46,7 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
     final asset = _isOnline ? 'assets/splash.json' : 'assets/nointernet.json';
 
     return Scaffold(
-      backgroundColor: splashBackground,
+      backgroundColor: Color(0xffD3E4C4),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

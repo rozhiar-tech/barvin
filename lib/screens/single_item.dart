@@ -117,7 +117,7 @@ class _SingleItemState extends State<SingleItem> {
     final heroTag = 'itemImage_${widget.id}';
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Color(0xffD3E4C4),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -192,7 +192,7 @@ class _SingleItemState extends State<SingleItem> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.w700,
+                // fontWeight: FontWeight.w700,
                 color: Colors.black87,
               ),
             ),

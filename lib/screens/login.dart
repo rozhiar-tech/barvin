@@ -139,16 +139,7 @@ class _LoginPageState extends State<LoginPage> {
       // extend body behind status bar
       body: Stack(children: [
         Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFE8F4E8),
-                Color(0xFFF1FAF5),
-              ],
-            ),
-          ),
+          decoration: const BoxDecoration(color: Color(0xffD3E4C4)),
           child: SafeArea(
             child: Center(
               child: SingleChildScrollView(

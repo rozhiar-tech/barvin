@@ -142,13 +142,7 @@ class _SignUpPageState extends State<SignUpPage> {
     return Scaffold(
       // full‐screen gradient bg:
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFE8F4E8), Color(0xFFF1FAF5)],
-          ),
-        ),
+        decoration: const BoxDecoration(color: Color(0xffD3E4C4)),
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

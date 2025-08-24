@@ -1212,7 +1212,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   textAlign: TextAlign.center,
                                                   style: const TextStyle(
                                                     fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
+                                                    // fontWeight: FontWeight.bold,
                                                     color: textColor,
                                                   ),
                                                   maxLines: 1,

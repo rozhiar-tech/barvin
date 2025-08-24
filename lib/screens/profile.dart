@@ -222,7 +222,7 @@ class _ProfileState extends State<Profile> {
     final s = S.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEAECEA),
+      backgroundColor: const Color(0xFFD3E4C4),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
