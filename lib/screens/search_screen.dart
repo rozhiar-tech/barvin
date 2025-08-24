@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/screens/home.dart';
-import 'package:barvin/screens/seeMore.dart' hide primaryColor;
+import 'package:barvin/screens/seeMore.dart';
 import 'package:barvin/screens/single_item.dart' hide primaryColor;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;

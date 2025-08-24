@@ -101,6 +101,11 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   String _query = '';
   String? _selectedSupplier; // null => all suppliers
   Timer? _debounce;
+  final ScrollController _gridScroll = ScrollController();
+  int _page = 1;
+  final int _pageSize = 30; // ask for 30 at a time (tweak as you like)
+  bool _fetching = false;
+  bool _hasMore = true;
   void showTopNotice(BuildContext context, String text) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentMaterialBanner();
@@ -132,6 +137,27 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   List<Item> _items = [];
   final Map<int, String> _supplierByItemId = {}; // itemId -> supplierName
   bool _loading = true;
+  void _resetPaging() {
+    _page = 1;
+    _hasMore = true;
+    _items = [];
+    _supplierByItemId.clear();
+  }
+
+  Future<void> _resetAndFetch() async {
+    setState(() => _loading = true);
+    _resetPaging();
+    await _loadItems(reset: true);
+    setState(() => _loading = false);
+  }
+
+  void _onGridScroll() {
+    if (!_hasMore || _fetching) return;
+    if (_gridScroll.position.pixels >=
+        _gridScroll.position.maxScrollExtent - 300) {
+      _loadItems(); // fetch the next page
+    }
+  }
 
   @override
   void initState() {
@@ -139,6 +165,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
     _selectedCatId = widget.categoryId;
     _items = List.of(widget.items);
     _buildSupplierIndex(_items, const []);
+    _gridScroll.addListener(_onGridScroll); // ⬅️ listen for end-of-list
     _init();
   }
 
@@ -184,11 +211,8 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
               _selectedSubId = null;
               _selectedSupplier = null;
               _query = '';
-              _loading = true;
             });
-            _loadSubcategories()
-                .then((_) => _loadItems())
-                .whenComplete(() => setState(() => _loading = false));
+            _loadSubcategories().then((_) => _resetAndFetch());
           }
         });
       }
@@ -217,19 +241,20 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
     } catch (_) {}
   }
 
-  Future<void> _loadItems() async {
+  Future<void> _loadItems({bool reset = false}) async {
+    if (_fetching) return;
+    _fetching = true;
     try {
       final params = <String, String>{
         'categoryId': _selectedCatId.toString(),
         'shown': 'true',
+        'page': _page.toString(), // ⬅️ here
+        'pageSize': _pageSize.toString(), // ⬅️ here
       };
       if (_selectedSubId != null) {
         params['subcategoryId'] = _selectedSubId.toString();
       }
-      if (_query.trim().isNotEmpty) {
-        params['q'] = _query.trim();
-      }
-      // optional server-side supplier filter if your API supports it:
+      if (_query.trim().isNotEmpty) params['q'] = _query.trim();
       if (_selectedSupplier != null && _selectedSupplier!.isNotEmpty) {
         params['supplierName'] = _selectedSupplier!;
       }
@@ -239,25 +264,43 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
 
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
-        final rows = body is List ? body : (body['rows'] ?? []);
-        // build Item list + supplier index
-        final items = <Item>[];
-        final suppliers = <String>[];
+        final rows = (body is List) ? body : (body['rows'] ?? []);
+        final totalCount = (body is Map && body['count'] is num)
+            ? (body['count'] as num).toInt()
+            : null;
+
+        final newItems = <Item>[];
         for (final m in rows.cast<Map<String, dynamic>>()) {
-          items.add(Item.fromJson(m));
-          final s = (m['supplier_name'] ?? '').toString();
-          _supplierByItemId[m['id'] as int] = s;
-          if (s.isNotEmpty) suppliers.add(s);
+          newItems.add(Item.fromJson(m));
+          _supplierByItemId[m['id'] as int] =
+              (m['supplier_name'] ?? '').toString();
         }
+
         setState(() {
-          _items = items;
+          _items.addAll(newItems);
+          // compute hasMore
+          if (totalCount != null) {
+            _hasMore = _items.length < totalCount;
+          } else {
+            _hasMore = newItems.length == _pageSize;
+          }
+          if (_hasMore) _page += 1;
+
+          // keep supplier selection valid
           if (_selectedSupplier != null &&
               !_supplierSet.contains(_selectedSupplier)) {
             _selectedSupplier = null;
           }
         });
+      } else {
+        // on error, stop paginating to avoid loops
+        setState(() => _hasMore = false);
       }
-    } catch (_) {}
+    } catch (_) {
+      setState(() => _hasMore = false);
+    } finally {
+      _fetching = false;
+    }
   }
 
   void _buildSupplierIndex(List<Item> items, List<String> maybeSuppliers) {
@@ -286,14 +329,16 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   void _onSearchChanged(String v) {
     _query = v;
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), _loadItems);
-    setState(() {}); // update clear button visibility
+    _debounce = Timer(const Duration(milliseconds: 350), _resetAndFetch);
+    setState(() {});
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _tabc?.dispose();
+    _gridScroll.dispose(); // ⬅️ remember to dispose
+
     super.dispose();
   }
 
@@ -371,7 +416,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                             onSelected: (sel) {
                               if (!sel) return;
                               setState(() => _selectedSubId = s.id);
-                              _loadItems();
+                              _resetAndFetch();
                             },
                             selectedColor: primaryColor,
                             labelStyle: TextStyle(
@@ -445,7 +490,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                                 style: TextStyle(color: textColor)),
                             onChanged: (val) {
                               setState(() => _selectedSupplier = val);
-                              _loadItems(); // if server-side; else just setState()
+                              _resetAndFetch();
                             },
                             items: [
                               const DropdownMenuItem<String?>(
@@ -470,6 +515,8 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                   // 4) Products grid (3 columns like the screenshot)
                   Expanded(
                     child: GridView.builder(
+                      controller: _gridScroll, // ⬅️ controller
+
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                       itemCount: _visibleItems.length,
@@ -481,6 +528,11 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                         childAspectRatio: 0.58,
                       ),
                       itemBuilder: (context, index) {
+                        if (index >= _visibleItems.length) {
+                          // loader cell
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
                         final it = _visibleItems[index];
                         final rawPath = it.imageUrl.startsWith('/')
                             ? it.imageUrl.substring(1)

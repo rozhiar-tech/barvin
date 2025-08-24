@@ -27,6 +27,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool _isSending = false;
   bool _loggedIn = false;
   String? _token;
+// at top of _CheckoutPageState
+  String _normalizeImageUrl(String raw) {
+    if (raw.isEmpty) return raw;
+    if (raw.startsWith('http')) return raw;
+    final base = apiBase.replaceAll('/api', ''); // http://95.111.224.58:4000
+    final path = raw.startsWith('/') ? raw.substring(1) : raw;
+    return '$base/$path';
+  }
 
   @override
   void initState() {
@@ -44,17 +52,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _lng = prefs.getString('longitude') ?? '';
     });
 
+    // in _loadPrefs(), where you build _cart
     final raw = prefs.getStringList('cart') ?? [];
     final list = raw.map((e) => jsonDecode(e) as Map<String, dynamic>);
     setState(() {
       _cart = list.map((m) {
         final price = double.tryParse(m['price'].toString()) ?? 0;
         final qty = int.tryParse(m['quantity'].toString()) ?? 1;
+        final img = (m['imageUrl'] ?? '').toString(); // 👈 keep the image
         return _CartEntry(
           id: m['id'],
           name: m['name'],
           price: price,
           quantity: qty,
+          imageUrl: img, // 👈 new
         );
       }).toList();
     });
@@ -228,17 +239,32 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _buildLineItem(_CartEntry e) {
+    final thumb = _normalizeImageUrl(e.imageUrl); // 👈 normalize
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.fastfood, color: Colors.green),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: thumb.isNotEmpty
+              ? Image.network(
+                  thumb,
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 48,
+                    height: 48,
+                    color: Colors.green.shade50,
+                    child: const Icon(Icons.fastfood, color: Colors.green),
+                  ),
+                )
+              : Container(
+                  width: 48,
+                  height: 48,
+                  color: Colors.green.shade50,
+                  child: const Icon(Icons.fastfood, color: Colors.green),
+                ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -278,10 +304,13 @@ class _CartEntry {
   final String name;
   final double price;
   final int quantity;
+  final String imageUrl; // 👈 new
+
   _CartEntry({
     required this.id,
     required this.name,
     required this.price,
     required this.quantity,
+    required this.imageUrl, // 👈 new
   });
 }

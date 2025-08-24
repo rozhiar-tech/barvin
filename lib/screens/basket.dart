@@ -20,7 +20,7 @@ const Color primaryColor = Color(0xFF567765);
 class BasketPage extends StatefulWidget {
   const BasketPage({super.key});
   @override
-  State<BasketPage> createState() => _BasketPageState();
+  BasketPageState createState() => BasketPageState(); // <- publ
 }
 
 class CartEntry {
@@ -29,7 +29,7 @@ class CartEntry {
   CartEntry({required this.item, required this.quantity});
 }
 
-class _BasketPageState extends State<BasketPage> {
+class BasketPageState extends State<BasketPage> {
   String _userName = '';
   String _userPhone = '';
   String _userAddress = '';
@@ -39,6 +39,20 @@ class _BasketPageState extends State<BasketPage> {
   bool _freeDelivery = false;
   bool _isLoadingOrder = false;
   String token = '';
+  String _normalizeImageUrl(String raw) {
+    if (raw.isEmpty) return raw;
+    if (raw.startsWith('http')) return raw;
+    final base = apiBase.replaceAll('/api', ''); // http://95.111.224.58:4000
+    final path = raw.startsWith('/') ? raw.substring(1) : raw;
+    return '$base/$path';
+  }
+
+  Future<void> reload() async {
+    await _loadCart();
+    await _loadSettings();
+    if (mounted)
+      setState(() {}); // (usually not needed; _loadCart already sets state)
+  }
 
   @override
   void initState() {
@@ -173,9 +187,10 @@ class _BasketPageState extends State<BasketPage> {
         nameAr: name,
         imageUrl: m['imageUrl'] ?? '',
         price: price,
-        discount: 0.0,
-        description: m['description'] ?? '',
-        supplier_name: m['supplier_name'] ?? '',
+        discount: double.tryParse((m['discount'] ?? '0').toString()) ?? 0.0,
+        description: (m['description'] ?? '').toString(),
+        supplier_name:
+            (m['supplierName'] ?? m['supplier_name'] ?? '').toString(),
       );
 
       if (grouped.containsKey(idStr)) {
@@ -187,12 +202,17 @@ class _BasketPageState extends State<BasketPage> {
     }
 
     // Persist the cleaned, grouped cart
+    // Persist the cleaned, grouped cart (KEEP imageUrl, discount, etc.)
     final cleaned = grouped.values
         .map((e) => jsonEncode({
               'id': e.item.id.toString(),
               'name': e.item.nameEn,
               'price': e.item.price.toString(),
+              'discount': e.item.discount.toString(),
               'quantity': e.quantity.toString(),
+              'imageUrl': e.item.imageUrl,
+              'description': e.item.description,
+              'supplierName': e.item.supplier_name,
             }))
         .toList();
     await prefs.setStringList('cart', cleaned);
@@ -330,6 +350,8 @@ class _BasketPageState extends State<BasketPage> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (_, idx) {
                   final entry = _entries[idx];
+                  final thumbUrl = _normalizeImageUrl(entry.item.imageUrl);
+
                   return Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -344,80 +366,107 @@ class _BasketPageState extends State<BasketPage> {
                     ),
                     padding: const EdgeInsets.all(12),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // thumbnail
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: entry.item.imageUrl.isNotEmpty
-                              ? Image.network(entry.item.imageUrl,
-                                  width: 64, height: 64, fit: BoxFit.cover)
+                          child: thumbUrl.isNotEmpty
+                              ? Image.network(
+                                  thumbUrl,
+                                  width: 64,
+                                  height: 64,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 64,
+                                    height: 64,
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.fastfood,
+                                        color: Colors.grey),
+                                  ),
+                                )
                               : Container(
                                   width: 64,
                                   height: 64,
                                   color: Colors.grey[200],
-                                  child:
-                                      Icon(Icons.fastfood, color: Colors.grey)),
+                                  child: const Icon(Icons.fastfood,
+                                      color: Colors.grey),
+                                ),
                         ),
+
                         const SizedBox(width: 12),
 
-                        // title + subtitle + quantity buttons
+                        // title + subtitle + quantity (flexible)
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(entry.item.localizedName(context),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  )),
+                              // name — ellipsize to avoid pushing the price off-screen
+                              Text(
+                                entry.item.localizedName(context),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
                               const SizedBox(height: 4),
-                              Text(entry.item.description,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: Colors.grey[600])),
+                              // description — already ellipsized
+                              Text(
+                                entry.item.description,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
                               const SizedBox(height: 8),
 
                               // quantity controls
                               Row(
                                 children: [
                                   _QuantityButton(
-                                    icon: Icons.remove,
-                                    onTap: () => _updateQuantity(idx, -1),
-                                  ),
+                                      icon: Icons.remove,
+                                      onTap: () => _updateQuantity(idx, -1)),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8),
                                     child: Text('${entry.quantity}',
-                                        style: TextStyle(fontSize: 16)),
+                                        style: const TextStyle(fontSize: 16)),
                                   ),
                                   _QuantityButton(
-                                    icon: Icons.add,
-                                    onTap: () => _updateQuantity(idx, 1),
-                                  ),
+                                      icon: Icons.add,
+                                      onTap: () => _updateQuantity(idx, 1)),
                                 ],
                               ),
                             ],
                           ),
                         ),
 
-                        // price + delete
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                                '${(entry.item.price * entry.quantity).toStringAsFixed(2)} IQD',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                )),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: () =>
-                                  _updateQuantity(idx, -entry.quantity),
-                              child: Icon(Icons.delete_forever,
-                                  color: Colors.redAccent),
-                            ),
-                          ],
+                        const SizedBox(width: 8),
+
+                        // price + delete (keep narrow, don’t force Row to grow)
+                        ConstrainedBox(
+                          constraints:
+                              const BoxConstraints(minWidth: 90, maxWidth: 140),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              // IQD usually has no decimals — use 0 to shorten line
+                              Text(
+                                '${(entry.item.price * entry.quantity).toStringAsFixed(0)} IQD',
+                                softWrap: false,
+                                overflow: TextOverflow.fade,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              InkWell(
+                                onTap: () =>
+                                    _updateQuantity(idx, -entry.quantity),
+                                child: const Icon(Icons.delete_forever,
+                                    color: Colors.redAccent),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),

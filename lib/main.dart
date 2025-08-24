@@ -1,4 +1,5 @@
 import 'package:barvin/l10n/kurdish_fallback.dart';
+import 'package:barvin/screens/basket.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -82,6 +83,7 @@ class _MyAppState extends State<MyApp> {
         '/main': (c) => const MainScreen(),
         '/splash': (c) => Splash(),
         '/orders': (c) => Orders(),
+        '/basket': (c) => BasketPage(),
         // '/signup': (c) => const SignUpPage(),
       },
     );
@@ -96,26 +98,51 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  static const _pages = [
-    HomeScreen(),
-    Orders(),
-    Profile(),
-  ];
+  final GlobalKey<BasketPageState> _basketKey = GlobalKey<BasketPageState>();
+
+  // avoid `const` here if your pages aren’t const widgets
+
+  // Build pages in initState so you can pass the key:
+  late final List<Widget> _pages;
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      const HomeScreen(),
+      Orders(),
+      Profile(),
+      BasketPage(key: _basketKey), // <- with key, not const
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed, // <-- important for 4+ items
+        selectedFontSize: 11, // <-- make labels smaller
+        unselectedFontSize: 11,
+        iconSize: 22, // <-- slightly smaller icons
+        showUnselectedLabels: true, // (optional) keep labels visible
         backgroundColor: Colors.white,
         selectedItemColor: const Color(0xFF567765),
+        unselectedItemColor: const Color(0xFF567765).withOpacity(0.6),
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (i) {
+          setState(() => _currentIndex = i);
+          if (i == 3) {
+            // Ask Basket to refresh when tab is shown
+            _basketKey.currentState?.reload();
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
               icon: Icon(Icons.shopping_cart), label: 'Orders'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_basket), label: 'Basket'),
         ],
       ),
     );

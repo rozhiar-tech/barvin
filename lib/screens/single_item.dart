@@ -120,15 +120,9 @@ class _SingleItemState extends State<SingleItem> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 1,
+        elevation: 0,
         iconTheme: const IconThemeData(color: primaryColor),
-        title: Text(
-          widget.name,
-          style: const TextStyle(
-            color: primaryColor,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: null, // ← name will be shown below the image
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -191,7 +185,18 @@ class _SingleItemState extends State<SingleItem> {
             ),
 
             const SizedBox(height: 16),
-
+            Text(
+              widget.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
             // ───────────── Supplier (if available) ─────────────
             if ((_supplier ?? '').isNotEmpty) ...[
               Row(
