@@ -10,12 +10,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 // import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SeeMoreScreen extends StatefulWidget {
   final String title;
   final List<Item> items; // initial items (optional)
   final String host; // e.g. http://95.111.224.58:4000
   final int categoryId;
+  final VoidCallback? onExit;
 
   const SeeMoreScreen({
     super.key,
@@ -23,6 +25,7 @@ class SeeMoreScreen extends StatefulWidget {
     required this.items,
     required this.host,
     required this.categoryId,
+    this.onExit, // 👈 optional
   });
 
   @override
@@ -133,15 +136,29 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
     });
   }
 
+  void _handleBack() {
+    widget.onExit?.call(); // 🔁 tell parent to reload
+    Navigator.of(context).pop(); // ✅ then pop
+  }
+
   // data
   List<Item> _items = [];
+  final Set<int> _seenIds = {};
   final Map<int, String> _supplierByItemId = {}; // itemId -> supplierName
+  final Map<int, int> _itemQty = {};
   bool _loading = true;
   void _resetPaging() {
     _page = 1;
     _hasMore = true;
     _items = [];
+    _seenIds.clear();
     _supplierByItemId.clear();
+  }
+
+  void _addItemsDedup(Iterable<Item> more) {
+    for (final it in more) {
+      if (_seenIds.add(it.id)) _items.add(it);
+    }
   }
 
   Future<void> _resetAndFetch() async {
@@ -150,6 +167,62 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
     await _loadItems(reset: true);
     setState(() => _loading = false);
   }
+
+  Future<void> _syncQtyFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('cart') ?? [];
+    final map = <int, int>{};
+    for (final s in list) {
+      final m = jsonDecode(s) as Map<String, dynamic>;
+      final id = int.tryParse(m['id']?.toString() ?? '');
+      final q = int.tryParse(m['quantity']?.toString() ?? '');
+      if (id != null && q != null) map[id] = q;
+    }
+    if (!mounted) return;
+    setState(() {
+      _itemQty
+        ..clear()
+        ..addAll(map);
+    });
+  }
+
+  Future<void> _setItemQty(Item it, int newQty) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cartList = prefs.getStringList('cart') ?? [];
+    final cart = cartList
+        .map((e) => jsonDecode(e) as Map<String, dynamic>)
+        .toList(growable: true);
+
+    final idStr = it.id.toString();
+    final idx = cart.indexWhere((m) => m['id']?.toString() == idStr);
+
+    if (newQty <= 0) {
+      if (idx >= 0) cart.removeAt(idx);
+    } else {
+      final record = {
+        'id': idStr,
+        'name': it.nameEn.isNotEmpty
+            ? it.nameEn
+            : (it.nameKu.isNotEmpty ? it.nameKu : it.nameAr),
+        'price': it.price.toString(),
+        'discount': it.discount.toString(),
+        'quantity': newQty.toString(),
+        'imageUrl': it.imageUrl,
+        'supplierName': _supplierByItemId[it.id] ?? '',
+      };
+      if (idx >= 0) {
+        cart[idx] = record;
+      } else {
+        cart.add(record);
+      }
+    }
+
+    await prefs.setStringList('cart', cart.map((m) => jsonEncode(m)).toList());
+    await _syncQtyFromPrefs();
+  }
+
+  Future<void> _inc(Item it) => _setItemQty(it, (_itemQty[it.id] ?? 0) + 1);
+  Future<void> _dec(Item it) => _setItemQty(it, (_itemQty[it.id] ?? 0) - 1);
 
   void _onGridScroll() {
     if (!_hasMore || _fetching) return;
@@ -163,10 +236,11 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   void initState() {
     super.initState();
     _selectedCatId = widget.categoryId;
-    _items = List.of(widget.items);
+    _addItemsDedup(widget.items);
     _buildSupplierIndex(_items, const []);
     _gridScroll.addListener(_onGridScroll); // ⬅️ listen for end-of-list
     _init();
+    _syncQtyFromPrefs();
   }
 
   Future<void> _init() async {
@@ -236,6 +310,9 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
           if (_subs.isNotEmpty) {
             _selectedSubId ??= _subs.first.id;
           }
+          if (_subs.isNotEmpty) {
+            _resetPaging();
+          }
         });
       }
     } catch (_) {}
@@ -277,8 +354,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
         }
 
         setState(() {
-          _items.addAll(newItems);
-          // compute hasMore
+          _addItemsDedup(newItems); // compute hasMore
           if (totalCount != null) {
             _hasMore = _items.length < totalCount;
           } else {
@@ -344,338 +420,400 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      // App bar like screenshot (“Products”), keep our colors
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        widget.onExit?.call(); // 🔁 fires on Android back / iOS swipe
+        return true; // allow the pop
+      },
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: primaryColor),
-        title: const Text(
-          'Products',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w700,
+        // App bar like screenshot (“Products”), keep our colors
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: primaryColor),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _handleBack,
           ),
+          title: const Text(
+            'Products',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
 
-      body: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 213, 236, 221),
-              Color(0xFFF1FAF5),
-            ],
+        body: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color.fromARGB(255, 213, 236, 221),
+                Color(0xFFF1FAF5),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
           ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  // 1) Category tabs (scrollable)
-                  if (_cats.isNotEmpty)
-                    Container(
-                      height: 44,
-                      alignment: Alignment.centerLeft,
-                      child: TabBar(
-                        controller: _tabc,
-                        isScrollable: true,
-                        labelPadding:
-                            const EdgeInsets.symmetric(horizontal: 16),
-                        labelColor: textColor,
-                        unselectedLabelColor: textColor.withOpacity(0.6),
-                        indicatorColor: primaryColor,
-                        indicatorWeight: 3,
-                        tabs: [
-                          for (final c in _cats)
-                            Tab(child: Text(c.name(context))),
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                  children: [
+                    // 1) Category tabs (scrollable)
+                    if (_cats.isNotEmpty)
+                      Container(
+                        height: 44,
+                        alignment: Alignment.centerLeft,
+                        child: TabBar(
+                          controller: _tabc,
+                          isScrollable: true,
+                          labelPadding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                          labelColor: textColor,
+                          unselectedLabelColor: textColor.withOpacity(0.6),
+                          indicatorColor: primaryColor,
+                          indicatorWeight: 3,
+                          tabs: [
+                            for (final c in _cats)
+                              Tab(child: Text(c.name(context))),
+                          ],
+                        ),
+                      ),
+
+                    // 2) Subcategory pills (no “All”)
+                    if (_subs.isNotEmpty)
+                      SizedBox(
+                        height: 48,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          scrollDirection: Axis.horizontal,
+                          itemBuilder: (_, i) {
+                            final s = _subs[i];
+                            final selected = _selectedSubId == s.id;
+                            return ChoiceChip(
+                              selected: selected,
+                              label: Text(s.name(context)),
+                              onSelected: (sel) {
+                                if (!sel) return;
+                                setState(() => _selectedSubId = s.id);
+                                _resetAndFetch();
+                              },
+                              selectedColor: primaryColor,
+                              labelStyle: TextStyle(
+                                color: selected ? Colors.white : textColor,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                              backgroundColor: Colors.white,
+                              side: BorderSide(
+                                  color: selected
+                                      ? Colors.transparent
+                                      : const Color(0xFFE7E7E7)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24)),
+                            );
+                          },
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemCount: _subs.length,
+                        ),
+                      ),
+
+                    // 3) Search + Supplier filter row
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      child: Row(
+                        children: [
+                          // search
+                          Expanded(
+                            child: TextField(
+                              onChanged: _onSearchChanged,
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Search in ${_currentCatName(context)}…',
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
+                                prefixIcon: const Icon(Icons.search,
+                                    color: primaryColor),
+                                suffixIcon: _query.isEmpty
+                                    ? null
+                                    : IconButton(
+                                        icon: const Icon(Icons.clear,
+                                            color: secondaryColor),
+                                        onPressed: () {
+                                          setState(() => _query = '');
+                                          _loadItems();
+                                        },
+                                      ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // supplier dropdown
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border:
+                                  Border.all(color: const Color(0xFFE7E7E7)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String?>(
+                              value: _selectedSupplier, // can be null
+                              hint: const Text('Supplier',
+                                  style: TextStyle(color: textColor)),
+                              onChanged: (val) {
+                                setState(() => _selectedSupplier = val);
+                                _resetAndFetch();
+                              },
+                              items: [
+                                const DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text('All suppliers'),
+                                ),
+                                ..._supplierSet.map(
+                                  (s) => DropdownMenuItem<String?>(
+                                    value: s,
+                                    child: Text(s),
+                                  ),
+                                ),
+                              ],
+                            )),
+                          ),
                         ],
                       ),
                     ),
 
-                  // 2) Subcategory pills (no “All”)
-                  if (_subs.isNotEmpty)
-                    SizedBox(
-                      height: 48,
-                      child: ListView.separated(
+                    const SizedBox(height: 4),
+
+                    // 4) Products grid (3 columns like the screenshot)
+                    Expanded(
+                      child: GridView.builder(
+                        controller: _gridScroll, // ⬅️ controller
+
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
-                        scrollDirection: Axis.horizontal,
-                        itemBuilder: (_, i) {
-                          final s = _subs[i];
-                          final selected = _selectedSubId == s.id;
-                          return ChoiceChip(
-                            selected: selected,
-                            label: Text(s.name(context)),
-                            onSelected: (sel) {
-                              if (!sel) return;
-                              setState(() => _selectedSubId = s.id);
-                              _resetAndFetch();
-                            },
-                            selectedColor: primaryColor,
-                            labelStyle: TextStyle(
-                              color: selected ? Colors.white : textColor,
-                              fontWeight:
-                                  selected ? FontWeight.w700 : FontWeight.w500,
-                            ),
-                            backgroundColor: Colors.white,
-                            side: BorderSide(
-                                color: selected
-                                    ? Colors.transparent
-                                    : const Color(0xFFE7E7E7)),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24)),
-                          );
-                        },
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemCount: _subs.length,
-                      ),
-                    ),
-
-                  // 3) Search + Supplier filter row
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Row(
-                      children: [
-                        // search
-                        Expanded(
-                          child: TextField(
-                            onChanged: _onSearchChanged,
-                            decoration: InputDecoration(
-                              hintText:
-                                  'Search in ${_currentCatName(context)}…',
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
-                              prefixIcon:
-                                  const Icon(Icons.search, color: primaryColor),
-                              suffixIcon: _query.isEmpty
-                                  ? null
-                                  : IconButton(
-                                      icon: const Icon(Icons.clear,
-                                          color: secondaryColor),
-                                      onPressed: () {
-                                        setState(() => _query = '');
-                                        _loadItems();
-                                      },
-                                    ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
+                        itemCount: _visibleItems.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.58,
                         ),
-                        const SizedBox(width: 8),
-                        // supplier dropdown
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE7E7E7)),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String?>(
-                            value: _selectedSupplier, // can be null
-                            hint: const Text('Supplier',
-                                style: TextStyle(color: textColor)),
-                            onChanged: (val) {
-                              setState(() => _selectedSupplier = val);
-                              _resetAndFetch();
-                            },
-                            items: [
-                              const DropdownMenuItem<String?>(
-                                value: null,
-                                child: Text('All suppliers'),
-                              ),
-                              ..._supplierSet.map(
-                                (s) => DropdownMenuItem<String?>(
-                                  value: s,
-                                  child: Text(s),
-                                ),
-                              ),
-                            ],
-                          )),
-                        ),
-                      ],
-                    ),
-                  ),
+                        itemBuilder: (context, index) {
+                          if (index >= _visibleItems.length) {
+                            // loader cell
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          final it = _visibleItems[index];
+                          final rawPath = it.imageUrl.startsWith('/')
+                              ? it.imageUrl.substring(1)
+                              : it.imageUrl;
+                          final imgUrl = '${widget.host}/$rawPath';
+                          final supplier = _supplierByItemId[it.id] ?? '';
 
-                  const SizedBox(height: 4),
-
-                  // 4) Products grid (3 columns like the screenshot)
-                  Expanded(
-                    child: GridView.builder(
-                      controller: _gridScroll, // ⬅️ controller
-
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      itemCount: _visibleItems.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 0.58,
-                      ),
-                      itemBuilder: (context, index) {
-                        if (index >= _visibleItems.length) {
-                          // loader cell
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        }
-                        final it = _visibleItems[index];
-                        final rawPath = it.imageUrl.startsWith('/')
-                            ? it.imageUrl.substring(1)
-                            : it.imageUrl;
-                        final imgUrl = '${widget.host}/$rawPath';
-                        final supplier = _supplierByItemId[it.id] ?? '';
-
-                        return InkWell(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => SingleItem(
-                                  id: it.id,
-                                  icon: Icons.fastfood,
-                                  name: it.localizedName(context),
-                                  description: it.description,
-                                  unitPrice: it.price,
-                                  imageUrl: imgUrl,
-                                  discount: it.discount,
-                                ),
-                              ),
-                            );
-
-                            if (result is String && result.isNotEmpty) {
-                              showTopNotice(context, result);
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border:
-                                  Border.all(color: const Color(0xFFEFEFEF)),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                // product image
-                                Expanded(
-                                  flex: 6,
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(16)),
-                                    child: it.imageUrl.isNotEmpty
-                                        ? CachedNetworkImage(
-                                            imageUrl: imgUrl,
-                                            fit: BoxFit.contain,
-                                            placeholder: (_, __) => const Center(
-                                                child:
-                                                    CircularProgressIndicator()),
-                                            errorWidget: (_, __, ___) =>
-                                                const Icon(Icons.error),
-                                          )
-                                        : Container(color: Colors.grey[300]),
+                          return InkWell(
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SingleItem(
+                                    id: it.id,
+                                    icon: Icons.fastfood,
+                                    name: it.localizedName(context),
+                                    description: it.description,
+                                    unitPrice: it.price,
+                                    imageUrl: imgUrl,
+                                    discount: it.discount,
                                   ),
                                 ),
-                                // name + supplier + price
-                                Expanded(
-                                  flex: 5,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 6),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          it.localizedName(context),
-                                          style: const TextStyle(
-                                              fontSize: 12.5,
-                                              fontWeight: FontWeight.w700,
-                                              color: textColor),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        if (supplier.isNotEmpty)
+                              );
+
+                              if (result is String && result.isNotEmpty) {
+                                showTopNotice(context, result);
+                              }
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xffFEFAE0),
+                                border:
+                                    Border.all(color: const Color(0xFFEFEFEF)),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  // product image
+                                  Expanded(
+                                    flex: 4,
+                                    child: ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(16)),
+                                      child: it.imageUrl.isNotEmpty
+                                          ? CachedNetworkImage(
+                                              imageUrl: imgUrl,
+                                              fit: BoxFit.contain,
+                                              placeholder: (_, __) => const Center(
+                                                  child:
+                                                      CircularProgressIndicator()),
+                                              errorWidget: (_, __, ___) =>
+                                                  const Icon(Icons.error),
+                                            )
+                                          : Container(color: Colors.grey[300]),
+                                    ),
+                                  ),
+                                  // name + supplier + price
+                                  Expanded(
+                                    flex: 5,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 6),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
                                           Text(
-                                            supplier,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: textColor.withOpacity(0.6),
-                                            ),
-                                            maxLines: 1,
+                                            it.localizedName(context),
+                                            style: const TextStyle(
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: textColor),
+                                            maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
                                           ),
-                                        FittedBox(
-                                          child: it.discount > 0
-                                              ? Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      '${it.price.round()} IQD',
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                        decoration:
-                                                            TextDecoration
-                                                                .lineThrough,
-                                                        color: Colors.grey,
+                                          if (supplier.isNotEmpty)
+                                            Text(
+                                              supplier,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color:
+                                                    textColor.withOpacity(0.6),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          FittedBox(
+                                            child: it.discount > 0
+                                                ? Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        '${it.price.round()} IQD',
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          decoration:
+                                                              TextDecoration
+                                                                  .lineThrough,
+                                                          color: Colors.grey,
+                                                        ),
                                                       ),
-                                                    ),
-                                                    const SizedBox(width: 6),
-                                                    Text(
-                                                      '${(it.price * (1 - it.discount / 100)).round()} IQD',
-                                                      style: const TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: textColor,
+                                                      const SizedBox(width: 6),
+                                                      Text(
+                                                        '${(it.price * (1 - it.discount / 100)).round()} IQD',
+                                                        style: const TextStyle(
+                                                          fontSize: 13,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: textColor,
+                                                        ),
                                                       ),
+                                                    ],
+                                                  )
+                                                : Text(
+                                                    '${it.price.round()} IQD',
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: textColor,
                                                     ),
-                                                  ],
-                                                )
-                                              : Text(
-                                                  '${it.price.round()} IQD',
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: textColor,
+                                                  ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          // 👇 Add / Remove controls
+                                          Container(
+                                            height: 30,
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(
+                                                  color: Color(0xFFE7E7E7)),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              mainAxisSize: MainAxisSize
+                                                  .min, // 👈 shrink to content
+                                              children: [
+                                                _miniQtyBtn(
+                                                  icon: Icons.remove,
+                                                  onTap:
+                                                      (_itemQty[it.id] ?? 0) > 0
+                                                          ? () => _dec(it)
+                                                          : null,
+                                                  color: Colors.redAccent,
+                                                ),
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(horizontal: 6),
+                                                  child: Text(
+                                                    '${_itemQty[it.id] ?? 0}',
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: textColor,
+                                                    ),
                                                   ),
                                                 ),
-                                        ),
-                                      ],
+                                                _miniQtyBtn(
+                                                  icon: Icons.add,
+                                                  onTap: () => _inc(it),
+                                                  color: primaryColor,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -690,5 +828,22 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
           nameAr: widget.title),
     );
     return c.name(ctx);
+  }
+
+  Widget _miniQtyBtn({
+    required IconData icon,
+    required VoidCallback? onTap,
+    required Color color,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        width: 26, // 👈 compact, no 48px min
+        height: 26,
+        alignment: Alignment.center,
+        child: Icon(icon, size: 16, color: color),
+      ),
+    );
   }
 }

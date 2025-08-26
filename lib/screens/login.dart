@@ -5,9 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 // ignore: unused_shown_name
 import 'package:barvin/screens/home.dart' show apiUrl, apiBase;
+import 'package:barvin/generated/l10n.dart'; // ⬅️ i18n
 
 const Color _kPrimaryGreen = Color(0xFF4BCF7B);
-
 const Color primaryColor = Color(0xFF567765);
 
 class LoginPage extends StatefulWidget {
@@ -17,7 +17,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  // String _email = '';
   String _password = '';
   bool _rememberMe = false;
   bool _isLoading = false;
@@ -58,7 +57,6 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('token', token);
         await prefs.setInt('userId', (user['id'] ?? 0) as int);
 
-        // Strings: store empty or remove if null
         await prefs.setString('userName', (user['name'] ?? '').toString());
         await prefs.setString(
             'userAddress', (user['address'] ?? '').toString());
@@ -79,11 +77,9 @@ class _LoginPageState extends State<LoginPage> {
           await prefs.remove('longitude');
         }
 
-        // Bools: coerce null -> false
         await prefs.setBool('delivery', (user['delivery'] ?? false) == true);
         await prefs.setBool('debt', (user['debt'] ?? false) == true);
 
-        // Remember last identifier instead of _email (since you accept phone OR email)
         if (_rememberMe) {
           await prefs.setString('identifier', _identifier);
         }
@@ -106,18 +102,19 @@ class _LoginPageState extends State<LoginPage> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signed in successfully!')),
+          SnackBar(content: Text(S.of(context).loginSuccess)),
         );
         Navigator.pushNamedAndRemoveUntil(context, '/main', (_) => false);
       } else {
-        final msg = (data['error'] ?? 'Invalid credentials').toString();
+        final msg =
+            (data['error'] as String?) ?? S.of(context).loginInvalidCredentials;
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (e) {
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Network error — please try again')),
+        SnackBar(content: Text(S.of(context).networkError)),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -125,18 +122,17 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   String? _validateIdentifier(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Required';
+    if (v == null || v.trim().isEmpty) return S.of(context).loginRequired;
     final t = v.trim();
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
     if (emailRegex.hasMatch(t) || phoneRegex.hasMatch(t)) return null;
-    return 'Enter valid email or phone';
+    return S.of(context).loginInvalidIdentifier;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // extend body behind status bar
       body: Stack(children: [
         Container(
           decoration: const BoxDecoration(color: Color(0xffD3E4C4)),
@@ -147,7 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                     horizontal: 24.0, vertical: 16.0),
                 child: Column(
                   children: [
-                    // ───────── top icon ─────────
+                    // top icon
                     Container(
                       width: 100,
                       height: 100,
@@ -171,9 +167,9 @@ class _LoginPageState extends State<LoginPage> {
 
                     const SizedBox(height: 24),
 
-                    // ───────── white card ─────────
+                    // white card
                     Card(
-                      color: Colors.white,
+                      color: Color(0xffFEFAE0),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24)),
                       elevation: 6,
@@ -183,17 +179,17 @@ class _LoginPageState extends State<LoginPage> {
                           key: _formKey,
                           child: Column(
                             children: [
-                              // identifier
                               const SizedBox(height: 46),
 
+                              // identifier
                               TextFormField(
                                 decoration: InputDecoration(
-                                  hintText: 'Enter email or phone number',
-                                  labelText: 'Email or Phone',
+                                  hintText: S.of(context).loginIdentifierHint,
+                                  labelText: S.of(context).loginIdentifierLabel,
                                   filled: true,
                                   fillColor: Colors.grey[200],
-                                  prefixIcon:
-                                      Icon(Icons.person, color: _kPrimaryGreen),
+                                  prefixIcon: const Icon(Icons.person,
+                                      color: _kPrimaryGreen),
                                   contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 12),
                                   border: OutlineInputBorder(
@@ -210,18 +206,19 @@ class _LoginPageState extends State<LoginPage> {
                               // password
                               TextFormField(
                                 decoration: InputDecoration(
-                                  hintText: 'Enter your password',
-                                  labelText: 'Password',
+                                  hintText: S.of(context).loginPasswordHint,
+                                  labelText: S.of(context).loginPasswordLabel,
                                   filled: true,
                                   fillColor: Colors.grey[200],
-                                  prefixIcon:
-                                      Icon(Icons.lock, color: _kPrimaryGreen),
+                                  prefixIcon: const Icon(Icons.lock,
+                                      color: _kPrimaryGreen),
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                        _obscure
-                                            ? Icons.visibility
-                                            : Icons.visibility_off,
-                                        color: Colors.grey),
+                                      _obscure
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                      color: Colors.grey,
+                                    ),
                                     onPressed: _togglePassword,
                                   ),
                                   contentPadding: const EdgeInsets.symmetric(
@@ -234,7 +231,7 @@ class _LoginPageState extends State<LoginPage> {
                                 obscureText: _obscure,
                                 validator: (v) => v != null && v.length >= 6
                                     ? null
-                                    : 'Minimum 6 chars',
+                                    : S.of(context).loginMinimumChars,
                                 onSaved: (v) => _password = v!.trim(),
                               ),
 
@@ -250,8 +247,8 @@ class _LoginPageState extends State<LoginPage> {
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14),
                                     shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
                                   child: _isLoading
                                       ? const SizedBox(
@@ -262,23 +259,27 @@ class _LoginPageState extends State<LoginPage> {
                                             color: Colors.white,
                                           ),
                                         )
-                                      : const Text('Log In',
-                                          style: TextStyle(
+                                      : Text(
+                                          S.of(context).loginButton,
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.white,
-                                          )),
+                                          ),
+                                        ),
                                 ),
                               ),
 
                               const SizedBox(height: 8),
                               TextButton(
                                 onPressed: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                        builder: (_) => SignUpPage())),
-                                child: const Text(
-                                    "Don't have an account? Sign Up",
-                                    style: TextStyle(color: _kPrimaryGreen)),
+                                  MaterialPageRoute(
+                                      builder: (_) => SignUpPage()),
+                                ),
+                                child: Text(
+                                  S.of(context).signUpCta,
+                                  style: const TextStyle(color: _kPrimaryGreen),
+                                ),
                               ),
                             ],
                           ),
@@ -288,29 +289,28 @@ class _LoginPageState extends State<LoginPage> {
 
                     const SizedBox(height: 24),
 
-                    // ───────── guest banner ─────────
+                    // guest banner
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Color(0xffFEFAE0).withOpacity(0.8),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
                         children: [
-                          const Text(
-                            'You can browse as a guest, but need an account to order.',
+                          Text(
+                            S.of(context).guestBannerText,
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.black54),
+                            style: const TextStyle(color: Colors.black54),
                           ),
                           TextButton(
                             onPressed: () {
-                              // TODO: guest flow
                               Navigator.of(context).pop();
                             },
-                            child: const Text(
-                              'Continue as Guest',
-                              style: TextStyle(
+                            child: Text(
+                              S.of(context).continueAsGuest,
+                              style: const TextStyle(
                                 color: _kPrimaryGreen,
                                 fontWeight: FontWeight.bold,
                               ),

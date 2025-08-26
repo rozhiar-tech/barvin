@@ -99,6 +99,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final GlobalKey<BasketPageState> _basketKey = GlobalKey<BasketPageState>();
+  final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
 
   // avoid `const` here if your pages aren’t const widgets
 
@@ -108,7 +109,9 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _pages = [
-      const HomeScreen(),
+      HomeScreen(
+        key: _homeKey,
+      ),
       Orders(),
       Profile(),
       BasketPage(key: _basketKey), // <- with key, not const
@@ -131,10 +134,8 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _currentIndex,
         onTap: (i) {
           setState(() => _currentIndex = i);
-          if (i == 3) {
-            // Ask Basket to refresh when tab is shown
-            _basketKey.currentState?.reload();
-          }
+          if (i == 0) _homeKey.currentState?.reload(); // 👈 refresh Home
+          if (i == 3) _basketKey.currentState?.reload(); // 👈 refresh Basket
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),

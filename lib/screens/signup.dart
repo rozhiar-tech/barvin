@@ -2,14 +2,15 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'LocationPickerPage.dart';
+import 'package:barvin/screens/home.dart' show apiBase;
 
-const String apiBase = 'http://';
 const Color primaryColor = Color(0xFF567765);
 
 class SignUpPage extends StatefulWidget {
@@ -97,16 +98,20 @@ class _SignUpPageState extends State<SignUpPage> {
       final streamed = await req.send();
       final body = jsonDecode(await streamed.stream.bytesToString());
       if (streamed.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account created! Please sign in.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(S.of(context).signUpSuccess)));
         Navigator.of(context).pop(true);
       } else {
+        final msg = (body is Map && body['error'] != null)
+            ? body['error'].toString()
+            : body.toString();
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${body['error'] ?? body}')));
+          SnackBar(content: Text(S.of(context).errorWithMessage(msg))),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Network error — try again.')));
+          SnackBar(content: Text(S.of(context).networkErrorTryAgain)));
     } finally {
       setState(() => _loading = false);
     }
@@ -147,6 +152,7 @@ class _SignUpPageState extends State<SignUpPage> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Card(
+              color: Color(0xffFEFAE0),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24)),
               elevation: 8,
@@ -156,8 +162,8 @@ class _SignUpPageState extends State<SignUpPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Create Account',
-                      style: TextStyle(
+                      S.of(context).signUpTitle,
+                      style: const TextStyle(
                         color: primaryColor,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -196,45 +202,46 @@ class _SignUpPageState extends State<SignUpPage> {
                         children: [
                           _buildField(
                             ctrl: _nameCtrl,
-                            label: 'Full Name',
+                            label: S.of(context).signUpFullName,
                             type: TextInputType.name,
                             prefixIcon:
                                 const Icon(Icons.person, color: primaryColor),
                             validator: (v) => v == null || v.trim().isEmpty
-                                ? 'Enter your name'
+                                ? S.of(context).signUpEnterYourName
                                 : null,
                           ),
                           const SizedBox(height: 12),
 
                           _buildField(
                             ctrl: _emailCtrl,
-                            label: 'Email',
+                            label: S.of(context).signUpEmailLabel,
                             type: TextInputType.emailAddress,
                             prefixIcon:
                                 const Icon(Icons.email, color: primaryColor),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty)
-                                return 'Enter your email';
+                                return S.of(context).signUpEnterEmail;
                               return _isValidEmail(v.trim())
                                   ? null
-                                  : 'Invalid email';
+                                  : S.of(context).signUpInvalidEmail;
                             },
                           ),
                           const SizedBox(height: 12),
 
+// Password
                           _buildField(
                             ctrl: _passwordCtrl,
-                            label: 'Password',
+                            label: S.of(context).signUpPasswordLabel,
                             type: TextInputType.visiblePassword,
                             obscure: true,
                             prefixIcon:
                                 const Icon(Icons.lock, color: primaryColor),
                             validator: (v) {
                               if (v == null || v.length < 8)
-                                return 'Password must be ≥8 chars';
-                              // only letters, numbers and dot
-                              if (!RegExp(r'^[A-Za-z0-9.]+$').hasMatch(v))
-                                return 'Password may only contain letters, numbers, and “.”';
+                                return S.of(context).signUpPasswordMin8;
+                              if (!RegExp(r'^[A-Za-z0-9.]+$').hasMatch(v)) {
+                                return S.of(context).signUpPasswordAllowedChars;
+                              }
                               return null;
                             },
                           ),
@@ -242,16 +249,16 @@ class _SignUpPageState extends State<SignUpPage> {
 
                           _buildField(
                             ctrl: _phoneCtrl,
-                            label: 'Phone',
+                            label: S.of(context).signUpPhoneLabel,
                             type: TextInputType.phone,
                             prefixIcon:
                                 const Icon(Icons.phone, color: primaryColor),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty)
-                                return 'Enter phone';
+                                return S.of(context).signUpEnterPhone;
                               return _isValidPhone(v.trim())
                                   ? null
-                                  : 'Invalid phone';
+                                  : S.of(context).signUpInvalidPhone;
                             },
                           ),
                           const SizedBox(height: 12),
@@ -259,12 +266,12 @@ class _SignUpPageState extends State<SignUpPage> {
                           // free‐text address
                           _buildField(
                             ctrl: _addressCtrl,
-                            label: 'Address',
+                            label: S.of(context).signUpAddressLabel,
                             type: TextInputType.streetAddress,
                             prefixIcon:
                                 const Icon(Icons.home, color: primaryColor),
                             validator: (v) => v == null || v.trim().isEmpty
-                                ? 'Enter your address'
+                                ? S.of(context).signUpEnterAddress
                                 : null,
                           ),
                           const SizedBox(height: 12),
@@ -281,8 +288,10 @@ class _SignUpPageState extends State<SignUpPage> {
                               Expanded(
                                 child: Text(
                                   _lat != null && _lng != null
-                                      ? 'Location: ($_lat, $_lng)'
-                                      : 'No location selected',
+                                      ? S
+                                          .of(context)
+                                          .signUpLocationPicked(_lat!, _lng!)
+                                      : S.of(context).signUpNoLocationSelected,
                                   style: TextStyle(
                                       color: Colors.grey[700], fontSize: 14),
                                 ),
@@ -314,15 +323,17 @@ class _SignUpPageState extends State<SignUpPage> {
 
                                       // avatar required
                                       if (_avatarFile == null) {
-                                        setState(() => _avatarError =
-                                            'Please pick a photo');
+                                        setState(() => _avatarError = S
+                                            .of(context)
+                                            .signUpPickPhotoPrompt);
                                         return;
                                       }
 
                                       // location required
                                       if (_lat == null || _lng == null) {
-                                        setState(() => _locationError =
-                                            'Please select your location on map');
+                                        setState(() => _locationError = S
+                                            .of(context)
+                                            .signUpSelectLocationError);
                                         return;
                                       }
 
@@ -343,9 +354,9 @@ class _SignUpPageState extends State<SignUpPage> {
                               child: _loading
                                   ? const CircularProgressIndicator(
                                       color: Colors.white)
-                                  : const Text(
-                                      'Sign Up',
-                                      style: TextStyle(
+                                  : Text(
+                                      S.of(context).signUpButton,
+                                      style: const TextStyle(
                                           fontSize: 16, color: Colors.white),
                                     ),
                             ),

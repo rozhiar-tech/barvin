@@ -64,7 +64,7 @@ class _ProfileState extends State<Profile> {
         _phone = prefs.getString('userPhone') ?? '';
         avatarUrl = prefs.getString('userAvatar');
       } else {
-        _name = 'Guest';
+        _name = S.of(context).guest;
         _address = '';
         _phone = '';
         avatarUrl = null;
@@ -84,7 +84,7 @@ class _ProfileState extends State<Profile> {
     if (!mounted) return;
     setState(() {
       _loggedIn = false;
-      _name = 'Guest';
+      _name = S.of(context).guest;
       _address = '';
       _phone = '';
       _selectedLanguage = 'English';
@@ -224,7 +224,7 @@ class _ProfileState extends State<Profile> {
     return Scaffold(
       backgroundColor: const Color(0xFFD3E4C4),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xffFEFAE0),
         elevation: 1,
         iconTheme: const IconThemeData(color: primaryColor),
         title: Text(s.profileTitle,
@@ -240,10 +240,11 @@ class _ProfileState extends State<Profile> {
                 if (value == 'delete') _deleteAccount();
               },
               itemBuilder: (ctx) => [
-                const PopupMenuItem(value: 'logout', child: Text('Log out')),
-                const PopupMenuItem(
+                PopupMenuItem(
+                    value: 'logout', child: Text(S.of(context).logout)),
+                PopupMenuItem(
                   value: 'delete',
-                  child: Text('Delete account',
+                  child: Text(S.of(context).delete,
                       style: TextStyle(color: Colors.red)),
                 ),
               ],
@@ -288,10 +289,10 @@ class _ProfileState extends State<Profile> {
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.location_on, color: primaryColor),
-                  title: const Text('Delivery Address',
+                  title: Text(S.of(context).delivery2,
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(
-                    _address.isEmpty ? 'Tap to add your address' : _address,
+                    _address.isEmpty ? S.of(context).tap : _address,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -305,10 +306,10 @@ class _ProfileState extends State<Profile> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(children: const [
+                  Row(children: [
                     Icon(Icons.language, color: primaryColor),
                     SizedBox(width: 12),
-                    Text('Language',
+                    Text(S.of(context).language,
                         style: TextStyle(fontWeight: FontWeight.w600)),
                   ]),
                   DropdownButton<String>(
@@ -331,17 +332,16 @@ class _ProfileState extends State<Profile> {
                     contentPadding: EdgeInsets.zero,
                     leading:
                         const Icon(Icons.info_outline, color: primaryColor),
-                    title: const Text('About Us',
+                    title: Text(S.of(context).about,
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     trailing:
                         const Icon(Icons.chevron_right, color: primaryColor),
                     onTap: () => showAboutDialog(
                       context: context,
-                      applicationName: 'Barvin',
-                      applicationVersion: '1.0.0',
-                      children: const [
-                        Text(
-                            'We strive to deliver daily essentials at great prices, fast.'),
+                      applicationName: S.of(context).appName,
+                      applicationVersion: '1.6.1',
+                      children: [
+                        Text(S.of(context).slogan),
                       ],
                     ),
                   ),
@@ -350,7 +350,7 @@ class _ProfileState extends State<Profile> {
                     contentPadding: EdgeInsets.zero,
                     leading:
                         const Icon(Icons.phone_in_talk, color: primaryColor),
-                    title: const Text('Contact Us',
+                    title: Text(S.of(context).contact,
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: const Text('07502312211 – 07502412211'),
                     trailing:
@@ -367,10 +367,10 @@ class _ProfileState extends State<Profile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: const [
+                  Row(children: [
                     Icon(Icons.share_rounded, color: primaryColor),
                     SizedBox(width: 12),
-                    Text('Follow us',
+                    Text(S.of(context).follow,
                         style: TextStyle(fontWeight: FontWeight.w600)),
                   ]),
                   const SizedBox(height: 12),
@@ -380,15 +380,15 @@ class _ProfileState extends State<Profile> {
                     children: [
                       _SocialChip(
                           icon: Icons.camera_alt_outlined,
-                          label: 'Instagram',
+                          label: S.of(context).instagram,
                           onTap: () => _openUrl(_instagram)),
                       _SocialChip(
                           icon: Icons.facebook_outlined,
-                          label: 'Facebook',
+                          label: S.of(context).facebook,
                           onTap: () => _openUrl(_facebook)),
                       _SocialChip(
                           icon: Icons.movie_filter_outlined,
-                          label: 'TikTok',
+                          label: S.of(context).tiktok,
                           onTap: () => _openUrl(_tiktok)),
                     ],
                   ),
@@ -432,7 +432,7 @@ class _ProfileState extends State<Profile> {
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Contact Us',
+            Text(S.of(context).contact,
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -486,7 +486,7 @@ class _ProfileCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Color(0xffFEFAE0),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -515,7 +515,7 @@ class _PhoneTile extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xFFEFEFEF)),
           borderRadius: BorderRadius.circular(12),
-          color: Colors.white,
+          color: Color(0xffFEFAE0),
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           const Icon(Icons.call, color: primaryColor, size: 18),
@@ -541,7 +541,7 @@ class _SocialChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: primaryColor.withOpacity(0.08),
+          color: Color(0xffFEFAE0),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(children: [

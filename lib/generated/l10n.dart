@@ -104,6 +104,11 @@ class S {
     );
   }
 
+  /// `Guest`
+  String get guest {
+    return Intl.message('Guest', name: 'guest', desc: '', args: []);
+  }
+
   /// `Your basket`
   String get basket {
     return Intl.message('Your basket', name: 'basket', desc: '', args: []);
@@ -117,6 +122,586 @@ class S {
   /// `Subtotal`
   String get subtotal {
     return Intl.message('Subtotal', name: 'subtotal', desc: '', args: []);
+  }
+
+  /// `My Orders`
+  String get my_orders_title {
+    return Intl.message(
+      'My Orders',
+      name: 'my_orders_title',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pending`
+  String get tab_pending {
+    return Intl.message('Pending', name: 'tab_pending', desc: '', args: []);
+  }
+
+  /// `Ordered`
+  String get tab_ordered {
+    return Intl.message('Ordered', name: 'tab_ordered', desc: '', args: []);
+  }
+
+  /// `Delivered`
+  String get tab_delivered {
+    return Intl.message('Delivered', name: 'tab_delivered', desc: '', args: []);
+  }
+
+  /// `No orders yet`
+  String get orders_empty_all {
+    return Intl.message(
+      'No orders yet',
+      name: 'orders_empty_all',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No {status} orders`
+  String orders_empty_status(Object status) {
+    return Intl.message(
+      'No $status orders',
+      name: 'orders_empty_status',
+      desc: '',
+      args: [status],
+    );
+  }
+
+  /// `#ORD-`
+  String get order_number_prefix {
+    return Intl.message(
+      '#ORD-',
+      name: 'order_number_prefix',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Total:`
+  String get total_label {
+    return Intl.message('Total:', name: 'total_label', desc: '', args: []);
+  }
+
+  /// `IQD`
+  String get currency_code_iqd {
+    return Intl.message('IQD', name: 'currency_code_iqd', desc: '', args: []);
+  }
+
+  /// `1 pack`
+  String get pack_size {
+    return Intl.message('1 pack', name: 'pack_size', desc: '', args: []);
+  }
+
+  /// `Pack`
+  String get pack {
+    return Intl.message('Pack', name: 'pack', desc: '', args: []);
+  }
+
+  /// `Order as pack`
+  String get pack_order {
+    return Intl.message(
+      'Order as pack',
+      name: 'pack_order',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pending`
+  String get status_pending {
+    return Intl.message('Pending', name: 'status_pending', desc: '', args: []);
+  }
+
+  /// `Delivered`
+  String get status_delivered {
+    return Intl.message(
+      'Delivered',
+      name: 'status_delivered',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter email or phone number`
+  String get loginIdentifierHint {
+    return Intl.message(
+      'Enter email or phone number',
+      name: 'loginIdentifierHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Email or Phone`
+  String get loginIdentifierLabel {
+    return Intl.message(
+      'Email or Phone',
+      name: 'loginIdentifierLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter your password`
+  String get loginPasswordHint {
+    return Intl.message(
+      'Enter your password',
+      name: 'loginPasswordHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Password`
+  String get loginPasswordLabel {
+    return Intl.message(
+      'Password',
+      name: 'loginPasswordLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Required`
+  String get loginRequired {
+    return Intl.message('Required', name: 'loginRequired', desc: '', args: []);
+  }
+
+  /// `Enter valid email or phone`
+  String get loginInvalidIdentifier {
+    return Intl.message(
+      'Enter valid email or phone',
+      name: 'loginInvalidIdentifier',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Minimum 6 chars`
+  String get loginMinimumChars {
+    return Intl.message(
+      'Minimum 6 chars',
+      name: 'loginMinimumChars',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Log In`
+  String get loginButton {
+    return Intl.message('Log In', name: 'loginButton', desc: '', args: []);
+  }
+
+  /// `Don't have an account? Sign Up`
+  String get signUpCta {
+    return Intl.message(
+      'Don\'t have an account? Sign Up',
+      name: 'signUpCta',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `You can browse as a guest, but need an account to order.`
+  String get guestBannerText {
+    return Intl.message(
+      'You can browse as a guest, but need an account to order.',
+      name: 'guestBannerText',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Continue as Guest`
+  String get continueAsGuest {
+    return Intl.message(
+      'Continue as Guest',
+      name: 'continueAsGuest',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Signed in successfully!`
+  String get loginSuccess {
+    return Intl.message(
+      'Signed in successfully!',
+      name: 'loginSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Invalid credentials`
+  String get loginInvalidCredentials {
+    return Intl.message(
+      'Invalid credentials',
+      name: 'loginInvalidCredentials',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network error — please try again`
+  String get networkError {
+    return Intl.message(
+      'Network error — please try again',
+      name: 'networkError',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Your Basket`
+  String get basketTitle {
+    return Intl.message('Your Basket', name: 'basketTitle', desc: '', args: []);
+  }
+
+  /// `Send via WhatsApp`
+  String get whatsAppTooltip {
+    return Intl.message(
+      'Send via WhatsApp',
+      name: 'whatsAppTooltip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Create Account`
+  String get signUpTitle {
+    return Intl.message(
+      'Create Account',
+      name: 'signUpTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Please pick a photo`
+  String get signUpPickPhotoPrompt {
+    return Intl.message(
+      'Please pick a photo',
+      name: 'signUpPickPhotoPrompt',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Full Name`
+  String get signUpFullName {
+    return Intl.message(
+      'Full Name',
+      name: 'signUpFullName',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter your name`
+  String get signUpEnterYourName {
+    return Intl.message(
+      'Enter your name',
+      name: 'signUpEnterYourName',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Email`
+  String get signUpEmailLabel {
+    return Intl.message('Email', name: 'signUpEmailLabel', desc: '', args: []);
+  }
+
+  /// `Enter your email`
+  String get signUpEnterEmail {
+    return Intl.message(
+      'Enter your email',
+      name: 'signUpEnterEmail',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Invalid email`
+  String get signUpInvalidEmail {
+    return Intl.message(
+      'Invalid email',
+      name: 'signUpInvalidEmail',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Password`
+  String get signUpPasswordLabel {
+    return Intl.message(
+      'Password',
+      name: 'signUpPasswordLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Password must be ≥8 chars`
+  String get signUpPasswordMin8 {
+    return Intl.message(
+      'Password must be ≥8 chars',
+      name: 'signUpPasswordMin8',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Password may only contain letters, numbers, and “.”`
+  String get signUpPasswordAllowedChars {
+    return Intl.message(
+      'Password may only contain letters, numbers, and “.”',
+      name: 'signUpPasswordAllowedChars',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Phone`
+  String get signUpPhoneLabel {
+    return Intl.message('Phone', name: 'signUpPhoneLabel', desc: '', args: []);
+  }
+
+  /// `Enter phone`
+  String get signUpEnterPhone {
+    return Intl.message(
+      'Enter phone',
+      name: 'signUpEnterPhone',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Invalid phone`
+  String get signUpInvalidPhone {
+    return Intl.message(
+      'Invalid phone',
+      name: 'signUpInvalidPhone',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Address`
+  String get signUpAddressLabel {
+    return Intl.message(
+      'Address',
+      name: 'signUpAddressLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter your address`
+  String get signUpEnterAddress {
+    return Intl.message(
+      'Enter your address',
+      name: 'signUpEnterAddress',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Location: ({lat}, {lng})`
+  String signUpLocationPicked(Object lat, Object lng) {
+    return Intl.message(
+      'Location: ($lat, $lng)',
+      name: 'signUpLocationPicked',
+      desc: '',
+      args: [lat, lng],
+    );
+  }
+
+  /// `No location selected`
+  String get signUpNoLocationSelected {
+    return Intl.message(
+      'No location selected',
+      name: 'signUpNoLocationSelected',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Please select your location on map`
+  String get signUpSelectLocationError {
+    return Intl.message(
+      'Please select your location on map',
+      name: 'signUpSelectLocationError',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sign Up`
+  String get signUpButton {
+    return Intl.message('Sign Up', name: 'signUpButton', desc: '', args: []);
+  }
+
+  /// `Account created! Please sign in.`
+  String get signUpSuccess {
+    return Intl.message(
+      'Account created! Please sign in.',
+      name: 'signUpSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Error: {error}`
+  String errorWithMessage(Object error) {
+    return Intl.message(
+      'Error: $error',
+      name: 'errorWithMessage',
+      desc: '',
+      args: [error],
+    );
+  }
+
+  /// `Network error — try again.`
+  String get networkErrorTryAgain {
+    return Intl.message(
+      'Network error — try again.',
+      name: 'networkErrorTryAgain',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `🧾 Barvin – New order`
+  String get waHeader {
+    return Intl.message(
+      '🧾 Barvin – New order',
+      name: 'waHeader',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Name`
+  String get waName {
+    return Intl.message('Name', name: 'waName', desc: '', args: []);
+  }
+
+  /// `Phone`
+  String get waPhone {
+    return Intl.message('Phone', name: 'waPhone', desc: '', args: []);
+  }
+
+  /// `Address`
+  String get waAddress {
+    return Intl.message('Address', name: 'waAddress', desc: '', args: []);
+  }
+
+  /// `Subtotal`
+  String get waSubtotal {
+    return Intl.message('Subtotal', name: 'waSubtotal', desc: '', args: []);
+  }
+
+  /// `Delivery`
+  String get waDelivery {
+    return Intl.message('Delivery', name: 'waDelivery', desc: '', args: []);
+  }
+
+  /// `TOTAL`
+  String get waTotalUpper {
+    return Intl.message('TOTAL', name: 'waTotalUpper', desc: '', args: []);
+  }
+
+  /// `FREE`
+  String get waFree {
+    return Intl.message('FREE', name: 'waFree', desc: '', args: []);
+  }
+
+  /// `IQD`
+  String get currencyIqd {
+    return Intl.message('IQD', name: 'currencyIqd', desc: '', args: []);
+  }
+
+  /// `Unit`
+  String get unit {
+    return Intl.message('Unit', name: 'unit', desc: '', args: []);
+  }
+
+  /// `Your basket is empty.`
+  String get snackBasketEmpty {
+    return Intl.message(
+      'Your basket is empty.',
+      name: 'snackBasketEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Could not open WhatsApp on this device.`
+  String get snackWhatsAppOpenFail {
+    return Intl.message(
+      'Could not open WhatsApp on this device.',
+      name: 'snackWhatsAppOpenFail',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Please sign in to place an order.`
+  String get snackSignInToOrder {
+    return Intl.message(
+      'Please sign in to place an order.',
+      name: 'snackSignInToOrder',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Order placed successfully!`
+  String get snackOrderSuccess {
+    return Intl.message(
+      'Order placed successfully!',
+      name: 'snackOrderSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Failed to place order`
+  String get snackOrderFail {
+    return Intl.message(
+      'Failed to place order',
+      name: 'snackOrderFail',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Network error — please try again`
+  String get snackNetworkError {
+    return Intl.message(
+      'Network error — please try again',
+      name: 'snackNetworkError',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Add to Basket`
+  String get addBasket {
+    return Intl.message('Add to Basket', name: 'addBasket', desc: '', args: []);
+  }
+
+  /// `Proceed to Checkout`
+  String get checkoutProceed {
+    return Intl.message(
+      'Proceed to Checkout',
+      name: 'checkoutProceed',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Total`
@@ -249,6 +834,31 @@ class S {
     return Intl.message('longitude', name: 'longitude', desc: '', args: []);
   }
 
+  /// `Delete account`
+  String get delete {
+    return Intl.message('Delete account', name: 'delete', desc: '', args: []);
+  }
+
+  /// `Delivery Address`
+  String get delivery2 {
+    return Intl.message(
+      'Delivery Address',
+      name: 'delivery2',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Tap to add your address`
+  String get tap {
+    return Intl.message(
+      'Tap to add your address',
+      name: 'tap',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Type To Search`
   String get typeSearch {
     return Intl.message(
@@ -279,6 +889,26 @@ class S {
     return Intl.message('Save', name: 'save', desc: '', args: []);
   }
 
+  /// `About Us`
+  String get about {
+    return Intl.message('About Us', name: 'about', desc: '', args: []);
+  }
+
+  /// `Barvin`
+  String get appName {
+    return Intl.message('Barvin', name: 'appName', desc: '', args: []);
+  }
+
+  /// `We strive to deliver daily essentials at great prices, fast.`
+  String get slogan {
+    return Intl.message(
+      'We strive to deliver daily essentials at great prices, fast.',
+      name: 'slogan',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Your Orders`
   String get yourOrders {
     return Intl.message('Your Orders', name: 'yourOrders', desc: '', args: []);
@@ -297,6 +927,31 @@ class S {
       desc: '',
       args: [],
     );
+  }
+
+  /// `Contact Us`
+  String get contact {
+    return Intl.message('Contact Us', name: 'contact', desc: '', args: []);
+  }
+
+  /// `Follow us`
+  String get follow {
+    return Intl.message('Follow us', name: 'follow', desc: '', args: []);
+  }
+
+  /// `Instagram`
+  String get instagram {
+    return Intl.message('Instagram', name: 'instagram', desc: '', args: []);
+  }
+
+  /// `TikTok`
+  String get tiktok {
+    return Intl.message('TikTok', name: 'tiktok', desc: '', args: []);
+  }
+
+  /// `Facebook`
+  String get facebook {
+    return Intl.message('Facebook', name: 'facebook', desc: '', args: []);
   }
 
   /// `Sign In to View Orders`

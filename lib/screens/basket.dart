@@ -12,7 +12,6 @@ import 'package:url_launcher/url_launcher.dart'; // NEW
 const Color whatsAppGreen = Color(0xFF25D366);
 
 // Use international format (no leading 0, country code first)
-// Example uses Iraq (+964) and your first number 07502312211
 const String kWhatsAppNumber = '9647502312211';
 
 const Color primaryColor = Color(0xFF567765);
@@ -20,7 +19,7 @@ const Color primaryColor = Color(0xFF567765);
 class BasketPage extends StatefulWidget {
   const BasketPage({super.key});
   @override
-  BasketPageState createState() => BasketPageState(); // <- publ
+  BasketPageState createState() => BasketPageState(); // <- public
 }
 
 class CartEntry {
@@ -34,11 +33,12 @@ class BasketPageState extends State<BasketPage> {
   String _userPhone = '';
   String _userAddress = '';
   List<CartEntry> _entries = [];
-  double _deliveryFee = 0; // ← was const 2000
+  double _deliveryFee = 0; // ← from /settings
   bool _isLoggedIn = false;
   bool _freeDelivery = false;
   bool _isLoadingOrder = false;
   String token = '';
+
   String _normalizeImageUrl(String raw) {
     if (raw.isEmpty) return raw;
     if (raw.startsWith('http')) return raw;
@@ -50,8 +50,7 @@ class BasketPageState extends State<BasketPage> {
   Future<void> reload() async {
     await _loadCart();
     await _loadSettings();
-    if (mounted)
-      setState(() {}); // (usually not needed; _loadCart already sets state)
+    if (mounted) setState(() {});
   }
 
   @override
@@ -74,10 +73,11 @@ class BasketPageState extends State<BasketPage> {
           setState(() => _deliveryFee = fee);
         }
       } else {
-        // optional: keep previous _deliveryFee or set a default
+        // debug only
         print('Settings load failed: ${res.statusCode} ${res.body}');
       }
     } catch (e) {
+      // debug only
       print('Settings load error: $e');
     }
   }
@@ -86,8 +86,7 @@ class BasketPageState extends State<BasketPage> {
     final prefs = await SharedPreferences.getInstance();
     _isLoggedIn = prefs.getBool('loggedIn') ?? false;
     token = prefs.getString('token') ?? '';
-    print(token);
-    await _loadCart(); // your existing cart loader
+    await _loadCart();
     setState(() {
       if (_isLoggedIn) {
         _userName = prefs.getString('userName') ?? '';
@@ -98,35 +97,41 @@ class BasketPageState extends State<BasketPage> {
   }
 
   String _buildWhatsAppMessage(BuildContext context) {
+    final s = S.of(context);
     final b = StringBuffer();
 
-    b.writeln('🧾 Barvin – New order');
+    b.writeln(s.waHeader);
     if (_isLoggedIn) {
-      if (_userName.isNotEmpty) b.writeln('👤 Name: $_userName');
-      if (_userPhone.isNotEmpty) b.writeln('📞 Phone: $_userPhone');
-      if (_userAddress.isNotEmpty) b.writeln('📍 Address: $_userAddress');
+      if (_userName.isNotEmpty) b.writeln('👤 ${s.waName}: $_userName');
+      if (_userPhone.isNotEmpty) b.writeln('📞 ${s.waPhone}: $_userPhone');
+      if (_userAddress.isNotEmpty)
+        b.writeln('📍 ${s.waAddress}: $_userAddress');
     }
     b.writeln('—' * 18);
 
     for (final e in _entries) {
       final lineTotal = (e.item.price * e.quantity).toStringAsFixed(0);
       b.writeln(
-          '• ${e.item.localizedName(context)}  x${e.quantity}  = $lineTotal IQD');
+          '• ${e.item.localizedName(context)}  x${e.quantity}  = $lineTotal ${s.currencyIqd}');
     }
 
     b.writeln('—' * 18);
-    b.writeln('Subtotal: ${_subtotal.toStringAsFixed(0)} IQD');
     b.writeln(
-        'Delivery: ${_freeDelivery ? "FREE" : "${_deliveryFee.toStringAsFixed(0)} IQD"}');
-    b.writeln('TOTAL: ${_total.toStringAsFixed(0)} IQD');
+        '${s.waSubtotal}: ${_subtotal.toStringAsFixed(0)} ${s.currencyIqd}');
+    b.writeln(
+      '${s.waDelivery}: ${_freeDelivery ? s.waFree : "${_deliveryFee.toStringAsFixed(0)} ${s.currencyIqd}"}',
+    );
+    b.writeln(
+        '${s.waTotalUpper}: ${_total.toStringAsFixed(0)} ${s.currencyIqd}');
 
     return b.toString();
   }
 
   Future<void> _sendOrderViaWhatsApp() async {
+    final s = S.of(context);
     if (_entries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your basket is empty.')),
+        SnackBar(content: Text(s.snackBasketEmpty)),
       );
       return;
     }
@@ -151,8 +156,7 @@ class BasketPageState extends State<BasketPage> {
       }
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Could not open WhatsApp on this device.')),
+        SnackBar(content: Text(s.snackWhatsAppOpenFail)),
       );
     }
   }
@@ -170,9 +174,8 @@ class BasketPageState extends State<BasketPage> {
       m['id'] = m['id'].toString();
       return m;
     }).toList();
-    print(raw);
 
-    // Group by name and sum quantities
+    // Group by id and sum quantities
     final Map<String, CartEntry> grouped = {};
     for (var m in raw) {
       final idStr = m['id'].toString();
@@ -194,7 +197,6 @@ class BasketPageState extends State<BasketPage> {
       );
 
       if (grouped.containsKey(idStr)) {
-        // if it’s already in the map, bump the quantity
         grouped[idStr]!.quantity += qty;
       } else {
         grouped[idStr] = CartEntry(item: item, quantity: qty);
@@ -202,7 +204,6 @@ class BasketPageState extends State<BasketPage> {
     }
 
     // Persist the cleaned, grouped cart
-    // Persist the cleaned, grouped cart (KEEP imageUrl, discount, etc.)
     final cleaned = grouped.values
         .map((e) => jsonEncode({
               'id': e.item.id.toString(),
@@ -236,7 +237,6 @@ class BasketPageState extends State<BasketPage> {
       final newQty = _entries[index].quantity + delta;
 
       if (newQty < 1) {
-        // remove the entry entirely
         _entries.removeAt(index);
       } else {
         _entries[index].quantity = newQty;
@@ -257,9 +257,10 @@ class BasketPageState extends State<BasketPage> {
 
   // ignore: unused_element
   Future<void> _sendOrder() async {
+    final s = S.of(context);
     if (!_isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to place an order.')),
+        SnackBar(content: Text(s.snackSignInToOrder)),
       );
       return;
     }
@@ -268,7 +269,6 @@ class BasketPageState extends State<BasketPage> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    // build payload
     final payload = {
       'items': _entries
           .map((e) => {
@@ -279,7 +279,6 @@ class BasketPageState extends State<BasketPage> {
     };
 
     try {
-      print('token is $token');
       final res = await http.post(
         Uri.parse('$apiBase/orders'),
         headers: {
@@ -290,25 +289,22 @@ class BasketPageState extends State<BasketPage> {
       );
 
       if (res.statusCode == 201) {
-        // success!
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Order placed successfully!')),
+          SnackBar(content: Text(s.snackOrderSuccess)),
         );
-        // clear cart
         await prefs.remove('cart');
         setState(() {
           _entries.clear();
         });
       } else {
         final err = jsonDecode(res.body);
-        print(err);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err['error'] ?? 'Failed to place order')),
+          SnackBar(content: Text(err['error'] ?? s.snackOrderFail)),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Network error — please try again')),
+        SnackBar(content: Text(s.snackNetworkError)),
       );
       print(e);
     } finally {
@@ -332,12 +328,22 @@ class BasketPageState extends State<BasketPage> {
     final s = S.of(context);
 
     return Scaffold(
-      backgroundColor: Color(0xFFD3E4C4), // soft green
+      backgroundColor: const Color(0xFFD3E4C4), // soft green
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xffFEFAE0),
         elevation: 1,
-        iconTheme: IconThemeData(color: primaryColor),
-        title: Text('Your Basket', style: TextStyle(color: textColor)),
+        iconTheme: const IconThemeData(color: primaryColor),
+        title: Text(s.basketTitle, style: const TextStyle(color: textColor)),
+        actions: [
+          IconButton(
+            tooltip: s.whatsAppTooltip,
+            onPressed: _entries.isEmpty ? null : _sendOrderViaWhatsApp,
+            icon: Icon(
+              Icons.chat,
+              color: _entries.isEmpty ? Colors.grey : whatsAppGreen,
+            ),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -354,9 +360,9 @@ class BasketPageState extends State<BasketPage> {
 
                   return Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xffFEFAE0),
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
+                      boxShadow: const [
                         BoxShadow(
                           color: Colors.black12,
                           blurRadius: 4,
@@ -401,7 +407,7 @@ class BasketPageState extends State<BasketPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // name — ellipsize to avoid pushing the price off-screen
+                              // name
                               Text(
                                 entry.item.localizedName(context),
                                 maxLines: 1,
@@ -410,7 +416,7 @@ class BasketPageState extends State<BasketPage> {
                                     fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 4),
-                              // description — already ellipsized
+                              // description
                               Text(
                                 entry.item.description,
                                 maxLines: 1,
@@ -442,7 +448,7 @@ class BasketPageState extends State<BasketPage> {
 
                         const SizedBox(width: 8),
 
-                        // price + delete (keep narrow, don’t force Row to grow)
+                        // price + delete
                         ConstrainedBox(
                           constraints:
                               const BoxConstraints(minWidth: 90, maxWidth: 140),
@@ -450,9 +456,8 @@ class BasketPageState extends State<BasketPage> {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              // IQD usually has no decimals — use 0 to shorten line
                               Text(
-                                '${(entry.item.price * entry.quantity).toStringAsFixed(0)} IQD',
+                                '${(entry.item.price * entry.quantity).toStringAsFixed(0)} ${s.currencyIqd}',
                                 softWrap: false,
                                 overflow: TextOverflow.fade,
                                 style: const TextStyle(
@@ -480,9 +485,9 @@ class BasketPageState extends State<BasketPage> {
             // ─── Order Summary ───────────────────────────────────────
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xffFEFAE0),
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
                     blurRadius: 4,
@@ -509,27 +514,6 @@ class BasketPageState extends State<BasketPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.chat, color: Colors.white),
-                label: const Text(
-                  'Send via WhatsApp',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                onPressed: _entries.isEmpty ? null : _sendOrderViaWhatsApp,
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: whatsAppGreen,
-                  side: const BorderSide(color: whatsAppGreen),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
 
             const SizedBox(height: 16),
 
@@ -542,7 +526,8 @@ class BasketPageState extends State<BasketPage> {
                     ? () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                              builder: (_) => const CheckoutPage()),
+                            builder: (_) => const CheckoutPage(),
+                          ),
                         );
                       }
                     : null,
@@ -553,7 +538,7 @@ class BasketPageState extends State<BasketPage> {
                   ),
                 ),
                 child: Text(
-                  'Proceed to Checkout',
+                  s.checkoutProceed,
                   style: const TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
@@ -579,7 +564,7 @@ class _QuantityButton extends StatelessWidget {
       child: Container(
         width: 32,
         height: 32,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
           boxShadow: [
@@ -611,6 +596,7 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -619,7 +605,7 @@ class _SummaryRow extends StatelessWidget {
               fontSize: fontSize,
               fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
             )),
-        Text('${value.toStringAsFixed(0)} IQD',
+        Text('${value.toStringAsFixed(0)} ${s.currencyIqd}',
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,

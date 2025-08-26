@@ -4,8 +4,6 @@ import 'package:barvin/screens/order_receipt.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
-// at the top of orders.dart
 import 'package:barvin/screens/home.dart' show apiBase;
 
 const Color primaryColor = Color(0xFF567765);
@@ -43,13 +41,10 @@ class _OrdersState extends State<Orders> {
       });
     } else {
       setState(() {
-        print("looggedd in");
         _loggedIn = true;
         _token = t;
       });
-      print("fetchin orders....");
       await _fetchOrders();
-      print("orders fetched");
     }
   }
 
@@ -63,22 +58,12 @@ class _OrdersState extends State<Orders> {
         },
       );
 
-      print('GET /orders/user → ${res.statusCode}');
-      print('Response body: ${res.body}');
-
-      // Decode once:
       final decoded = jsonDecode(res.body);
-
-      // Normalize to a List:
       final List<dynamic> dataList = decoded is List
           ? decoded
           : decoded['data'] is List
               ? decoded['data'] as List
               : [];
-
-      if (dataList.isEmpty) {
-        print('⚠️ no orders found (empty list)');
-      }
 
       final list = <Map<String, dynamic>>[];
       for (var raw in dataList) {
@@ -89,7 +74,6 @@ class _OrdersState extends State<Orders> {
         final dateStr = raw['placed_at']?.toString() ?? '';
         final status = (raw['status']?.toString() ?? 'pending').toLowerCase();
 
-        // Gather item names safely:
         final names = <String>[];
         if (raw['orderItems'] is List) {
           for (var oi in raw['orderItems']) {
@@ -115,24 +99,37 @@ class _OrdersState extends State<Orders> {
       setState(() {
         _orders = list;
       });
-    } catch (e, st) {
-      // Catch both JSON errors and network errors
-      print('❌ Error fetching or parsing orders: $e\n$st');
+    } catch (_) {
+      // swallow; UI shows empty state
     } finally {
       setState(() => _loading = false);
     }
   }
 
+  String _statusLabel(String apiStatus, S s) {
+    switch (apiStatus.toLowerCase()) {
+      case 'pending':
+        return s.status_pending;
+      case 'delivered':
+        return s.status_delivered;
+      case 'ordered':
+        return s.tab_ordered; // optional if you use this status
+      default:
+        return apiStatus.capitalize();
+    }
+  }
+
   Widget _buildTab(String status) {
-    // If status is 'all', show every order; otherwise only those matching the status
+    final s = S.of(context);
+
     final filtered = status == 'all'
         ? _orders
         : _orders.where((o) => o['status'] == status).toList();
 
     if (filtered.isEmpty) {
       final label = status == 'all'
-          ? 'No orders yet'
-          : 'No ${status.capitalize()} orders';
+          ? s.orders_empty_all
+          : s.orders_empty_status(_statusLabel(status, s));
       return Center(child: Text(label));
     }
 
@@ -143,19 +140,23 @@ class _OrdersState extends State<Orders> {
       itemBuilder: (_, idx) {
         final o = filtered[idx];
         final dt = DateTime.tryParse(o['date']) ?? DateTime.now();
-        final dateLabel = DateFormat.yMMMd().format(dt);
+        final dateLabel =
+            MaterialLocalizations.of(context).formatMediumDate(dt);
         final id = o['id'] as int;
         final names = List<String>.from(o['names']);
         final summary = names.length <= 2
             ? names.join(', ')
             : '${names[0]}, ${names[1]} +${names.length - 2} more';
 
-        // Pick a color for the badge
+        final statusForBadge =
+            (status == 'all' ? (o['status'] as String) : status);
+        final statusText = _statusLabel(statusForBadge, s);
+
         final statusColor = {
               'pending': Colors.orange,
               'all': primaryColor,
               'delivered': Colors.green,
-            }[status == 'all' ? o['status'] : status] ??
+            }[statusForBadge.toLowerCase()] ??
             Colors.grey;
 
         return Padding(
@@ -174,7 +175,9 @@ class _OrdersState extends State<Orders> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 4)
+                ],
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -198,7 +201,7 @@ class _OrdersState extends State<Orders> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            (status == 'all' ? o['status'] : status),
+                            statusText,
                             style: TextStyle(
                                 color: statusColor,
                                 fontWeight: FontWeight.w600),
@@ -208,15 +211,19 @@ class _OrdersState extends State<Orders> {
                     ),
                     const SizedBox(height: 8),
                     // order number
-                    Text('#ORD-${id.toString().padLeft(4, '0')}',
-                        style: TextStyle(color: Colors.grey[600])),
+                    Text(
+                      '${s.order_number_prefix}${id.toString().padLeft(4, '0')}',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
                     const SizedBox(height: 8),
                     // items summary
                     Text(summary, style: const TextStyle(fontSize: 16)),
                     const SizedBox(height: 8),
                     // total amount
-                    Text('Total: ${o['total'].toStringAsFixed(0)} IQD',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      '${s.total_label} ${o['total'].toStringAsFixed(0)} ${s.currency_code_iqd}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ),
@@ -238,16 +245,14 @@ class _OrdersState extends State<Orders> {
     }
     if (!_loggedIn) {
       return Scaffold(
-        backgroundColor: Color(0xffD3E4C4),
+        backgroundColor: const Color(0xffD3E4C4),
         body: Center(
           child: ElevatedButton(
             onPressed: () => Navigator.pushNamed(context, '/login'),
             style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
             child: Text(
               s.singInOrder,
-              style: TextStyle(
-                color: Colors.white,
-              ),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ),
@@ -260,19 +265,22 @@ class _OrdersState extends State<Orders> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          // leading: BackButton(color: primaryColor),
-          title: Text('My Orders',
-              style:
-                  TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+          title: Text(
+            s.my_orders_title,
+            style: const TextStyle(
+              color: primaryColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           bottom: TabBar(
             indicatorColor: primaryColor,
             labelColor: primaryColor,
             unselectedLabelColor: Colors.grey,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-            tabs: const [
-              Tab(text: 'Pending'),
-              Tab(text: 'Ordered'),
-              Tab(text: 'delivered'),
+            tabs: [
+              Tab(text: s.tab_pending),
+              Tab(text: s.tab_ordered),
+              Tab(text: s.tab_delivered),
             ],
           ),
         ),

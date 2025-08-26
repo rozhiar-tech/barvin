@@ -170,9 +170,10 @@ class _SectionData {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({Key? key}) : super(key: key);
+
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
 /// Parse either a raw JSON list or a JSON object
@@ -212,7 +213,7 @@ class _RowFeed {
   void dispose() => controller.dispose();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   List<Ad> _ads = [];
 
   int _currentPage = 0;
@@ -313,6 +314,13 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadSections();
     _loadUserAvatar();
     // get user avatar url from shared preferences
+  }
+
+  Future<void> reload() async {
+    // choose what you want refreshed:
+    await _loadCartCount();
+
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadGridPref() async {
@@ -1052,6 +1060,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     '/api', ''),
                                                 categoryId: sec
                                                     .category.id, // ← add this
+                                                onExit:
+                                                    reload, // 👈 refresh Home when user goes back
                                               ),
                                             ));
                                       },
@@ -1129,15 +1139,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                               // Image + discount badge
                                               Stack(
                                                 children: [
-                                                  SizedBox(
-                                                    height: 115,
+                                                  Container(
+                                                    margin: EdgeInsets.all(
+                                                      8,
+                                                    ),
+                                                    height: 110,
+                                                    width: 110,
                                                     child: ClipRRect(
                                                       borderRadius:
                                                           const BorderRadius
                                                               .vertical(
-                                                              top: Radius
-                                                                  .circular(
-                                                                      16)),
+                                                        top:
+                                                            Radius.circular(16),
+                                                        bottom:
+                                                            Radius.circular(16),
+                                                      ),
                                                       child: it.imageUrl
                                                               .isNotEmpty
                                                           ? CachedNetworkImage(
@@ -1460,13 +1476,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       items: sec.items,
                       host: apiBase.replaceAll('/api', ''),
                       categoryId: sec.category.id,
+                      onExit: reload, // 👈 refresh Home when user goes back
                     ),
                   ),
                 );
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xffFEFAE0),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFEFEFEF)),
                   boxShadow: [
