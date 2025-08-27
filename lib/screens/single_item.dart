@@ -246,26 +246,26 @@ class _SingleItemState extends State<SingleItem> {
             const SizedBox(height: 8),
 
             // SUPPLIER (if any)
-            if ((_supplier ?? '').isNotEmpty) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.storefront, color: primaryColor, size: 18),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      _supplier!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.black87, fontWeight: FontWeight.w600),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
+            // if ((_supplier ?? '').isNotEmpty) ...[
+            //   Row(
+            //     mainAxisAlignment: MainAxisAlignment.center,
+            //     children: [
+            //       const Icon(Icons.storefront, color: primaryColor, size: 18),
+            //       const SizedBox(width: 6),
+            //       Flexible(
+            //         child: Text(
+            //           _supplier!,
+            //           maxLines: 1,
+            //           overflow: TextOverflow.ellipsis,
+            //           style: const TextStyle(
+            //               color: Colors.black87, fontWeight: FontWeight.w600),
+            //           textAlign: TextAlign.center,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            //   const SizedBox(height: 8),
+            // ],
 
             // UNIT (read-only info)
             if ((_unit ?? '').isNotEmpty) ...[
@@ -321,6 +321,14 @@ class _SingleItemState extends State<SingleItem> {
             // PACK OPTION (single selectable control)
             if (hasPackOption) ...[
               const SizedBox(height: 12),
+
+              Center(
+                child: Text(
+                  '${S.of(context).pack_size} = ${_packSize!} ${_unit ?? "unit"}${_packSize! > 1 ? "s" : ""}',
+                  style: TextStyle(color: Colors.grey[700]),
+                ),
+              ),
+              const SizedBox(height: 12),
               Center(
                 child: FilterChip(
                   selected: _orderByPack,
@@ -330,13 +338,7 @@ class _SingleItemState extends State<SingleItem> {
                   label: Text('${S.of(context).pack} (×${_packSize!})'),
                 ),
               ),
-              const SizedBox(height: 6),
-              Center(
-                child: Text(
-                  '${S.of(context).pack_size} = ${_packSize!} ${_unit ?? "unit"}${_packSize! > 1 ? "s" : ""}',
-                  style: TextStyle(color: Colors.grey[700]),
-                ),
-              ),
+              // const SizedBox(height: 6),
             ],
 
             const SizedBox(height: 16),
@@ -386,12 +388,12 @@ class _SingleItemState extends State<SingleItem> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      _orderByPack
-                          ? '${_effectivePackPrice.toStringAsFixed(0)} ${S.of(context).currency_code_iqd} / ${S.of(context).pack}'
-                          : '${_effectiveUnitPrice.toStringAsFixed(0)} ${S.of(context).currency_code_iqd} / ${_unit ?? "${S.of(context).unit}"}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
+                    // Text(
+                    //   _orderByPack
+                    //       ? '${_effectivePackPrice.toStringAsFixed(0)} ${S.of(context).currency_code_iqd} / ${S.of(context).pack}'
+                    //       : '${_effectiveUnitPrice.toStringAsFixed(0)} ${S.of(context).currency_code_iqd} / ${_unit ?? "${S.of(context).unit}"}',
+                    //   style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    // ),
                     const SizedBox(height: 4),
                     Text(
                       '${_lineTotal.toStringAsFixed(0)} ${S.of(context).currency_code_iqd}',
@@ -448,7 +450,7 @@ class _FullscreenImagePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,

@@ -12,9 +12,10 @@ import 'package:barvin/screens/home.dart' show apiBase;
 const Color primaryColor = Color(0xFF567765);
 
 // Optional: socials (replace with real links)
-const _instagram = 'https://instagram.com/your_store';
-const _facebook = 'https://facebook.com/your_store';
-const _tiktok = 'https://tiktok.com/@your_store';
+const _instagram =
+    'https://www.instagram.com/barvin.co?igsh=MXVhbjU2bnhibnZtbw==';
+const _facebook = 'https://www.facebook.com/share/17FATGwNhc/?mibextid=wwXIfr';
+const _tiktok = 'https://www.tiktok.com/@barvin.company?_t=ZS-8zD5KtvJpF2&_r=1';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});

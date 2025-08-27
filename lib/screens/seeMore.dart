@@ -664,6 +664,9 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                               ),
                               child: Column(
                                 children: [
+                                  SizedBox(
+                                    height: 4,
+                                  ),
                                   // product image
                                   Expanded(
                                     flex: 4,
@@ -688,24 +691,27 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                                     flex: 5,
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 6),
+                                          horizontal: 8, vertical: 4),
                                       child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                        // mainAxisAlignment:
+                                        //     MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
                                             it.localizedName(context),
                                             style: const TextStyle(
-                                                fontSize: 12.5,
-                                                fontWeight: FontWeight.w700,
+                                                fontSize: 10.5,
+                                                // fontWeight: FontWeight.w700,
                                                 color: textColor),
-                                            maxLines: 2,
+                                            maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             textAlign: TextAlign.center,
                                           ),
-                                          if (supplier.isNotEmpty)
+                                          SizedBox(
+                                            height: 4,
+                                          ),
+                                          if (it.description.isNotEmpty)
                                             Text(
-                                              supplier,
+                                              it.description,
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 color:

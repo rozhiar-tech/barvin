@@ -324,9 +324,9 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadGridPref() async {
-    // ← NEW
     final p = await SharedPreferences.getInstance();
-    setState(() => _gridMode = p.getBool('gridMode') ?? false);
+    // was: _gridMode = p.getBool('gridMode') ?? false;
+    setState(() => _gridMode = p.getBool('gridMode') ?? true); // ← default true
   }
 
   Future<void> _saveGridPref(bool v) async {
@@ -456,7 +456,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _startCarousel() {
-    _carouselTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    _carouselTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       _currentPage = (_currentPage + 1) % (_ads.isNotEmpty ? _ads.length : 1);
       _pageController.animateToPage(
         _currentPage,
@@ -1495,14 +1495,14 @@ class HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 5, vertical: 12),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // bigger image bubble
                     Container(
-                      width: 72,
-                      height: 72,
+                      width: 87,
+                      height: 87,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF7F7F7),
                         borderRadius: BorderRadius.circular(14),
@@ -1524,10 +1524,10 @@ class HomeScreenState extends State<HomeScreen> {
                     Text(
                       sec.category.localizedName(context),
                       textAlign: TextAlign.center,
-                      maxLines: 3, // was 2
+                      maxLines: 1, // was 2
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 13.5,
+                        fontSize: 9.5,
                         fontWeight: FontWeight.w600,
                         color: textColor,
                         height: 1.25, // tighter line-height
