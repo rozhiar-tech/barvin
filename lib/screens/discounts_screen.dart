@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:barvin/screens/home.dart'; // for Item & parseSectionsPayload
 import 'single_item.dart';
 
-const String apiBase = 'http://';
 const Color primaryColor = Color(0xFFbed6be);
 const Color secondaryColor = Color(0xFF6D8474);
 const Color textColor = Color(0xFF212121);
@@ -50,7 +49,7 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xffFEFAE0),
       appBar: AppBar(
         title: const Text('Discounts', style: TextStyle(color: textColor)),
         backgroundColor: Colors.white,

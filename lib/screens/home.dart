@@ -34,6 +34,14 @@ String mediaUrlFrom(String rawPath) {
   return '$apiOrigin/$path';
 }
 
+double _parseNum(dynamic v) {
+  if (v == null) return 0.0;
+  if (v is num) return v.toDouble();
+  // Clean strings like "20%", " 15 ", etc.
+  final cleaned = v.toString().trim().replaceAll(RegExp(r'[^0-9\.\-]'), '');
+  return double.tryParse(cleaned) ?? 0.0;
+}
+
 class Ad {
   final int id;
   final String filePath;
@@ -123,19 +131,14 @@ class Item {
   });
 
   factory Item.fromJson(Map<String, dynamic> j) {
-    double price = (j['price'] is num)
-        ? (j['price'] as num).toDouble()
-        : double.tryParse(j['price'].toString()) ?? 0;
-    double discount = (j['discount'] is num)
-        ? (j['discount'] as num).toDouble()
-        : double.tryParse(j['discount'].toString()) ?? 0;
+    final price = _parseNum(j['price']);
+    // try common alternative keys too, just in case
+    final discount = _parseNum(
+        j['discount'] ?? j['discount_percent'] ?? j['discountPercentage']);
 
-    final supplier = (j['supplierName'] ??
-            j['supplier_name'] ??
-            j['supplierName'] ??
-            j['vendor'] ??
-            '')
-        .toString();
+    final supplier =
+        (j['supplierName'] ?? j['supplier_name'] ?? j['vendor'] ?? '')
+            .toString();
 
     return Item(
       id: j['id'],
@@ -146,7 +149,7 @@ class Item {
       price: price,
       discount: discount,
       description: j['description']?.toString().trim() ?? '',
-      supplier_name: supplier, // ← now filled if any key matches
+      supplier_name: supplier,
     );
   }
 
