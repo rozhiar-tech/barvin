@@ -344,10 +344,10 @@ class S {
     );
   }
 
-  /// `Network error — please try again`
+  /// `Network error. Please try again.`
   String get networkError {
     return Intl.message(
-      'Network error — please try again',
+      'Network error. Please try again.',
       name: 'networkError',
       desc: '',
       args: [],
@@ -489,6 +489,186 @@ class S {
     );
   }
 
+  /// `Forgot password?`
+  String get forgotPasswordLink {
+    return Intl.message(
+      'Forgot password?',
+      name: 'forgotPasswordLink',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reset your password`
+  String get forgotTitle {
+    return Intl.message(
+      'Reset your password',
+      name: 'forgotTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Email`
+  String get forgotEmailLabel {
+    return Intl.message('Email', name: 'forgotEmailLabel', desc: '', args: []);
+  }
+
+  /// `Send code`
+  String get forgotSendCode {
+    return Intl.message(
+      'Send code',
+      name: 'forgotSendCode',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `If that email exists, we sent you a code.`
+  String get forgotSentCheckEmail {
+    return Intl.message(
+      'If that email exists, we sent you a code.',
+      name: 'forgotSentCheckEmail',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Back to login`
+  String get backToLogin {
+    return Intl.message(
+      'Back to login',
+      name: 'backToLogin',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter the code we emailed you`
+  String get otpTitle {
+    return Intl.message(
+      'Enter the code we emailed you',
+      name: 'otpTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `6-digit code`
+  String get otpCodeLabel {
+    return Intl.message(
+      '6-digit code',
+      name: 'otpCodeLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `New password`
+  String get otpNewPasswordLabel {
+    return Intl.message(
+      'New password',
+      name: 'otpNewPasswordLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Confirm password`
+  String get otpConfirmPasswordLabel {
+    return Intl.message(
+      'Confirm password',
+      name: 'otpConfirmPasswordLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reset password`
+  String get otpSubmit {
+    return Intl.message(
+      'Reset password',
+      name: 'otpSubmit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Resend`
+  String get otpResend {
+    return Intl.message('Resend', name: 'otpResend', desc: '', args: []);
+  }
+
+  /// `Resend in {seconds}s`
+  String otpResendIn(Object seconds) {
+    return Intl.message(
+      'Resend in ${seconds}s',
+      name: 'otpResendIn',
+      desc: '',
+      args: [seconds],
+    );
+  }
+
+  /// `You can resend a new code`
+  String get otpYouCanResend {
+    return Intl.message(
+      'You can resend a new code',
+      name: 'otpYouCanResend',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter the 6-digit code`
+  String get otpInvalidFormat {
+    return Intl.message(
+      'Enter the 6-digit code',
+      name: 'otpInvalidFormat',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Passwords don’t match`
+  String get otpPasswordMismatch {
+    return Intl.message(
+      'Passwords don’t match',
+      name: 'otpPasswordMismatch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Invalid code or expired`
+  String get otpInvalidCode {
+    return Intl.message(
+      'Invalid code or expired',
+      name: 'otpInvalidCode',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Password updated! You can log in now.`
+  String get passwordUpdatedSuccess {
+    return Intl.message(
+      'Password updated! You can log in now.',
+      name: 'passwordUpdatedSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Something went wrong. Please try again.`
+  String get genericError {
+    return Intl.message(
+      'Something went wrong. Please try again.',
+      name: 'genericError',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Address`
   String get signUpAddressLabel {
     return Intl.message(
@@ -507,6 +687,26 @@ class S {
       desc: '',
       args: [],
     );
+  }
+
+  /// `Home`
+  String get home {
+    return Intl.message('Home', name: 'home', desc: '', args: []);
+  }
+
+  /// `Orders`
+  String get orderTab {
+    return Intl.message('Orders', name: 'orderTab', desc: '', args: []);
+  }
+
+  /// `Profile`
+  String get profileTab {
+    return Intl.message('Profile', name: 'profileTab', desc: '', args: []);
+  }
+
+  /// `Basket`
+  String get basketTab {
+    return Intl.message('Basket', name: 'basketTab', desc: '', args: []);
   }
 
   /// `Location: ({lat}, {lng})`

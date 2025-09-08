@@ -27,7 +27,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m2(status) => "No ${status} orders";
 
-  static String m3(lat, lng) => "Location: (${lat}, ${lng})";
+  static String m3(seconds) => "Resend in ${seconds}s";
+
+  static String m4(lat, lng) => "Location: (${lat}, ${lng})";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -38,8 +40,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "allDiscount": MessageLookupByLibrary.simpleMessage("All Discounts"),
     "appName": MessageLookupByLibrary.simpleMessage("Barvin"),
     "appTitle": MessageLookupByLibrary.simpleMessage("My Barvin App"),
+    "backToLogin": MessageLookupByLibrary.simpleMessage("Back to login"),
     "basket": MessageLookupByLibrary.simpleMessage("Your basket"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("Basket is empty"),
+    "basketTab": MessageLookupByLibrary.simpleMessage("Basket"),
     "basketTitle": MessageLookupByLibrary.simpleMessage("Your Basket"),
     "cashOnDelivery": MessageLookupByLibrary.simpleMessage("Cash On Delivery"),
     "checkout": MessageLookupByLibrary.simpleMessage("Checkout"),
@@ -70,6 +74,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "Designed and Developed by UST Agency",
     ),
+    "forgotEmailLabel": MessageLookupByLibrary.simpleMessage("Email"),
+    "forgotPasswordLink": MessageLookupByLibrary.simpleMessage(
+      "Forgot password?",
+    ),
+    "forgotSendCode": MessageLookupByLibrary.simpleMessage("Send code"),
+    "forgotSentCheckEmail": MessageLookupByLibrary.simpleMessage(
+      "If that email exists, we sent you a code.",
+    ),
+    "forgotTitle": MessageLookupByLibrary.simpleMessage("Reset your password"),
+    "genericError": MessageLookupByLibrary.simpleMessage(
+      "Something went wrong. Please try again.",
+    ),
     "guest": MessageLookupByLibrary.simpleMessage("Guest"),
     "guestBannerText": MessageLookupByLibrary.simpleMessage(
       "You can browse as a guest, but need an account to order.",
@@ -78,6 +94,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Please sign in to place your order",
     ),
     "hint": MessageLookupByLibrary.simpleMessage("Type To Search"),
+    "home": MessageLookupByLibrary.simpleMessage("Home"),
     "instagram": MessageLookupByLibrary.simpleMessage("Instagram"),
     "itemsCount": m1,
     "language": MessageLookupByLibrary.simpleMessage("language"),
@@ -111,7 +128,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "longitude": MessageLookupByLibrary.simpleMessage("longitude"),
     "my_orders_title": MessageLookupByLibrary.simpleMessage("My Orders"),
     "networkError": MessageLookupByLibrary.simpleMessage(
-      "Network error — please try again",
+      "Network error. Please try again.",
     ),
     "networkErrorTryAgain": MessageLookupByLibrary.simpleMessage(
       "Network error — try again.",
@@ -121,9 +138,33 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "noOrder": MessageLookupByLibrary.simpleMessage("No orders found."),
     "orderOn": MessageLookupByLibrary.simpleMessage("Order on"),
+    "orderTab": MessageLookupByLibrary.simpleMessage("Orders"),
     "order_number_prefix": MessageLookupByLibrary.simpleMessage("#ORD-"),
     "orders_empty_all": MessageLookupByLibrary.simpleMessage("No orders yet"),
     "orders_empty_status": m2,
+    "otpCodeLabel": MessageLookupByLibrary.simpleMessage("6-digit code"),
+    "otpConfirmPasswordLabel": MessageLookupByLibrary.simpleMessage(
+      "Confirm password",
+    ),
+    "otpInvalidCode": MessageLookupByLibrary.simpleMessage(
+      "Invalid code or expired",
+    ),
+    "otpInvalidFormat": MessageLookupByLibrary.simpleMessage(
+      "Enter the 6-digit code",
+    ),
+    "otpNewPasswordLabel": MessageLookupByLibrary.simpleMessage("New password"),
+    "otpPasswordMismatch": MessageLookupByLibrary.simpleMessage(
+      "Passwords don’t match",
+    ),
+    "otpResend": MessageLookupByLibrary.simpleMessage("Resend"),
+    "otpResendIn": m3,
+    "otpSubmit": MessageLookupByLibrary.simpleMessage("Reset password"),
+    "otpTitle": MessageLookupByLibrary.simpleMessage(
+      "Enter the code we emailed you",
+    ),
+    "otpYouCanResend": MessageLookupByLibrary.simpleMessage(
+      "You can resend a new code",
+    ),
     "pSignin": MessageLookupByLibrary.simpleMessage(
       "Please sign in to place your order",
     ),
@@ -131,8 +172,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "pack": MessageLookupByLibrary.simpleMessage("Pack"),
     "pack_order": MessageLookupByLibrary.simpleMessage("Order as pack"),
     "pack_size": MessageLookupByLibrary.simpleMessage("1 pack"),
+    "passwordUpdatedSuccess": MessageLookupByLibrary.simpleMessage(
+      "Password updated! You can log in now.",
+    ),
     "paymentMethod": MessageLookupByLibrary.simpleMessage("Payment Method"),
     "placeOrder": MessageLookupByLibrary.simpleMessage("Place Order"),
+    "profileTab": MessageLookupByLibrary.simpleMessage("Profile"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("Profile"),
     "requiredField": MessageLookupByLibrary.simpleMessage("Required Field"),
     "reviewBasket": MessageLookupByLibrary.simpleMessage("Review Basket"),
@@ -158,7 +203,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpFullName": MessageLookupByLibrary.simpleMessage("Full Name"),
     "signUpInvalidEmail": MessageLookupByLibrary.simpleMessage("Invalid email"),
     "signUpInvalidPhone": MessageLookupByLibrary.simpleMessage("Invalid phone"),
-    "signUpLocationPicked": m3,
+    "signUpLocationPicked": m4,
     "signUpNoLocationSelected": MessageLookupByLibrary.simpleMessage(
       "No location selected",
     ),

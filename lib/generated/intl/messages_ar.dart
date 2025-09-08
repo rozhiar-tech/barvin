@@ -27,7 +27,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m2(status) => "لا توجد طلبات";
 
-  static String m3(lat, lng) => "الموقع: (${lat}، ${lng})";
+  static String m3(seconds) => "إعادة الإرسال خلال {ثانية} ثانية";
+
+  static String m4(lat, lng) => "الموقع: (${lat}, ${lng})";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -38,8 +40,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "allDiscount": MessageLookupByLibrary.simpleMessage("جميع الخصومات"),
     "appName": MessageLookupByLibrary.simpleMessage("بارڤین"),
     "appTitle": MessageLookupByLibrary.simpleMessage("تطبيق بارڤين"),
+    "backToLogin": MessageLookupByLibrary.simpleMessage(
+      "العودة إلى تسجيل الدخول",
+    ),
     "basket": MessageLookupByLibrary.simpleMessage("سلتك"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("السلة فارغة"),
+    "basketTab": MessageLookupByLibrary.simpleMessage("السلة"),
     "basketTitle": MessageLookupByLibrary.simpleMessage("سلة التسوق"),
     "cashOnDelivery": MessageLookupByLibrary.simpleMessage(
       "الدفع عند الاستلام",
@@ -65,6 +71,22 @@ class MessageLookup extends MessageLookupByLibrary {
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "تم التصميم والتطوير بواسطة وكالة يو إس تي",
     ),
+    "forgotEmailLabel": MessageLookupByLibrary.simpleMessage(
+      "البريد الإلكتروني",
+    ),
+    "forgotPasswordLink": MessageLookupByLibrary.simpleMessage(
+      "نسيت كلمة المرور؟",
+    ),
+    "forgotSendCode": MessageLookupByLibrary.simpleMessage("إرسال الرمز"),
+    "forgotSentCheckEmail": MessageLookupByLibrary.simpleMessage(
+      "إذا كان هذا البريد الإلكتروني موجودًا, فقد أرسلنا لك رمزًا",
+    ),
+    "forgotTitle": MessageLookupByLibrary.simpleMessage(
+      "إعادة تعيين كلمة المرور",
+    ),
+    "genericError": MessageLookupByLibrary.simpleMessage(
+      "حدث خطأ ما. يُرجى المحاولة مرة أخرى",
+    ),
     "guest": MessageLookupByLibrary.simpleMessage("ضيف"),
     "guestBannerText": MessageLookupByLibrary.simpleMessage(
       "يمكنك التصفّح كضيف، لكن تحتاج إلى حساب لإتمام الطلب.",
@@ -73,6 +95,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "يرجى تسجيل الدخول لإجراء الطلب",
     ),
     "hint": MessageLookupByLibrary.simpleMessage("اكتب للبحث"),
+    "home": MessageLookupByLibrary.simpleMessage("الرئيسية"),
     "instagram": MessageLookupByLibrary.simpleMessage("إنستغرام"),
     "itemsCount": m1,
     "language": MessageLookupByLibrary.simpleMessage("اللغة"),
@@ -106,7 +129,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "longitude": MessageLookupByLibrary.simpleMessage("خط الطول"),
     "my_orders_title": MessageLookupByLibrary.simpleMessage("طلباتي"),
     "networkError": MessageLookupByLibrary.simpleMessage(
-      "خطأ في الشبكة — يُرجى المحاولة مرة أخرى",
+      "خطأ في الشبكة. يُرجى المحاولة مرة أخرى",
     ),
     "networkErrorTryAgain": MessageLookupByLibrary.simpleMessage(
       "خطأ في الشبكة — حاول مرة أخرى.",
@@ -116,11 +139,39 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "noOrder": MessageLookupByLibrary.simpleMessage("لم يتم العثور على طلبات."),
     "orderOn": MessageLookupByLibrary.simpleMessage("طلب على"),
+    "orderTab": MessageLookupByLibrary.simpleMessage("الطلبات"),
     "order_number_prefix": MessageLookupByLibrary.simpleMessage("#ORD-"),
     "orders_empty_all": MessageLookupByLibrary.simpleMessage(
       "لا توجد طلبات حتى الآن",
     ),
     "orders_empty_status": m2,
+    "otpCodeLabel": MessageLookupByLibrary.simpleMessage("رمز من 6 أرقام"),
+    "otpConfirmPasswordLabel": MessageLookupByLibrary.simpleMessage(
+      "تأكيد كلمة المرور",
+    ),
+    "otpInvalidCode": MessageLookupByLibrary.simpleMessage(
+      "الرمز غير صالح أو منتهي الصلاحية",
+    ),
+    "otpInvalidFormat": MessageLookupByLibrary.simpleMessage(
+      "أدخل الرمز المكون من 6 أرقام",
+    ),
+    "otpNewPasswordLabel": MessageLookupByLibrary.simpleMessage(
+      "كلمة مرور جديدة",
+    ),
+    "otpPasswordMismatch": MessageLookupByLibrary.simpleMessage(
+      "كلمات المرور غير متطابقة",
+    ),
+    "otpResend": MessageLookupByLibrary.simpleMessage("إعادة إرسال"),
+    "otpResendIn": m3,
+    "otpSubmit": MessageLookupByLibrary.simpleMessage(
+      "إعادة تعيين كلمة المرور",
+    ),
+    "otpTitle": MessageLookupByLibrary.simpleMessage(
+      "أدخل الرمز الذي أرسلناه إليك عبر البريد الإلكتروني",
+    ),
+    "otpYouCanResend": MessageLookupByLibrary.simpleMessage(
+      "يمكنك إعادة إرسال رمز جديد",
+    ),
     "pSignin": MessageLookupByLibrary.simpleMessage(
       "الرجاء تسجيل الدخول لتقديم طلبك",
     ),
@@ -128,8 +179,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "pack": MessageLookupByLibrary.simpleMessage("حزمة"),
     "pack_order": MessageLookupByLibrary.simpleMessage("اطلب كحزمة"),
     "pack_size": MessageLookupByLibrary.simpleMessage("حزمة واحدة"),
+    "passwordUpdatedSuccess": MessageLookupByLibrary.simpleMessage(
+      "تم تحديث كلمة المرور! يمكنك تسجيل الدخول الآن",
+    ),
     "paymentMethod": MessageLookupByLibrary.simpleMessage("طريقة الدفع"),
     "placeOrder": MessageLookupByLibrary.simpleMessage("طلب"),
+    "profileTab": MessageLookupByLibrary.simpleMessage("الملف الشخصي"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("الملف الشخصي"),
     "requiredField": MessageLookupByLibrary.simpleMessage("الحقل المطلوب"),
     "reviewBasket": MessageLookupByLibrary.simpleMessage("المراجعة سلة"),
@@ -157,7 +212,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpInvalidPhone": MessageLookupByLibrary.simpleMessage(
       "رقم هاتف غير صالح",
     ),
-    "signUpLocationPicked": m3,
+    "signUpLocationPicked": m4,
     "signUpNoLocationSelected": MessageLookupByLibrary.simpleMessage(
       "لم يتم اختيار موقع",
     ),

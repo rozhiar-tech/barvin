@@ -4,14 +4,19 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
-import 'package:http_parser/http_parser.dart';
+// import 'package:flutter/services.dart' show rootBundle;
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'LocationPickerPage.dart';
 import 'package:barvin/screens/home.dart' show apiBase;
+import 'signup_otp.dart';
 
 const Color primaryColor = Color(0xFF567765);
+
+// 👇 update path & ensure it's in pubspec.yaml: assets:
+//   - assets/appicon.png
+const String DEFAULT_AVATAR_ASSET = 'assets/appicon.png';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -27,7 +32,6 @@ class _SignUpPageState extends State<SignUpPage> {
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   File? _avatarFile;
-  String? _avatarError;
   String? _lat, _lng;
   bool _loading = false;
   String? _locationError;
@@ -43,19 +47,21 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> _pickAvatar() async {
-    final picked = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, maxWidth: 600);
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 600,
+    );
     if (picked != null) {
       setState(() {
         _avatarFile = File(picked.path);
-        _avatarError = null;
       });
     }
   }
 
   Future<void> _pickLocation() async {
     final result = await Navigator.of(context).push<LatLng>(
-        MaterialPageRoute(builder: (_) => const LocationPickerPage()));
+      MaterialPageRoute(builder: (_) => const LocationPickerPage()),
+    );
     if (result != null) {
       setState(() {
         _lat = result.latitude.toStringAsFixed(5);
@@ -68,52 +74,69 @@ class _SignUpPageState extends State<SignUpPage> {
       RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[a-zA-Z]{2,}$').hasMatch(v);
   bool _isValidPhone(String v) => RegExp(r'^\+?\d{7,15}$').hasMatch(v);
 
-  Future<void> _signup() async {
+  /// Step 1: start signup → request OTP to email
+  Future<void> _startSignup() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_avatarFile == null) {
-      setState(() => _avatarError = 'Please pick a photo');
+
+    // Still require location (as in your previous logic)
+    if (_lat == null || _lng == null) {
+      setState(() => _locationError = S.of(context).signUpSelectLocationError);
       return;
     }
+    setState(() {
+      _locationError = null;
+      _loading = true;
+    });
 
-    setState(() => _loading = true);
     try {
-      final uri = Uri.parse('$apiBase/users');
-      final req = http.MultipartRequest('POST', uri)
-        ..fields['name'] = _nameCtrl.text.trim()
-        ..fields['email'] = _emailCtrl.text.trim()
-        ..fields['password'] = _passwordCtrl.text
-        ..fields['phone'] = _phoneCtrl.text.trim()
-        ..fields['address'] = _addressCtrl.text.trim();
-      if (_lat != null && _lng != null) {
-        req.fields['latitude'] = _lat!;
-        req.fields['longitude'] = _lng!;
-      }
-      final ext = _avatarFile!.path.split('.').last;
-      req.files.add(await http.MultipartFile.fromPath(
-        'avatar',
-        _avatarFile!.path,
-        contentType: MediaType('image', ext),
-      ));
+      final uri = Uri.parse('$apiBase/auth/register-start');
+      final resp = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': _emailCtrl.text.trim(),
+        }),
+      );
 
-      final streamed = await req.send();
-      final body = jsonDecode(await streamed.stream.bytesToString());
-      if (streamed.statusCode == 201) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(S.of(context).signUpSuccess)));
-        Navigator.of(context).pop(true);
-      } else {
-        final msg = (body is Map && body['error'] != null)
-            ? body['error'].toString()
-            : body.toString();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).errorWithMessage(msg))),
+      if (resp.statusCode == 200) {
+        // Go to OTP screen with all data needed for /register-complete
+        final payload = SignupPayload(
+          name: _nameCtrl.text.trim(),
+          email: _emailCtrl.text.trim(),
+          password: _passwordCtrl.text,
+          phone: _phoneCtrl.text.trim(),
+          address: _addressCtrl.text.trim(),
+          lat: _lat!,
+          lng: _lng!,
+          avatarFile: _avatarFile,
+          defaultAvatarAsset: DEFAULT_AVATAR_ASSET,
         );
+        final ok = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => SignupOtpPage(payload: payload),
+          ),
+        );
+        if (ok == true) {
+          // success
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(S.of(context).signUpSuccess)),
+            );
+            Navigator.of(context).pop(true);
+          }
+        }
+      } else {
+        final msg = resp.body.isNotEmpty ? resp.body : 'Unexpected error';
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
+        print(msg);
       }
-    } catch (e) {
+    } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).networkErrorTryAgain)));
+        SnackBar(content: Text(S.of(context).networkErrorTryAgain)),
+      );
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -145,16 +168,16 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // full‐screen gradient bg:
       body: Container(
         decoration: const BoxDecoration(color: Color(0xffD3E4C4)),
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Card(
-              color: Color(0xffFEFAE0),
+              color: const Color(0xffFEFAE0),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24)),
+                borderRadius: BorderRadius.circular(24),
+              ),
               elevation: 8,
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -171,7 +194,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // avatar picker
+                    // Avatar picker (optional)
                     GestureDetector(
                       onTap: _pickAvatar,
                       child: CircleAvatar(
@@ -181,18 +204,14 @@ class _SignUpPageState extends State<SignUpPage> {
                             ? FileImage(_avatarFile!)
                             : null,
                         child: _avatarFile == null
-                            ? Icon(Icons.camera_alt,
-                                size: 40, color: primaryColor)
+                            ? const Icon(
+                                Icons.camera_alt,
+                                size: 40,
+                                color: primaryColor,
+                              )
                             : null,
                       ),
                     ),
-                    if (_avatarError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(_avatarError!,
-                            style: const TextStyle(
-                                color: Colors.red, fontSize: 12)),
-                      ),
                     const SizedBox(height: 20),
 
                     Form(
@@ -219,8 +238,9 @@ class _SignUpPageState extends State<SignUpPage> {
                             prefixIcon:
                                 const Icon(Icons.email, color: primaryColor),
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty)
+                              if (v == null || v.trim().isEmpty) {
                                 return S.of(context).signUpEnterEmail;
+                              }
                               return _isValidEmail(v.trim())
                                   ? null
                                   : S.of(context).signUpInvalidEmail;
@@ -228,7 +248,6 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           const SizedBox(height: 12),
 
-// Password
                           _buildField(
                             ctrl: _passwordCtrl,
                             label: S.of(context).signUpPasswordLabel,
@@ -237,8 +256,9 @@ class _SignUpPageState extends State<SignUpPage> {
                             prefixIcon:
                                 const Icon(Icons.lock, color: primaryColor),
                             validator: (v) {
-                              if (v == null || v.length < 8)
+                              if (v == null || v.length < 8) {
                                 return S.of(context).signUpPasswordMin8;
+                              }
                               if (!RegExp(r'^[A-Za-z0-9.]+$').hasMatch(v)) {
                                 return S.of(context).signUpPasswordAllowedChars;
                               }
@@ -254,8 +274,9 @@ class _SignUpPageState extends State<SignUpPage> {
                             prefixIcon:
                                 const Icon(Icons.phone, color: primaryColor),
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty)
+                              if (v == null || v.trim().isEmpty) {
                                 return S.of(context).signUpEnterPhone;
+                              }
                               return _isValidPhone(v.trim())
                                   ? null
                                   : S.of(context).signUpInvalidPhone;
@@ -263,7 +284,6 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           const SizedBox(height: 12),
 
-                          // free‐text address
                           _buildField(
                             ctrl: _addressCtrl,
                             label: S.of(context).signUpAddressLabel,
@@ -276,7 +296,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           const SizedBox(height: 12),
 
-                          // separate lat/lng picker
+                          // Location picker (required)
                           Row(
                             children: [
                               IconButton(
@@ -293,7 +313,9 @@ class _SignUpPageState extends State<SignUpPage> {
                                           .signUpLocationPicked(_lat!, _lng!)
                                       : S.of(context).signUpNoLocationSelected,
                                   style: TextStyle(
-                                      color: Colors.grey[700], fontSize: 14),
+                                    color: Colors.grey[700],
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                             ],
@@ -305,7 +327,9 @@ class _SignUpPageState extends State<SignUpPage> {
                               child: Text(
                                 _locationError!,
                                 style: const TextStyle(
-                                    color: Colors.red, fontSize: 12),
+                                  color: Colors.red,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
 
@@ -314,37 +338,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             width: double.infinity,
                             height: 50,
                             child: ElevatedButton(
-                              onPressed: _loading
-                                  ? null
-                                  : () {
-                                      // first, validate all text fields:
-                                      if (!_formKey.currentState!.validate())
-                                        return;
-
-                                      // avatar required
-                                      if (_avatarFile == null) {
-                                        setState(() => _avatarError = S
-                                            .of(context)
-                                            .signUpPickPhotoPrompt);
-                                        return;
-                                      }
-
-                                      // location required
-                                      if (_lat == null || _lng == null) {
-                                        setState(() => _locationError = S
-                                            .of(context)
-                                            .signUpSelectLocationError);
-                                        return;
-                                      }
-
-                                      // all good, clear errors & submit
-                                      setState(() {
-                                        _avatarError = null;
-                                        _locationError = null;
-                                        _loading = true;
-                                      });
-                                      _signup();
-                                    },
+                              onPressed: _loading ? null : _startSignup,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryColor,
                                 shape: RoundedRectangleBorder(
@@ -353,11 +347,16 @@ class _SignUpPageState extends State<SignUpPage> {
                               ),
                               child: _loading
                                   ? const CircularProgressIndicator(
-                                      color: Colors.white)
+                                      color: Colors.white,
+                                    )
                                   : Text(
+                                      // This now says "Continue" logically,
+                                      // but you can keep your localized label.
                                       S.of(context).signUpButton,
                                       style: const TextStyle(
-                                          fontSize: 16, color: Colors.white),
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                      ),
                                     ),
                             ),
                           ),
@@ -373,4 +372,29 @@ class _SignUpPageState extends State<SignUpPage> {
       ),
     );
   }
+}
+
+/// Data we pass to the OTP screen to complete registration
+class SignupPayload {
+  final String name;
+  final String email;
+  final String password;
+  final String phone;
+  final String address;
+  final String lat;
+  final String lng;
+  final File? avatarFile;
+  final String defaultAvatarAsset;
+
+  SignupPayload({
+    required this.name,
+    required this.email,
+    required this.password,
+    required this.phone,
+    required this.address,
+    required this.lat,
+    required this.lng,
+    required this.avatarFile,
+    required this.defaultAvatarAsset,
+  });
 }

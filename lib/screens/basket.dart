@@ -501,7 +501,7 @@ class BasketPageState extends State<BasketPage> {
                   _SummaryRow(label: s.subtotal, value: _subtotal),
                   const SizedBox(height: 8),
                   _SummaryRow(
-                    label: s.delivery,
+                    label: s.deliveryFee,
                     value: _freeDelivery ? 0 : _deliveryFee,
                   ),
                   const Divider(height: 24),

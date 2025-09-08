@@ -812,121 +812,144 @@ class HomeScreenState extends State<HomeScreen> {
                         // Single large card
                         GestureDetector(
                           onTap: () => _openDeal(context, _hotDeals.first),
-                          child: Container(
-                            height: 200,
-                            margin: const EdgeInsets.symmetric(horizontal: 8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: const [
-                                BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 8,
-                                    offset: Offset(0, 4))
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  // Background image
-                                  CachedNetworkImage(
-                                    imageUrl: _formatImageUrl(
-                                        _hotDeals.first.imageUrl),
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => const Center(
-                                        child: CircularProgressIndicator()),
-                                    errorWidget: (_, __, ___) =>
-                                        const Icon(Icons.error, size: 40),
-                                  ),
+                          child: AspectRatio(
+                            // keeps the card shape consistent
+                            aspectRatio: 24 / 9,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: const [
+                                  BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 8,
+                                      offset: Offset(0, 4)),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    // Background image
+                                    CachedNetworkImage(
+                                      imageUrl: _formatImageUrl(
+                                          _hotDeals.first.imageUrl),
+                                      fit: BoxFit
+                                          .fitWidth, // change to BoxFit.contain if you prefer no cropping
+                                      alignment: Alignment.center,
+                                      placeholder: (_, __) => const Center(
+                                          child: CircularProgressIndicator()),
+                                      errorWidget: (_, __, ___) =>
+                                          const Icon(Icons.error, size: 40),
+                                    ),
 
-                                  // Gradient overlay at bottom
-                                  Positioned(
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: const BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: [
-                                            Colors.transparent,
-                                            Colors.black54,
-                                          ],
-                                        ),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          // Item name
-                                          Text(
-                                            _hotDeals.first
-                                                .localizedName(context),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
+                                    // bottom gradient & text
+                                    Positioned.fill(
+                                      child: Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: const BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.transparent,
+                                                Colors.black54
+                                              ],
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
-                                          // Price row
-                                          Row(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
+                                              // Item name
                                               Text(
-                                                '${_hotDeals.first.price.toStringAsFixed(0)} IQD',
-                                                style: const TextStyle(
-                                                  color: Colors.white70,
-                                                  fontSize: 14,
-                                                  decoration: TextDecoration
-                                                      .lineThrough,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                '${(_hotDeals.first.price * (1 - _hotDeals.first.discount / 100)).toStringAsFixed(0)} IQD',
+                                                _hotDeals.first
+                                                    .localizedName(context),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                   color: Colors.white,
-                                                  fontSize: 16,
+                                                  fontSize: 18,
                                                   fontWeight: FontWeight.bold,
+                                                  shadows: [
+                                                    Shadow(
+                                                        color: Colors.black54,
+                                                        blurRadius: 4)
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+
+                                              // Prices (force LTR so 1,234 IQD and the strikethrough read correctly)
+                                              Directionality(
+                                                textDirection:
+                                                    TextDirection.ltr,
+                                                child: Row(
+                                                  children: [
+                                                    Text(
+                                                      'IQD ${_hotDeals.first.price.toStringAsFixed(0)}',
+                                                      style: const TextStyle(
+                                                        color: Colors.white70,
+                                                        fontSize: 14,
+                                                        decoration:
+                                                            TextDecoration
+                                                                .lineThrough,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      'IQD ${(_hotDeals.first.price * (1 - _hotDeals.first.discount / 100)).toStringAsFixed(0)}',
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-
-                                  // Discount badge
-                                  Positioned(
-                                    top: 12,
-                                    left: 12,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.redAccent,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: const [
-                                          BoxShadow(
-                                              color: Colors.black26,
-                                              blurRadius: 4)
-                                        ],
-                                      ),
-                                      child: Text(
-                                        '-${_hotDeals.first.discount.toStringAsFixed(0)}%',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+
+                                    // Discount badge (use Directionality.ltr so "-10%" is not flipped in RTL)
+                                    PositionedDirectional(
+                                      top: 12,
+                                      start: 12,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                                color: Colors.black26,
+                                                blurRadius: 4)
+                                          ],
+                                        ),
+                                        child: Directionality(
+                                          textDirection: TextDirection.ltr,
+                                          child: Text(
+                                            '-${_hotDeals.first.discount.toStringAsFixed(0)}%',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -1230,7 +1253,7 @@ class HomeScreenState extends State<HomeScreen> {
                                                   it.localizedName(context),
                                                   textAlign: TextAlign.center,
                                                   style: const TextStyle(
-                                                    fontSize: 12,
+                                                    fontSize: 14,
                                                     // fontWeight: FontWeight.bold,
                                                     color: textColor,
                                                   ),
@@ -1530,7 +1553,7 @@ class HomeScreenState extends State<HomeScreen> {
                       maxLines: 1, // was 2
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 9.5,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                         color: textColor,
                         height: 1.25, // tighter line-height

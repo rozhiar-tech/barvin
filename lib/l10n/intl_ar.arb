@@ -100,15 +100,48 @@
   "signUpPasswordLabel": "كلمة المرور",
   "signUpPasswordMin8": "يجب أن تكون كلمة المرور ٨ أحرف فأكثر",
   "signUpPasswordAllowedChars": "يُمكن أن تحتوي كلمة المرور على أحرف وأرقام ونقطة فقط",
+  "forgotPasswordLink":"رابط نسيت كلمة المرور",
+
+
+"forgotPasswordLink": "نسيت كلمة المرور؟",
+"forgotTitle": "إعادة تعيين كلمة المرور",
+"forgotEmailLabel": "البريد الإلكتروني",
+"forgotSendCode": "إرسال الرمز",
+"forgotSentCheckEmail": "إذا كان هذا البريد الإلكتروني موجودًا, فقد أرسلنا لك رمزًا",
+"backToLogin": "العودة إلى تسجيل الدخول",
+
+"otpTitle": "أدخل الرمز الذي أرسلناه إليك عبر البريد الإلكتروني",
+"otpCodeLabel": "رمز من 6 أرقام",
+"otpNewPasswordLabel": "كلمة مرور جديدة",
+"otpConfirmPasswordLabel": "تأكيد كلمة المرور",
+"otpSubmit": "إعادة تعيين كلمة المرور",
+"otpResend": "إعادة إرسال",
+"otpResendIn": "إعادة الإرسال خلال {ثانية} ثانية",
+"otpYouCanResend": "يمكنك إعادة إرسال رمز جديد",
+"otpInvalidFormat": "أدخل الرمز المكون من 6 أرقام",
+
+"otpPasswordMismatch": "كلمات المرور غير متطابقة",
+
+"otpInvalidCode": "الرمز غير صالح أو منتهي الصلاحية",
+
+"passwordUpdatedSuccess": "تم تحديث كلمة المرور! يمكنك تسجيل الدخول الآن",
+
+"genericError": "حدث خطأ ما. يُرجى المحاولة مرة أخرى",
+
+"networkError": "خطأ في الشبكة. يُرجى المحاولة مرة أخرى",
 
   "signUpPhoneLabel": "الهاتف",
   "signUpEnterPhone": "أدخل رقم الهاتف",
   "signUpInvalidPhone": "رقم هاتف غير صالح",
 
+  "home":"الرئيسية",
+  "orderTab":"الطلبات",
+  "profileTab":"الملف الشخصي",
+  "basketTab":"السلة",
   "signUpAddressLabel": "العنوان",
   "signUpEnterAddress": "أدخل عنوانك",
 
-  "signUpLocationPicked": "الموقع: ({lat}، {lng})",
+  "signUpLocationPicked": "الموقع: ({lat}, {lng})",
   "signUpNoLocationSelected": "لم يتم اختيار موقع",
   "signUpSelectLocationError": "يرجى تحديد موقعك على الخريطة",
 

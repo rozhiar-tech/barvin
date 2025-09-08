@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 // ignore: unused_shown_name
 import 'package:barvin/screens/home.dart' show apiUrl, apiBase;
 import 'package:barvin/generated/l10n.dart'; // ⬅️ i18n
+// at the top with other imports
+import 'package:barvin/screens/forgot_password.dart'; // NEW
 
 const Color _kPrimaryGreen = Color(0xFF4BCF7B);
 const Color primaryColor = Color(0xFF567765);
@@ -236,7 +238,25 @@ class _LoginPageState extends State<LoginPage> {
                               ),
 
                               const SizedBox(height: 8),
-
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () => Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const ForgotPasswordPage()),
+                                          ),
+                                  child: Text(
+                                    S
+                                        .of(context)
+                                        .forgotPasswordLink, // e.g. "Forgot password?"
+                                    style:
+                                        const TextStyle(color: _kPrimaryGreen),
+                                  ),
+                                ),
+                              ),
                               const SizedBox(height: 36),
                               SizedBox(
                                 width: double.infinity,

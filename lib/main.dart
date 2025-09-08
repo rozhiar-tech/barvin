@@ -120,6 +120,8 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
+
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
@@ -137,13 +139,14 @@ class _MainScreenState extends State<MainScreen> {
           if (i == 0) _homeKey.currentState?.reload(); // 👈 refresh Home
           if (i == 3) _basketKey.currentState?.reload(); // 👈 refresh Basket
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: s.home),
           BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart), label: 'Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+              icon: Icon(Icons.shopping_cart), label: s.orderTab),
           BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_basket), label: 'Basket'),
+              icon: Icon(Icons.person), label: s.profileTab),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_basket), label: s.basketTab),
         ],
       ),
     );

@@ -22,7 +22,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String? _lng;
   bool _cashOnDelivery = true;
   List<_CartEntry> _cart = [];
-  final double _deliveryFee = 2000;
+  double _deliveryFee = 0; // ← from /settings
+
   final double _taxRate = 0.02;
   bool _isSending = false;
   bool _loggedIn = false;
@@ -40,6 +41,29 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void initState() {
     super.initState();
     _loadPrefs();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final res = await http.get(Uri.parse('$apiBase/settings'));
+      if (res.statusCode == 200) {
+        final m = jsonDecode(res.body) as Map<String, dynamic>;
+        final raw = m['delivery_fee_iqd'];
+        final fee = raw is num
+            ? raw.toDouble()
+            : double.tryParse(raw?.toString() ?? '');
+        if (fee != null) {
+          setState(() => _deliveryFee = fee);
+        }
+      } else {
+        // debug only
+        print('Settings load failed: ${res.statusCode} ${res.body}');
+      }
+    } catch (e) {
+      // debug only
+      print('Settings load error: $e');
+    }
   }
 
   Future<void> _loadPrefs() async {
