@@ -229,7 +229,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Sign In to View Orders",
     ),
     "slogan": MessageLookupByLibrary.simpleMessage(
-      "We strive to deliver daily essentials at great prices, fast.",
+      "About Barvin  Barvin is a comprehensive procurement application dedicated to providing high quality products at unbeatable prices to both businesses and retail consumers. Barvbin provides a range of essentials—from coffee, tea and cheese to cereals, oils, spices, beverages and canned goods—ensuring that everyone, whether a business or an individual, has access to high-quality products. Our mission is to bridge the gap between price and quality, and to encourage all our customers to grow.",
     ),
     "snackBasketEmpty": MessageLookupByLibrary.simpleMessage(
       "Your basket is empty.",

@@ -45,6 +45,41 @@ class _ProfileState extends State<Profile> {
     _loadProfile();
   }
 
+  void showCustomAboutDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        final l10n = S.of(ctx);
+        return AlertDialog(
+          title: Row(
+            children: [
+              // optional app icon
+              // FlutterLogo(size: 28),
+              // const SizedBox(width: 12),
+              Expanded(child: Text(l10n.appName)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('v1.6.1', style: Theme.of(ctx).textTheme.bodySmall),
+              const SizedBox(height: 8),
+              Text(l10n.slogan),
+              // Add any extra content here...
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(MaterialLocalizations.of(ctx).okButtonLabel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final loggedIn = prefs.getBool('loggedIn') ?? false;
@@ -337,14 +372,7 @@ class _ProfileState extends State<Profile> {
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     trailing:
                         const Icon(Icons.chevron_right, color: primaryColor),
-                    onTap: () => showAboutDialog(
-                      context: context,
-                      applicationName: S.of(context).appName,
-                      applicationVersion: '1.6.1',
-                      children: [
-                        Text(S.of(context).slogan),
-                      ],
-                    ),
+                    onTap: () => showCustomAboutDialog(context),
                   ),
                   const Divider(height: 8),
                   ListTile(

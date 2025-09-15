@@ -105,6 +105,8 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   String _query = '';
   String? _selectedSupplier;
   Timer? _debounce;
+  int _cartCount = 0;
+  double _cartTotal = 0.0;
 
   // grid + paging
   final ScrollController _gridScroll = ScrollController();
@@ -119,8 +121,6 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   final Map<int, String> _supplierByItemId = {}; // itemId -> supplierName
   final Map<int, int> _itemQty = {};
   bool _loading = true;
-
-  // ───────────────────────────────── helpers ──────────────────────────────────
 
   void _scrollSubIntoView(int subId) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -193,18 +193,31 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   Future<void> _syncQtyFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final list = prefs.getStringList('cart') ?? [];
-    final map = <int, int>{};
+
+    final qtyMap = <int, int>{};
+    var total = 0.0;
+    var count = 0;
+
     for (final s in list) {
       final m = jsonDecode(s) as Map<String, dynamic>;
       final id = int.tryParse(m['id']?.toString() ?? '');
-      final q = int.tryParse(m['quantity']?.toString() ?? '');
-      if (id != null && q != null) map[id] = q;
+      final q = int.tryParse(m['quantity']?.toString() ?? '') ?? 0;
+      final price = double.tryParse(m['price']?.toString() ?? '0') ?? 0.0;
+      final disc = double.tryParse(m['discount']?.toString() ?? '0') ?? 0.0;
+      final eff = price * (1 - (disc / 100.0));
+
+      if (id != null) qtyMap[id] = q;
+      count += q;
+      total += eff * q;
     }
+
     if (!mounted) return;
     setState(() {
       _itemQty
         ..clear()
-        ..addAll(map);
+        ..addAll(qtyMap);
+      _cartCount = count;
+      _cartTotal = total;
     });
   }
 
@@ -459,6 +472,37 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
             ),
           ),
           centerTitle: true,
+          actions: [
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart_outlined,
+                      color: primaryColor),
+                  onPressed: () => Navigator.pushNamed(context, '/basket'),
+                ),
+                if (_cartCount > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        _cartCount > 99 ? '99+' : '$_cartCount',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ),
         body: Container(
           margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -641,6 +685,16 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                                         ),
                                         const SizedBox(height: 4),
                                         if (it.description.isNotEmpty)
+                                          Text(
+                                            it.description,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: textColor.withOpacity(0.6),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          )
+                                        else
                                           Text(
                                             it.description,
                                             style: TextStyle(
