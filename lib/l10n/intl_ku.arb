@@ -13,6 +13,12 @@
   "basketEmpty":"سەتلەکە بەتالە",
   "sendOrder":"ناردنی داواکاری",
   "subtotal":"نرخی پێش کۆتا",
+
+    "campaign":"کەمپەین",
+  "bestPriceItem":"باشترین نرخ: داشکاندنی بابەت",
+  "bestPriceCampaign":"باشترین نرخ: داشکاندنی کەمپەین",
+"item":"بابەت",
+
   "checkout":"داوا کردن",
   "deliveryInformation":"زانیاری گەیاندن",
   "addNewAddress":"ناونیشانی نوێ زیاد بکە",

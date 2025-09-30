@@ -106,6 +106,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   String? _selectedSupplier;
   Timer? _debounce;
   int _cartCount = 0;
+  // ignore: unused_field
   double _cartTotal = 0.0;
 
   // grid + paging
@@ -449,10 +450,12 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        widget.onExit?.call();
-        return true;
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) {
+        if (didPop) {
+          widget.onExit?.call();
+        }
       },
       child: Scaffold(
         backgroundColor: Colors.white,

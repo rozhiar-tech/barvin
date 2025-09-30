@@ -1,5 +1,8 @@
+// ignore_for_file: unused_field
+
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,13 +17,14 @@ class SingleItem extends StatefulWidget {
   final String name;
   final String description;
   final double unitPrice; // base unit price (pre-discount)
-  final double discount; // % off
+  final double discount; // % off (item-level)
   final String imageUrl;
   final String? supplierName;
 
   /// OPTIONAL: pass these if you already have them; otherwise they'll be fetched.
   final int? packSize; // e.g. 24
   final String? unit; // e.g. "pcs", "kg", ...
+  final double? packPrice; // total price for a whole pack (OPTIONAL)
 
   const SingleItem({
     Key? key,
@@ -34,6 +38,7 @@ class SingleItem extends StatefulWidget {
     this.supplierName,
     this.packSize,
     this.unit,
+    this.packPrice,
   }) : super(key: key);
 
   @override
@@ -48,18 +53,70 @@ class _SingleItemState extends State<SingleItem> {
   String? _supplier;
   int? _packSize; // e.g. 24
   String? _unit; // e.g. "pcs"
+  double? _packPrice; // total pack price (if provided by server)
 
-  double get _effectiveUnitPrice => widget.discount > 0
-      ? widget.unitPrice * (1 - widget.discount / 100)
-      : widget.unitPrice;
+  // campaign discount (via discount_id → /discounts/…)
+  String? _campaignKind; // "percent" | "amount"
+  double? _campaignValue; // value of the discount
+  bool _campaignActive = false;
 
-  double get _effectivePackPrice => (_packSize != null && _packSize! > 1)
-      ? _effectiveUnitPrice * _packSize!
-      : _effectiveUnitPrice;
+  // We also pull discount_id from the item payload (if present)
+  int? _discountId;
 
+  // ---------- PRICE HELPERS ----------
+
+  double get _baseUnitPrice => widget.unitPrice;
+
+  // Item discount
+  double _applyItemDiscount(double price) {
+    final d = widget.discount;
+    if (d <= 0) return price;
+    final v = price * (1 - d / 100.0);
+    return v.clamp(0, double.infinity);
+  }
+
+  // Campaign discount
+  double _applyCampaignDiscount(double price) {
+    if (!_campaignActive || _campaignKind == null || _campaignValue == null) {
+      return price;
+    }
+    double out = price;
+    if (_campaignKind == 'percent') {
+      out = price * (1 - (_campaignValue! / 100.0));
+    } else if (_campaignKind == 'amount') {
+      out = price - _campaignValue!;
+    }
+    return out.clamp(0, double.infinity);
+  }
+
+  // Convenient accessors to compare sources
+  double get _withItem => _applyItemDiscount(_baseUnitPrice);
+  double get _withCampaign => _applyCampaignDiscount(_baseUnitPrice);
+
+  // Choose the better (lower) unit price between item.discount and campaign discount.
+  double get _bestUnitPrice => math.min(_withItem, _withCampaign);
+
+  // Which discount source is winning? ("item" | "campaign" | "none")
+  String get _bestSource {
+    const eps = 0.0001;
+    if (_campaignActive && _withCampaign + eps < _withItem) return 'campaign';
+    if (widget.discount > 0 && _withItem + eps < _baseUnitPrice) return 'item';
+    return 'none';
+  }
+
+  // Effective pack price:
+  // - Prefer explicit packPrice if provided.
+  // - Else fall back to bestUnitPrice × packSize.
+  double get _effectivePackPrice {
+    final ps = (_packSize ?? 1);
+    if (ps > 1 && (_packPrice ?? 0) > 0) return _packPrice!;
+    return _bestUnitPrice * (ps > 0 ? ps : 1);
+  }
+
+  // Line total switches between units vs packs
   double get _lineTotal => _orderByPack
       ? _effectivePackPrice * _quantity
-      : _effectiveUnitPrice * _quantity;
+      : _bestUnitPrice * _quantity;
 
   void _increment() => setState(() => _quantity++);
   void _decrement() {
@@ -72,11 +129,10 @@ class _SingleItemState extends State<SingleItem> {
     _supplier = (widget.supplierName ?? '').trim();
     _packSize = widget.packSize;
     _unit = widget.unit;
+    _packPrice = widget.packPrice;
 
-    // If pack info/supplier are missing, fetch from server
-    if ((_supplier?.isEmpty ?? true) || _packSize == null || _unit == null) {
-      _loadDetailsFromServer();
-    }
+    // Fetch any missing details (pack, supplier, discount_id / campaign)
+    _loadDetailsFromServer();
   }
 
   Future<void> _loadDetailsFromServer() async {
@@ -84,24 +140,121 @@ class _SingleItemState extends State<SingleItem> {
       final res = await http.get(Uri.parse('$apiBase/items/${widget.id}'));
       if (res.statusCode == 200) {
         final m = jsonDecode(res.body);
+
         final sup =
             (m['supplier_name'] ?? m['supplier'] ?? m['supplierName'] ?? '')
                 .toString()
                 .trim();
         final pk = int.tryParse((m['pack_size'] ?? '').toString());
         final un = (m['unit'] ?? '').toString().trim();
+        final pp = _toDouble(m['pack_price']);
+        final did = int.tryParse((m['discount_id'] ?? '').toString());
+
+        // If backend embedded the discount itself (appliedDiscount), parse it
+        final ad = m['appliedDiscount'];
+        String? kind;
+        double? val;
+        bool active = false;
+        if (ad is Map) {
+          kind = (ad['kind'] ?? 'percent').toString();
+          val = _toDouble(ad['value']) ?? 0.0;
+          final a =
+              (ad['active'] == true) || (ad['active']?.toString() == 'true');
+
+          bool live = false;
+          if (a) {
+            final s = _toDate(ad['start_at']);
+            final e = _toDate(ad['end_at']);
+            final now = DateTime.now().toUtc();
+            final su = s?.toUtc();
+            final eu = e?.toUtc();
+            live = (su == null || !now.isBefore(su)) &&
+                (eu == null || !now.isAfter(eu));
+          }
+          active = live;
+        }
 
         if (!mounted) return;
         setState(() {
           if (sup.isNotEmpty) _supplier = sup;
           if (pk != null && pk > 0) _packSize = pk;
           if (un.isNotEmpty) _unit = un;
-          if ((_packSize ?? 1) <= 1)
-            _orderByPack = false; // no pack option if invalid
+          if ((pp ?? 0) > 0) _packPrice = pp;
+          _discountId = did;
+
+          if (ad is Map) {
+            _campaignKind = kind;
+            _campaignValue = val;
+            _campaignActive = active;
+          }
+
+          if ((_packSize ?? 1) <= 1) _orderByPack = false; // no pack option
         });
+
+        // If server didn't embed the discount object, fetch it by id
+        if ((ad == null || !_campaignActive) && did != null) {
+          await _loadCampaignDiscount(did);
+        }
       }
-    } catch (_) {/* ignore */}
+    } catch (_) {
+      // ignore fetch errors silently
+    }
   }
+
+  Future<void> _loadCampaignDiscount(int id) async {
+    // Try direct endpoint first
+    Future<Map<String, dynamic>?> _getOne() async {
+      try {
+        final r = await http.get(Uri.parse('$apiBase/discounts/$id'));
+        if (r.statusCode == 200) {
+          return jsonDecode(r.body) as Map<String, dynamic>;
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    Map<String, dynamic>? d = await _getOne();
+
+    // Fallback: scan /discounts/public
+    if (d == null) {
+      try {
+        final res = await http.get(Uri.parse('$apiBase/discounts/public'));
+        if (res.statusCode == 200) {
+          final List list = jsonDecode(res.body) as List;
+          d = list
+              .cast<Map<String, dynamic>>()
+              .firstWhere((x) => _toInt(x['id']) == id, orElse: () => {});
+          if (d!.isEmpty) d = null;
+        }
+      } catch (_) {}
+    }
+
+    if (d == null || !mounted) return;
+
+    final kind = (d['kind'] ?? 'percent').toString();
+    final val = _toDouble(d['value']) ?? 0.0;
+    final activeFlag =
+        (d['active'] == true) || (d['active']?.toString() == 'true');
+
+    bool isLive = false;
+    if (activeFlag) {
+      final s = _toDate(d['start_at']);
+      final e = _toDate(d['end_at']);
+      final now = DateTime.now().toUtc();
+      final su = s?.toUtc();
+      final eu = e?.toUtc();
+      isLive =
+          (su == null || !now.isBefore(su)) && (eu == null || !now.isAfter(eu));
+    }
+
+    setState(() {
+      _campaignKind = kind;
+      _campaignValue = val;
+      _campaignActive = isLive;
+    });
+  }
+
+  // ---------- CART ----------
 
   Future<void> _addToBasket() async {
     final prefs = await SharedPreferences.getInstance();
@@ -114,8 +267,14 @@ class _SingleItemState extends State<SingleItem> {
     final perPack = (_packSize ?? 1) > 1 ? _packSize! : 1;
     final unitsToAdd = _orderByPack ? (_quantity * perPack) : _quantity;
 
-    // Save the *effective* unit price so basket totals are correct even if discount is ignored later.
-    final effectiveUnitPriceStr = _effectiveUnitPrice.toStringAsFixed(0);
+    // If ordering by pack and we have an explicit pack price, store per-unit as (pack_price / pack_size).
+    // Else store the best unit price.
+    double unitPriceToStore;
+    if (_orderByPack && (_packPrice ?? 0) > 0 && perPack > 0) {
+      unitPriceToStore = (_packPrice! / perPack);
+    } else {
+      unitPriceToStore = _bestUnitPrice;
+    }
 
     final itemId = widget.id.toString();
     final idx = cart.indexWhere((e) => e['id'].toString() == itemId);
@@ -126,8 +285,8 @@ class _SingleItemState extends State<SingleItem> {
       existing['quantity'] = (existingQty + unitsToAdd).toString();
 
       // keep metadata reasonably up to date
-      existing['price'] = effectiveUnitPriceStr;
-      existing['discount'] = widget.discount.toString();
+      existing['price'] = unitPriceToStore.toStringAsFixed(0);
+      existing['discount'] = widget.discount.toString(); // keep original field
       existing['imageUrl'] = widget.imageUrl;
       existing['supplierName'] = (_supplier ?? '');
       existing['unit'] = _unit ?? '';
@@ -138,8 +297,8 @@ class _SingleItemState extends State<SingleItem> {
       cart.add({
         'id': itemId,
         'name': widget.name,
-        'price': effectiveUnitPriceStr, // store effective unit price
-        'discount': widget.discount.toString(),
+        'price': unitPriceToStore.toStringAsFixed(0), // store effective unit
+        'discount': widget.discount.toString(), // original item discount field
         'quantity': unitsToAdd.toString(), // store *units* in the basket
         'imageUrl': widget.imageUrl,
         'supplierName': _supplier ?? '',
@@ -160,10 +319,15 @@ class _SingleItemState extends State<SingleItem> {
     Navigator.pop(context, message);
   }
 
+  // ---------- UI ----------
+
   @override
   Widget build(BuildContext context) {
     final heroTag = 'itemImage_${widget.id}';
     final hasPackOption = (_packSize ?? 1) > 1;
+
+    // Display strings
+    final currency = S.of(context).currency_code_iqd;
 
     return Scaffold(
       backgroundColor: const Color(0xffD3E4C4),
@@ -243,29 +407,7 @@ class _SingleItemState extends State<SingleItem> {
               style: const TextStyle(fontSize: 20, color: Colors.black87),
             ),
 
-            const SizedBox(height: 8),
-
-            // SUPPLIER (if any)
-            // if ((_supplier ?? '').isNotEmpty) ...[
-            //   Row(
-            //     mainAxisAlignment: MainAxisAlignment.center,
-            //     children: [
-            //       const Icon(Icons.storefront, color: primaryColor, size: 18),
-            //       const SizedBox(width: 6),
-            //       Flexible(
-            //         child: Text(
-            //           _supplier!,
-            //           maxLines: 1,
-            //           overflow: TextOverflow.ellipsis,
-            //           style: const TextStyle(
-            //               color: Colors.black87, fontWeight: FontWeight.w600),
-            //           textAlign: TextAlign.center,
-            //         ),
-            //       ),
-            //     ],
-            //   ),
-            //   const SizedBox(height: 8),
-            // ],
+            const SizedBox(height: 6),
 
             // UNIT (read-only info)
             if ((_unit ?? '').isNotEmpty) ...[
@@ -280,54 +422,36 @@ class _SingleItemState extends State<SingleItem> {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
             ],
 
-            // PRICE & DISCOUNT
-            if (widget.discount > 0) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '${widget.unitPrice.toStringAsFixed(0)} ${S.of(context).currency_code_iqd}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      decoration: TextDecoration.lineThrough,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${_effectiveUnitPrice.toStringAsFixed(0)} ${S.of(context).currency_code_iqd}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              Text(
-                '${_effectiveUnitPrice.toStringAsFixed(0)} ${S.of(context).currency_code_iqd}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87),
-              ),
-            ],
+            // PRICE & DISCOUNT (showing best unit price)
+            _PriceBlock(
+              basePrice: _baseUnitPrice,
+              bestUnitPrice: _bestUnitPrice,
+              itemDiscountPercent: widget.discount,
+              currency: currency,
+            ),
 
-            // PACK OPTION (single selectable control)
+            // VISUAL: which discount source applied?
+            _DiscountBadges(
+              itemDiscountPercent: widget.discount,
+              campaignKind: _campaignKind,
+              campaignValue: _campaignValue,
+              campaignActive: _campaignActive,
+              bestSource: _bestSource,
+              currency: currency,
+            ),
+
+            // PACK OPTION
             if (hasPackOption) ...[
-              const SizedBox(height: 12),
-
-              Center(
-                child: Text(
-                  '${S.of(context).pack_size} = ${_packSize!} ${_unit ?? "unit"}${_packSize! > 1 ? "s" : ""}',
-                  style: TextStyle(color: Colors.grey[700]),
-                ),
-              ),
+              // const SizedBox(height: 12),
+              // Center(
+              //   child: Text(
+              //     '${S.of(context).pack_size} = ${_packSize!} ${_unit ?? "unit"}${_packSize! > 1 ? "s" : ""}',
+              //     style: TextStyle(color: Colors.grey[700]),
+              //   ),
+              // ),
               const SizedBox(height: 12),
               Center(
                 child: FilterChip(
@@ -338,7 +462,21 @@ class _SingleItemState extends State<SingleItem> {
                   label: Text('${S.of(context).pack} (×${_packSize!})'),
                 ),
               ),
-              // const SizedBox(height: 6),
+              // If we have an explicit pack price, show it
+              if ((_packPrice ?? 0) > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Center(
+                    child: Text(
+                      '${S.of(context).pack}: ${_packPrice!.toStringAsFixed(0)} $currency',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
             ],
 
             const SizedBox(height: 16),
@@ -384,19 +522,13 @@ class _SingleItemState extends State<SingleItem> {
                   ),
                 ),
 
-                // Price labels
+                // Line total
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Text(
-                    //   _orderByPack
-                    //       ? '${_effectivePackPrice.toStringAsFixed(0)} ${S.of(context).currency_code_iqd} / ${S.of(context).pack}'
-                    //       : '${_effectiveUnitPrice.toStringAsFixed(0)} ${S.of(context).currency_code_iqd} / ${_unit ?? "${S.of(context).unit}"}',
-                    //   style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    // ),
                     const SizedBox(height: 4),
                     Text(
-                      '${_lineTotal.toStringAsFixed(0)} ${S.of(context).currency_code_iqd}',
+                      '${_lineTotal.toStringAsFixed(0)} $currency',
                       style: const TextStyle(
                           fontSize: 22, fontWeight: FontWeight.bold),
                     ),
@@ -420,7 +552,7 @@ class _SingleItemState extends State<SingleItem> {
                 onPressed: _addToBasket,
                 child: Text(
                   S.of(context).addBasket,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.white),
@@ -430,6 +562,187 @@ class _SingleItemState extends State<SingleItem> {
           ],
         ),
       ),
+    );
+  }
+
+  // ---------- utils ----------
+  int? _toInt(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString());
+  }
+
+  double? _toDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    final cleaned = v.toString().trim().replaceAll(RegExp(r'[^0-9\.\-]'), '');
+    return double.tryParse(cleaned);
+  }
+
+  DateTime? _toDate(dynamic v) {
+    if (v == null || v.toString().isEmpty) return null;
+    try {
+      return DateTime.parse(v.toString());
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// Small widget to display unit price with optional strike-through.
+class _PriceBlock extends StatelessWidget {
+  final double basePrice;
+  final double bestUnitPrice;
+  final double itemDiscountPercent;
+  final String currency;
+
+  const _PriceBlock({
+    Key? key,
+    required this.basePrice,
+    required this.bestUnitPrice,
+    required this.itemDiscountPercent,
+    required this.currency,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Show strike-through only if the best price is lower than base
+    final hasLower = bestUnitPrice < basePrice - 0.0001;
+
+    if (hasLower) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '${basePrice.toStringAsFixed(0)} $currency',
+            style: const TextStyle(
+              fontSize: 14,
+              decoration: TextDecoration.lineThrough,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${bestUnitPrice.toStringAsFixed(0)} $currency',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Text(
+      '${bestUnitPrice.toStringAsFixed(0)} $currency',
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+          fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+    );
+  }
+}
+
+/// Chips row explaining which discount is applied.
+class _DiscountBadges extends StatelessWidget {
+  final double itemDiscountPercent;
+  final String? campaignKind; // "percent" | "amount"
+  final double? campaignValue;
+  final bool campaignActive;
+  final String bestSource; // "item" | "campaign" | "none"
+  final String currency;
+
+  const _DiscountBadges({
+    Key? key,
+    required this.itemDiscountPercent,
+    required this.campaignKind,
+    required this.campaignValue,
+    required this.campaignActive,
+    required this.bestSource,
+    required this.currency,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final showItem = itemDiscountPercent > 0;
+    final showCampaign = campaignActive == true && (campaignValue ?? 0) > 0;
+
+    if (!showItem && !showCampaign) return const SizedBox.shrink();
+
+    final chips = <Widget>[];
+
+    if (showItem) {
+      final applied = bestSource == 'item';
+      chips.add(_buildChip(
+        label:
+            '${S.of(context).item} −${itemDiscountPercent.toStringAsFixed(0)}%',
+        applied: applied,
+      ));
+    }
+
+    if (showCampaign) {
+      final applied = bestSource == 'campaign';
+      final isPercent = (campaignKind ?? 'percent') == 'percent';
+      final valueStr = isPercent
+          ? '−${campaignValue!.toStringAsFixed(0)}%'
+          : '−${campaignValue!.toStringAsFixed(0)} $currency';
+      chips.add(_buildChip(
+        label: '${S.of(context).campaign} $valueStr',
+        applied: applied,
+      ));
+    }
+
+    // Add a small helper text if something is applied
+    final info = bestSource == 'none'
+        ? null
+        : Text(
+            bestSource == 'item'
+                ? '${S.of(context).bestPriceItem}'
+                : '${S.of(context).bestPriceCampaign}',
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
+          );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        children: [
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 6,
+            runSpacing: 6,
+            children: chips,
+          ),
+          if (info != null) ...[
+            const SizedBox(height: 6),
+            info,
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip({required String label, required bool applied}) {
+    return Chip(
+      avatar: applied
+          ? const Icon(Icons.check, size: 16, color: primaryColor)
+          : const Icon(Icons.local_offer, size: 16, color: Colors.grey),
+      label: Text(
+        label,
+        style: TextStyle(
+          color: applied ? Colors.black87 : Colors.black54,
+          fontWeight: applied ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
+      backgroundColor:
+          applied ? primaryColor.withOpacity(0.15) : Colors.grey.shade200,
+      shape: StadiumBorder(
+        side: BorderSide(
+          color:
+              applied ? primaryColor.withOpacity(0.35) : Colors.grey.shade300,
+        ),
+      ),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
     );
   }
 }

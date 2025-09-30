@@ -13,6 +13,10 @@
     "description": "Shown in basket when the user is not signed in",
     "type": "text"
   },
+  "campaign":"Campaign",
+  "bestPriceItem":"Best price: Item discount",
+  "bestPriceCampaign":"Best price: Campaign discount",
+"item":"Item",
   "basket":"Your basket",
   "delivery":"Delivery",
   "subtotal":"Subtotal",

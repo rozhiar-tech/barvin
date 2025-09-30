@@ -12,6 +12,12 @@
   "clearBasket":"تم مسح السلة",
   "pSignin":"الرجاء تسجيل الدخول لتقديم طلبك",
   "pSignin2":"تسجيل الدخول للطلب",
+
+    "campaign":"حملة",
+  "bestPriceItem":"أفضل سعر: خصم على المنتج",
+  "bestPriceCampaign":"أفضل سعر: خصم على الحملة",
+"item":"العنصر",
+
   "basketEmpty":"السلة فارغة",
   "sendOrder":"إرسال الطلب",
   "yourOrders":"طلباتك",

@@ -109,6 +109,36 @@ class S {
     return Intl.message('Guest', name: 'guest', desc: '', args: []);
   }
 
+  /// `Campaign`
+  String get campaign {
+    return Intl.message('Campaign', name: 'campaign', desc: '', args: []);
+  }
+
+  /// `Best price: Item discount`
+  String get bestPriceItem {
+    return Intl.message(
+      'Best price: Item discount',
+      name: 'bestPriceItem',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Best price: Campaign discount`
+  String get bestPriceCampaign {
+    return Intl.message(
+      'Best price: Campaign discount',
+      name: 'bestPriceCampaign',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Item`
+  String get item {
+    return Intl.message('Item', name: 'item', desc: '', args: []);
+  }
+
   /// `Your basket`
   String get basket {
     return Intl.message('Your basket', name: 'basket', desc: '', args: []);

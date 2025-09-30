@@ -45,6 +45,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "basketEmpty": MessageLookupByLibrary.simpleMessage("Basket is empty"),
     "basketTab": MessageLookupByLibrary.simpleMessage("Basket"),
     "basketTitle": MessageLookupByLibrary.simpleMessage("Your Basket"),
+    "bestPriceCampaign": MessageLookupByLibrary.simpleMessage(
+      "Best price: Campaign discount",
+    ),
+    "bestPriceItem": MessageLookupByLibrary.simpleMessage(
+      "Best price: Item discount",
+    ),
+    "campaign": MessageLookupByLibrary.simpleMessage("Campaign"),
     "cashOnDelivery": MessageLookupByLibrary.simpleMessage("Cash On Delivery"),
     "checkout": MessageLookupByLibrary.simpleMessage("Checkout"),
     "checkoutProceed": MessageLookupByLibrary.simpleMessage(
@@ -96,6 +103,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "hint": MessageLookupByLibrary.simpleMessage("Type To Search"),
     "home": MessageLookupByLibrary.simpleMessage("Home"),
     "instagram": MessageLookupByLibrary.simpleMessage("Instagram"),
+    "item": MessageLookupByLibrary.simpleMessage("Item"),
     "itemsCount": m1,
     "language": MessageLookupByLibrary.simpleMessage("language"),
     "latitude": MessageLookupByLibrary.simpleMessage("latitude"),

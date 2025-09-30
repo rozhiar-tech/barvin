@@ -47,6 +47,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "basketEmpty": MessageLookupByLibrary.simpleMessage("السلة فارغة"),
     "basketTab": MessageLookupByLibrary.simpleMessage("السلة"),
     "basketTitle": MessageLookupByLibrary.simpleMessage("سلة التسوق"),
+    "bestPriceCampaign": MessageLookupByLibrary.simpleMessage(
+      "أفضل سعر: خصم على الحملة",
+    ),
+    "bestPriceItem": MessageLookupByLibrary.simpleMessage(
+      "أفضل سعر: خصم على المنتج",
+    ),
+    "campaign": MessageLookupByLibrary.simpleMessage("حملة"),
     "cashOnDelivery": MessageLookupByLibrary.simpleMessage(
       "الدفع عند الاستلام",
     ),
@@ -97,6 +104,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "hint": MessageLookupByLibrary.simpleMessage("اكتب للبحث"),
     "home": MessageLookupByLibrary.simpleMessage("الرئيسية"),
     "instagram": MessageLookupByLibrary.simpleMessage("إنستغرام"),
+    "item": MessageLookupByLibrary.simpleMessage("العنصر"),
     "itemsCount": m1,
     "language": MessageLookupByLibrary.simpleMessage("اللغة"),
     "latitude": MessageLookupByLibrary.simpleMessage("خط العرض"),

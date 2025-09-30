@@ -49,6 +49,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "basketEmpty": MessageLookupByLibrary.simpleMessage("سەتلەکە بەتالە"),
     "basketTab": MessageLookupByLibrary.simpleMessage("سەبەتە"),
     "basketTitle": MessageLookupByLibrary.simpleMessage("سەبەتەکەت"),
+    "bestPriceCampaign": MessageLookupByLibrary.simpleMessage(
+      "باشترین نرخ: داشکاندنی کەمپەین",
+    ),
+    "bestPriceItem": MessageLookupByLibrary.simpleMessage(
+      "باشترین نرخ: داشکاندنی بابەت",
+    ),
+    "campaign": MessageLookupByLibrary.simpleMessage("کەمپەین"),
     "cashOnDelivery": MessageLookupByLibrary.simpleMessage(
       "پارەدان کاتی پێ گەیشتن",
     ),
@@ -101,6 +108,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "hint": MessageLookupByLibrary.simpleMessage("بنووسە بۆ گەڕان"),
     "home": MessageLookupByLibrary.simpleMessage("ماڵەوە"),
     "instagram": MessageLookupByLibrary.simpleMessage("ئینستاگرام"),
+    "item": MessageLookupByLibrary.simpleMessage("بابەت"),
     "itemsCount": m1,
     "language": MessageLookupByLibrary.simpleMessage("زمان"),
     "latitude": MessageLookupByLibrary.simpleMessage("پانی"),
