@@ -761,6 +761,17 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  List<Item> _flattenCategoryItems(Map<String, dynamic> map) {
+    final subs = (map['subcategories'] as List?) ?? const [];
+    final out = <Item>[];
+    for (final s in subs) {
+      final m = s as Map<String, dynamic>;
+      final rows = (m['items'] as List?) ?? const [];
+      out.addAll(rows.cast<Map<String, dynamic>>().map(Item.fromJson));
+    }
+    return out;
+  }
+
   Future<void> _loadSections() async {
     setState(() => _loading = true);
 
@@ -780,13 +791,11 @@ class HomeScreenState extends State<HomeScreen> {
 
     try {
       final rawList = await compute(parseSectionsPayload, res.body!);
+
       final sections = rawList.map((entry) {
         final map = entry as Map<String, dynamic>;
         final cat = Category.fromJson(map);
-        final items = (map['items'] as List)
-            .cast<Map<String, dynamic>>()
-            .map((j) => Item.fromJson(j))
-            .toList();
+        final items = _flattenCategoryItems(map); // ✅ use subcategories[].items
         return _SectionData(cat, items);
       }).toList();
 
