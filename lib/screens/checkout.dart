@@ -83,13 +83,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _cart = list.map((m) {
         final price = double.tryParse(m['price'].toString()) ?? 0;
         final qty = int.tryParse(m['quantity'].toString()) ?? 1;
-        final img = (m['imageUrl'] ?? '').toString(); // 👈 keep the image
+        final img = (m['imageUrl'] ?? '').toString();
+        final basketType = m['basket_type']?.toString();
+        final basketId = m['basket_id'] == null
+            ? null
+            : int.tryParse(m['basket_id'].toString());
         return _CartEntry(
           id: m['id'],
           name: m['name'],
           price: price,
           quantity: qty,
-          imageUrl: img, // 👈 new
+          imageUrl: img,
+          basketType: basketType,
+          basketId: basketId,
         );
       }).toList();
     });
@@ -99,11 +105,32 @@ class _CheckoutPageState extends State<CheckoutPage> {
   double get _tax => _subtotal * _taxRate;
   double get _total => _subtotal + _deliveryFee + _tax;
 
+  String? _deriveOrderType() {
+    if (_cart.any((e) => e.basketType == 'custom_food_basket')) {
+      return 'custom_food_basket';
+    }
+    if (_cart.any((e) => e.basketType == 'food_basket')) {
+      return 'food_basket';
+    }
+    return null;
+  }
+
+  String? _basketBadge(String? type) {
+    switch (type) {
+      case 'custom_food_basket':
+        return 'Custom basket';
+      case 'food_basket':
+        return 'Food basket';
+      default:
+        return null;
+    }
+  }
+
   Future<void> _placeOrder() async {
     if (!_loggedIn || _isSending || _cart.isEmpty) return;
     setState(() => _isSending = true);
 
-    final payload = {
+    final Map<String, dynamic> payload = {
       'items': _cart
           .map((e) => {
                 'item_id': e.id,
@@ -111,6 +138,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
               })
           .toList(),
     };
+
+    final orderType = _deriveOrderType();
+    if (orderType != null) {
+      payload['order_type'] = orderType;
+    }
 
     try {
       final res = await http.post(
@@ -265,6 +297,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _buildLineItem(_CartEntry e) {
     final thumb = _normalizeImageUrl(e.imageUrl); // 👈 normalize
+    final badge = _basketBadge(e.basketType);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -296,6 +329,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (badge != null) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    badge,
+                    style: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ],
               Text(e.name, style: const TextStyle(fontWeight: FontWeight.bold)),
               Text('${e.quantity} x ${e.price.toStringAsFixed(0)} IQD',
                   style: const TextStyle(color: Colors.grey)),
@@ -330,12 +379,16 @@ class _CartEntry {
   final double price;
   final int quantity;
   final String imageUrl; // 👈 new
+  final String? basketType;
+  final int? basketId;
 
   _CartEntry({
     required this.id,
     required this.name,
     required this.price,
     required this.quantity,
-    required this.imageUrl, // 👈 new
+    required this.imageUrl,
+    this.basketType,
+    this.basketId,
   });
 }

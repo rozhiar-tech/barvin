@@ -26,6 +26,7 @@
   "tab_delivered": "Delivered",
 
   "orders_empty_all": "No orders yet",
+  "qty": "Qty",
   "orders_empty_status": "No {status} orders",
 
   "order_number_prefix": "#ORD-",
@@ -181,6 +182,32 @@
     "description": "How many items in the basket",
     "placeholders": {
       "howMany": {}
+    }
+  },
+  "orderHoursHeading": "Order hours",
+  "orderHoursBody": "Orders are processed from 8:00 AM to 10:00 PM. Requests after 10:00 PM will be delayed until 8:00 AM the next day.",
+  "whatsappHelpBody": "If the checkout button doesn’t work, you can contact our team on WhatsApp.",
+  "whatsappHelpCta": "WhatsApp order support",
+  "basketSectionCustom": "Your custom baskets",
+  "basketSectionPreset": "Preset food baskets",
+  "basketSectionRegular": "Regular items",
+  "basketBadgeCustom": "Custom basket",
+  "basketBadgePreset": "Food basket",
+  "handWorkSectionTitle": "Hand Work",
+  "foodBasketSectionTitle": "Food Baskets",
+  "createBasketCardTitle": "Create your own basket",
+  "createBasketCardBody": "Pick any items from our catalog and send your personalized basket.",
+  "presetBasketDescription": "Preset basket from Barvin.",
+  "handworkNoDescription": "No description provided.",
+  "foodBasketCustomizeCta": "Customize & Order",
+  "updateRequiredTitle": "Update required",
+  "updateRequiredBody": "A new version of Barvin is available. Please update the app to continue.",
+  "updateButton": "Update app",
+  "updateStoreLinkHint": "If the button doesn’t work, open your app store and search for “Barvin”.",
+  "updateVersionLabel": "Required version: {version}",
+  "@updateVersionLabel": {
+    "placeholders": {
+      "version": {}
     }
   }
 }

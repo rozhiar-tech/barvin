@@ -4,7 +4,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/screens/ads_screen.dart';
+import 'package:barvin/screens/custom_basket_builder.dart';
 import 'package:barvin/screens/discounts_screen.dart';
+import 'package:barvin/screens/food_basket_screen.dart';
+import 'package:barvin/screens/handworks_screen.dart';
 import 'package:barvin/widgets/search_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
@@ -13,32 +16,18 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:barvin/services/api_config.dart';
+import 'package:barvin/models/collections.dart';
 
 import 'basket.dart';
-import 'single_item.dart';
 import 'seeMore.dart';
+import 'single_item.dart';
+
+export 'package:barvin/services/api_config.dart';
 
 const Color primaryColor = Color(0xFFbed6be);
 const Color secondaryColor = Color(0xFF6D8474);
 const Color textColor = Color(0xFF212121);
-// If you use a different host in dev/emulator, change here.
-const String apiOrigin = 'http://95.111.224.58:3000'; // ← no trailing slash
-const String apiBase = '$apiOrigin/api';
-
-Uri apiUrl(String path, [Map<String, dynamic>? query]) {
-  final p = path.startsWith('/') ? path : '/$path';
-  return Uri.parse('$apiBase$p').replace(queryParameters: query);
-}
-
-/// Backend often returns paths like "/uploads/…"
-/// Accepts absolute URLs and relative paths like "/uploads/…"
-String mediaUrlFrom(String rawPath) {
-  final u = rawPath.trim();
-  if (u.isEmpty) return u;
-  if (u.startsWith('http://') || u.startsWith('https://')) return u;
-  final path = u.startsWith('/') ? u.substring(1) : u;
-  return '$apiOrigin/$path';
-}
 
 double _parseNum(dynamic v) {
   if (v == null) return 0.0;
@@ -442,6 +431,10 @@ class HomeScreenState extends State<HomeScreen> {
   Timer? _carouselTimer;
   bool _loading = true;
   List<_SectionData> _sections = [];
+  List<HandWork> _handworks = [];
+  List<FoodBasket> _foodBaskets = [];
+  bool _handworksLoading = false;
+  bool _foodBasketsLoading = false;
   Map<int, VideoPlayerController> _videoControllers = {};
   int _cartCount = 0;
   double _cartTotal = 0;
@@ -453,6 +446,10 @@ class HomeScreenState extends State<HomeScreen> {
   final Map<int, int> _itemQty = {};
   final host = apiBase.replaceAll('/api', '');
   final _pageController = PageController(viewportFraction: 0.92);
+  final PageController _handworkCardController =
+      PageController(viewportFraction: 0.82);
+  final PageController _basketCardController =
+      PageController(viewportFraction: 0.85);
   // inside _HomeScreenState
 
   String? get rawPath {
@@ -513,6 +510,8 @@ class HomeScreenState extends State<HomeScreen> {
     _loadAds();
     _startCarousel();
     _loadSections();
+    _loadHandworks();
+    _loadFoodBaskets();
     _loadUserAvatar();
 
     // get user avatar url from shared preferences
@@ -545,7 +544,11 @@ class HomeScreenState extends State<HomeScreen> {
 
   Future<void> reload() async {
     // choose what you want refreshed:
-    await _loadCartCount();
+    await Future.wait([
+      _loadCartCount(),
+      _loadHandworks(),
+      _loadFoodBaskets(),
+    ]);
 
     if (mounted) setState(() {});
   }
@@ -630,6 +633,13 @@ class HomeScreenState extends State<HomeScreen> {
       };
 
       if (idx >= 0) {
+        final existing = cart[idx];
+        if (existing['basket_type'] != null) {
+          record['basket_type'] = existing['basket_type'];
+        }
+        if (existing['basket_id'] != null) {
+          record['basket_id'] = existing['basket_id'];
+        }
         cart[idx] = record;
       } else {
         cart.add(record);
@@ -834,6 +844,60 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadHandworks() async {
+    if (mounted) setState(() => _handworksLoading = true);
+    final res = await _Cache.fetch('handworks', () {
+      return http.get(apiUrl('/handworks'));
+    });
+
+    if (!res.hasData) {
+      _markFallback(res);
+      if (mounted) setState(() => _handworksLoading = false);
+      return;
+    }
+
+    try {
+      final List data = jsonDecode(res.body!) as List;
+      final works = data
+          .whereType<Map<String, dynamic>>()
+          .map(HandWork.fromJson)
+          .toList();
+      if (mounted) setState(() => _handworks = works);
+      _markFallback(res);
+    } catch (_) {
+      _markFallback(res);
+    } finally {
+      if (mounted) setState(() => _handworksLoading = false);
+    }
+  }
+
+  Future<void> _loadFoodBaskets() async {
+    if (mounted) setState(() => _foodBasketsLoading = true);
+    final res = await _Cache.fetch('food_baskets', () {
+      return http.get(apiUrl('/foodbaskets'));
+    });
+
+    if (!res.hasData) {
+      _markFallback(res);
+      if (mounted) setState(() => _foodBasketsLoading = false);
+      return;
+    }
+
+    try {
+      final List data = jsonDecode(res.body!) as List;
+      final baskets = data
+          .whereType<Map<String, dynamic>>()
+          .map(FoodBasket.fromJson)
+          .toList();
+      if (mounted) setState(() => _foodBaskets = baskets);
+      _markFallback(res);
+    } catch (_) {
+      _markFallback(res);
+    } finally {
+      if (mounted) setState(() => _foodBasketsLoading = false);
+    }
+  }
+
   Future<void> _retryAll() async {
     setState(() {
       _backendIssue = null;
@@ -844,19 +908,26 @@ class HomeScreenState extends State<HomeScreen> {
       _loadDiscounts(),
       _loadAds(),
       _loadSections(),
+      _loadHandworks(),
+      _loadFoodBaskets(),
     ]);
   }
 
   @override
   void dispose() {
-    super.dispose();
     _carouselTimer?.cancel();
-    _dealsTimer?.cancel(); // 👈 add
+    _dealsTimer?.cancel();
     _pageController.dispose();
-    _dealsPageController
-        .dispose(); // 👈 add    for (final vc in _videoControllers.values) vc.dispose();
-    for (final f in _feeds.values)
-      f.dispose(); // ← add this    super.dispose();
+    _dealsPageController.dispose();
+    _handworkCardController.dispose();
+    _basketCardController.dispose();
+    for (final vc in _videoControllers.values) {
+      vc.dispose();
+    }
+    for (final f in _feeds.values) {
+      f.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -1666,6 +1737,8 @@ class HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 4),
                       ],
                     ],
+                    ..._buildHandworkWidgets(),
+                    ..._buildFoodBasketWidgets(),
                   ],
                 ),
               ),
@@ -1815,5 +1888,344 @@ class HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  List<Widget> _buildHandworkWidgets() {
+    final s = S.of(context);
+    if (_handworksLoading && _handworks.isEmpty) {
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ];
+    }
+    if (_handworks.isEmpty) return const [];
+
+    return [
+      _buildSectionHeader(s.handWorkSectionTitle, _openHandworkScreen, s),
+      const SizedBox(height: 8),
+      SizedBox(
+        height: 260,
+        child: PageView.builder(
+          controller: _handworkCardController,
+          padEnds: false,
+          itemCount: _handworks.length,
+          itemBuilder: (_, idx) {
+            final work = _handworks[idx];
+            final image = work.primaryImage;
+            final imageUrl = image == null ? null : mediaUrlFrom(image);
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: GestureDetector(
+                onTap: _openHandworkScreen,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              imageUrl == null
+                                  ? Container(
+                                      color: Colors.grey.shade200,
+                                      alignment: Alignment.center,
+                                      child: const Icon(Icons.image,
+                                          size: 48, color: Colors.grey),
+                                    )
+                                  : CachedNetworkImage(
+                                      imageUrl: imageUrl,
+                                      fit: BoxFit.cover,
+                                    ),
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black87,
+                                      ],
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        work.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${work.price.toStringAsFixed(0)} IQD',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          color: const Color(0xffFEFAE0),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          child: Text(
+                            '${s.qty}: ${work.quantity}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      const SizedBox(height: 16),
+    ];
+  }
+
+  List<Widget> _buildFoodBasketWidgets() {
+    final s = S.of(context);
+    if (_foodBasketsLoading && _foodBaskets.isEmpty) {
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ];
+    }
+    final cards = [null, ..._foodBaskets];
+
+    return [
+      _buildSectionHeader(s.foodBasketSectionTitle, _openFoodBasketsScreen, s),
+      const SizedBox(height: 8),
+      SizedBox(
+        height: 210,
+        child: PageView.builder(
+          controller: _basketCardController,
+          padEnds: false,
+          itemCount: cards.length,
+          itemBuilder: (_, idx) {
+            final basket = cards[idx];
+            if (basket == null) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: GestureDetector(
+                  onTap: _openCustomBasketBuilder,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF5D8A4E), Color(0xFF9BC088)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          s.createBasketCardTitle,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          s.createBasketCardBody,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const Spacer(),
+                        const Align(
+                          alignment: Alignment.bottomRight,
+                          child: Icon(Icons.add_circle_outline,
+                              color: Colors.white, size: 36),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            final imageUrl = basket.primaryImage == null
+                ? null
+                : mediaUrlFrom(basket.primaryImage!);
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: GestureDetector(
+                onTap: () => _openFoodBasketDetail(basket),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xffFEFAE0),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: imageUrl == null
+                            ? Container(
+                                height: 100,
+                                width: double.infinity,
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.image),
+                              )
+                            : CachedNetworkImage(
+                                imageUrl: imageUrl,
+                                height: 100,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        basket.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('${basket.price.toStringAsFixed(0)} IQD'),
+                      Text('${basket.items.length} items included'),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      const SizedBox(height: 16),
+    ];
+  }
+
+  Widget _buildSectionHeader(String title, VoidCallback onSeeAll, dynamic s) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          TextButton(
+            onPressed: onSeeAll,
+            child: Text(s.seeMore),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openHandworkScreen() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HandWorksScreen(initialHandworks: _handworks),
+      ),
+    );
+  }
+
+  Future<void> _openFoodBasketsScreen() async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FoodBasketsScreen(initialBaskets: _foodBaskets),
+      ),
+    );
+    if (changed == true) {
+      await _loadCartCount();
+    }
+  }
+
+  Future<void> _openCustomBasketBuilder() async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CustomBasketBuilder(),
+      ),
+    );
+    if (changed == true) {
+      await _loadCartCount();
+    }
+  }
+
+  Future<void> _openFoodBasketDetail(FoodBasket basket) async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FoodBasketDetailPage(basket: basket),
+      ),
+    );
+    if (changed == true) {
+      await _loadCartCount();
+    }
   }
 }

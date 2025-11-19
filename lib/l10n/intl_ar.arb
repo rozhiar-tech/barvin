@@ -10,6 +10,7 @@
   "subtotal":"المجموع الفرعي",
   "total":"المجموع",
   "clearBasket":"تم مسح السلة",
+  "qty": "الكمية",
   "pSignin":"الرجاء تسجيل الدخول لتقديم طلبك",
   "pSignin2":"تسجيل الدخول للطلب",
 
@@ -189,4 +190,31 @@
   },
   "welcomeBack": "مرحبًا بعودتك!",
   "itemsCount": "{howMany, plural, =0{لا عناصر} =1{عنصر واحد} other{{howMany} عناصر}}"
+,
+  "orderHoursHeading": "ساعات استلام الطلبات",
+  "orderHoursBody": "يتم تجهيز الطلبات من الساعة 8 صباحًا حتى 10 مساءً. الطلبات بعد 10 مساءً تُؤجل لليوم التالي عند الساعة 8 صباحًا.",
+  "whatsappHelpBody": "إذا لم يعمل زر الدفع، يمكنك التواصل مع فريقنا عبر واتساب.",
+  "whatsappHelpCta": "الدعم عبر واتساب",
+  "basketSectionCustom": "سلالك المخصصة",
+  "basketSectionPreset": "سلال الطعام الجاهزة",
+  "basketSectionRegular": "العناصر العادية",
+  "basketBadgeCustom": "سلة مخصصة",
+  "basketBadgePreset": "سلة طعام",
+  "handWorkSectionTitle": "الأعمال اليدوية",
+  "foodBasketSectionTitle": "سلال الطعام",
+  "createBasketCardTitle": "اصنع سلّتك الخاصة",
+  "createBasketCardBody": "اختر أي صنف من كتالوجنا وأرسل سلّتك المخصصة.",
+  "presetBasketDescription": "سلّة جاهزة من بارڤين.",
+  "handworkNoDescription": "لا يوجد وصف متاح.",
+  "foodBasketCustomizeCta": "خصّص واطلب",
+  "updateRequiredTitle": "يتطلب التحديث",
+  "updateRequiredBody": "يتوفر إصدار جديد من بارڤين. يُرجى تحديث التطبيق للمتابعة.",
+  "updateButton": "تحديث التطبيق",
+  "updateStoreLinkHint": "إذا لم يعمل الزر، افتح متجر التطبيقات لديك وابحث عن \"Barvin\".",
+  "updateVersionLabel": "الإصدار المطلوب: {version}",
+  "@updateVersionLabel": {
+    "placeholders": {
+      "version": {}
+    }
+  }
 }

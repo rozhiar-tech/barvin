@@ -1,18 +1,16 @@
 // BasketPage to show items in cart with grouping and order
 import 'dart:convert';
+import 'package:barvin/constants/contact.dart';
 import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/screens/checkout.dart';
-import 'package:barvin/screens/home.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:barvin/screens/home.dart' show apiBase;
+import 'package:barvin/screens/home.dart'
+    show Item, apiBase, textColor, secondaryColor;
 import 'package:url_launcher/url_launcher.dart'; // NEW
 
 const Color whatsAppGreen = Color(0xFF25D366);
-
-// Use international format (no leading 0, country code first)
-const String kWhatsAppNumber = '9647502312211';
 
 const Color primaryColor = Color(0xFF567765);
 
@@ -25,7 +23,15 @@ class BasketPage extends StatefulWidget {
 class CartEntry {
   final Item item;
   int quantity;
-  CartEntry({required this.item, required this.quantity});
+  final String? basketType;
+  final int? basketId;
+
+  CartEntry({
+    required this.item,
+    required this.quantity,
+    this.basketType,
+    this.basketId,
+  });
 }
 
 class BasketPageState extends State<BasketPage> {
@@ -182,6 +188,10 @@ class BasketPageState extends State<BasketPage> {
       final name = m['name'] as String;
       final price = double.tryParse(m['price'].toString()) ?? 0;
       final qty = int.tryParse(m['quantity'].toString()) ?? 1;
+      final basketType = m['basket_type']?.toString();
+      final basketId = m['basket_id'] == null
+          ? null
+          : int.tryParse(m['basket_id'].toString());
 
       final item = Item(
         id: int.parse(idStr),
@@ -197,9 +207,23 @@ class BasketPageState extends State<BasketPage> {
       );
 
       if (grouped.containsKey(idStr)) {
-        grouped[idStr]!.quantity += qty;
+        final existing = grouped[idStr]!;
+        existing.quantity += qty;
+        if (existing.basketType == null && basketType != null) {
+          grouped[idStr] = CartEntry(
+            item: existing.item,
+            quantity: existing.quantity,
+            basketType: basketType,
+            basketId: basketId ?? existing.basketId,
+          );
+        }
       } else {
-        grouped[idStr] = CartEntry(item: item, quantity: qty);
+        grouped[idStr] = CartEntry(
+          item: item,
+          quantity: qty,
+          basketType: basketType,
+          basketId: basketId,
+        );
       }
     }
 
@@ -214,6 +238,8 @@ class BasketPageState extends State<BasketPage> {
               'imageUrl': e.item.imageUrl,
               'description': e.item.description,
               'supplierName': e.item.supplier_name,
+              if (e.basketType != null) 'basket_type': e.basketType,
+              if (e.basketId != null) 'basket_id': e.basketId.toString(),
             }))
         .toList();
     await prefs.setStringList('cart', cleaned);
@@ -230,10 +256,12 @@ class BasketPageState extends State<BasketPage> {
 
   double get _total => _subtotal + (_freeDelivery ? 0.0 : _deliveryFee);
 
-  Future<void> _updateQuantity(int index, int delta) async {
+  Future<void> _updateQuantityForEntry(CartEntry entry, int delta) async {
     final prefs = await SharedPreferences.getInstance();
 
     setState(() {
+      final index = _entries.indexOf(entry);
+      if (index == -1) return;
       final newQty = _entries[index].quantity + delta;
 
       if (newQty < 1) {
@@ -249,10 +277,69 @@ class BasketPageState extends State<BasketPage> {
               'id': e.item.id.toString(),
               'name': e.item.nameEn,
               'price': e.item.price.toString(),
+              'discount': e.item.discount.toString(),
               'quantity': e.quantity.toString(),
+              'imageUrl': e.item.imageUrl,
+              'description': e.item.description,
+              'supplierName': e.item.supplier_name,
+              if (e.basketType != null) 'basket_type': e.basketType,
+              if (e.basketId != null) 'basket_id': e.basketId.toString(),
             }))
         .toList();
     await prefs.setStringList('cart', cleaned);
+  }
+
+  List<_BasketRenderNode> _buildRenderNodes() {
+    final items = List<CartEntry>.from(_entries);
+    items.sort((a, b) =>
+        _basketPriority(a.basketType).compareTo(_basketPriority(b.basketType)));
+    final nodes = <_BasketRenderNode>[];
+    String? lastType;
+    for (final entry in items) {
+      final type = entry.basketType;
+      if (nodes.isEmpty || type != lastType) {
+        nodes.add(_BasketRenderNode.header(_basketSectionTitle(type)));
+        lastType = type;
+      }
+      nodes.add(_BasketRenderNode.entry(entry));
+    }
+    if (nodes.isEmpty) {
+      nodes.add(_BasketRenderNode.header(_basketSectionTitle(null)));
+    }
+    return nodes;
+  }
+
+  int _basketPriority(String? type) {
+    switch (type) {
+      case 'custom_food_basket':
+        return 0;
+      case 'food_basket':
+        return 1;
+      default:
+        return 2;
+    }
+  }
+
+  String _basketSectionTitle(String? type) {
+    switch (type) {
+      case 'custom_food_basket':
+        return 'Your custom baskets';
+      case 'food_basket':
+        return 'Preset food baskets';
+      default:
+        return 'Regular items';
+    }
+  }
+
+  String? _basketLabel(String? type) {
+    switch (type) {
+      case 'custom_food_basket':
+        return 'Custom basket';
+      case 'food_basket':
+        return 'Food basket';
+      default:
+        return null;
+    }
   }
 
   // ignore: unused_element
@@ -326,6 +413,15 @@ class BasketPageState extends State<BasketPage> {
   Widget build(BuildContext context) {
     final canOrder = _isLoggedIn && !_isLoadingOrder && _entries.isNotEmpty;
     final s = S.of(context);
+    String? disabledReason;
+    if (!_isLoggedIn) {
+      disabledReason = "Please sign in to place your order.";
+    } else if (_entries.isEmpty) {
+      disabledReason = "Add an item to your basket to continue.";
+    } else if (_isLoadingOrder) {
+      disabledReason = "Submitting your order…";
+    }
+    final renderNodes = _buildRenderNodes();
 
     return Scaffold(
       backgroundColor: const Color(0xFFD3E4C4), // soft green
@@ -334,16 +430,6 @@ class BasketPageState extends State<BasketPage> {
         elevation: 1,
         iconTheme: const IconThemeData(color: primaryColor),
         title: Text(s.basketTitle, style: const TextStyle(color: textColor)),
-        actions: [
-          IconButton(
-            tooltip: s.whatsAppTooltip,
-            onPressed: _entries.isEmpty ? null : _sendOrderViaWhatsApp,
-            icon: Icon(
-              Icons.chat,
-              color: _entries.isEmpty ? Colors.grey : whatsAppGreen,
-            ),
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -351,14 +437,30 @@ class BasketPageState extends State<BasketPage> {
           children: [
             // ─── Item List ────────────────────────────────────────────
             Expanded(
-              child: ListView.separated(
-                itemCount: _entries.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+              child: ListView.builder(
+                itemCount: renderNodes.length,
                 itemBuilder: (_, idx) {
-                  final entry = _entries[idx];
+                  final node = renderNodes[idx];
+                  if (node.isHeader) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 4),
+                      child: Text(
+                        node.header!,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: secondaryColor,
+                        ),
+                      ),
+                    );
+                  }
+                  final entry = node.entry!;
                   final thumbUrl = _normalizeImageUrl(entry.item.imageUrl);
+                  final badge = _basketLabel(entry.basketType);
 
                   return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
                       color: const Color(0xffFEFAE0),
                       borderRadius: BorderRadius.circular(12),
@@ -374,7 +476,6 @@ class BasketPageState extends State<BasketPage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // thumbnail
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: thumbUrl.isNotEmpty
@@ -399,15 +500,30 @@ class BasketPageState extends State<BasketPage> {
                                       color: Colors.grey),
                                 ),
                         ),
-
                         const SizedBox(width: 12),
-
-                        // title + subtitle + quantity (flexible)
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // name
+                              if (badge != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: secondaryColor.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    badge,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: secondaryColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                              ],
                               Text(
                                 entry.item.localizedName(context),
                                 maxLines: 1,
@@ -416,7 +532,6 @@ class BasketPageState extends State<BasketPage> {
                                     fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 4),
-                              // description
                               Text(
                                 entry.item.description,
                                 maxLines: 1,
@@ -424,13 +539,12 @@ class BasketPageState extends State<BasketPage> {
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               const SizedBox(height: 8),
-
-                              // quantity controls
                               Row(
                                 children: [
                                   _QuantityButton(
                                       icon: Icons.remove,
-                                      onTap: () => _updateQuantity(idx, -1)),
+                                      onTap: () =>
+                                          _updateQuantityForEntry(entry, -1)),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8),
@@ -439,16 +553,14 @@ class BasketPageState extends State<BasketPage> {
                                   ),
                                   _QuantityButton(
                                       icon: Icons.add,
-                                      onTap: () => _updateQuantity(idx, 1)),
+                                      onTap: () =>
+                                          _updateQuantityForEntry(entry, 1)),
                                 ],
                               ),
                             ],
                           ),
                         ),
-
                         const SizedBox(width: 8),
-
-                        // price + delete
                         ConstrainedBox(
                           constraints:
                               const BoxConstraints(minWidth: 90, maxWidth: 140),
@@ -465,8 +577,8 @@ class BasketPageState extends State<BasketPage> {
                               ),
                               const SizedBox(height: 8),
                               InkWell(
-                                onTap: () =>
-                                    _updateQuantity(idx, -entry.quantity),
+                                onTap: () => _updateQuantityForEntry(
+                                    entry, -entry.quantity),
                                 child: const Icon(Icons.delete_forever,
                                     color: Colors.redAccent),
                               ),
@@ -517,6 +629,70 @@ class BasketPageState extends State<BasketPage> {
 
             const SizedBox(height: 16),
 
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xffFEFAE0),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  )
+                ],
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule, color: secondaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        s.orderHoursHeading,
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    s.orderHoursBody,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: secondaryColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          s.whatsappHelpBody,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _entries.isEmpty ? null : _sendOrderViaWhatsApp,
+                    icon: const Icon(Icons.chat),
+                    label: Text(s.whatsappHelpCta),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor:
+                          _entries.isEmpty ? Colors.grey : whatsAppGreen,
+                      side: BorderSide(
+                        color: _entries.isEmpty ? Colors.grey : whatsAppGreen,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // ─── Checkout Button ─────────────────────────────────────
             SizedBox(
               width: double.infinity,
@@ -543,6 +719,19 @@ class BasketPageState extends State<BasketPage> {
                 ),
               ),
             ),
+            if (disabledReason != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                disabledReason,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+              if (!_isLoggedIn)
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/login'),
+                  child: const Text("Sign in to continue"),
+                ),
+            ],
           ],
         ),
       ),
@@ -613,4 +802,12 @@ class _SummaryRow extends StatelessWidget {
       ],
     );
   }
+}
+
+class _BasketRenderNode {
+  final String? header;
+  final CartEntry? entry;
+  const _BasketRenderNode.header(this.header) : entry = null;
+  const _BasketRenderNode.entry(this.entry) : header = null;
+  bool get isHeader => header != null;
 }

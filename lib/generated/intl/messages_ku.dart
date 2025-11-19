@@ -31,6 +31,8 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m4(lat, lng) => "شوێن: (${lat}، ${lng})";
 
+  static String m5(version) => "وەشانی داواکراو: ${version}";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("دەربارەی ئێمە"),
@@ -46,7 +48,18 @@ class MessageLookup extends MessageLookupByLibrary {
       "گەڕانەوە بۆ چوونەژوورەوە",
     ),
     "basket": MessageLookupByLibrary.simpleMessage("سەتلی داواکاری"),
+    "basketBadgeCustom": MessageLookupByLibrary.simpleMessage("سەبەتەی تایبەت"),
+    "basketBadgePreset": MessageLookupByLibrary.simpleMessage("سەبەتەی خواردن"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("سەتلەکە بەتالە"),
+    "basketSectionCustom": MessageLookupByLibrary.simpleMessage(
+      "سەبەتە تایبەتەکان",
+    ),
+    "basketSectionPreset": MessageLookupByLibrary.simpleMessage(
+      "سەبەتەی خواردنی ئامادە",
+    ),
+    "basketSectionRegular": MessageLookupByLibrary.simpleMessage(
+      "بابەتە باشتەکان",
+    ),
     "basketTab": MessageLookupByLibrary.simpleMessage("سەبەتە"),
     "basketTitle": MessageLookupByLibrary.simpleMessage("سەبەتەکەت"),
     "bestPriceCampaign": MessageLookupByLibrary.simpleMessage(
@@ -68,6 +81,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "continueAsGuest": MessageLookupByLibrary.simpleMessage(
       "بە میوانی بەردەوام بە",
     ),
+    "createBasketCardBody": MessageLookupByLibrary.simpleMessage(
+      "هەموو کاڵاکان لە کاتەلۆگەکەمان هەڵبژێرە و سەبەتەی تایبەتی خۆت بنێرە.",
+    ),
+    "createBasketCardTitle": MessageLookupByLibrary.simpleMessage(
+      "سەبەتەی خۆت دروست بکە",
+    ),
     "currencyIqd": MessageLookupByLibrary.simpleMessage("د.ع"),
     "currency_code_iqd": MessageLookupByLibrary.simpleMessage("دینار"),
     "deals": MessageLookupByLibrary.simpleMessage("ئۆفەرەکان"),
@@ -81,6 +100,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "errorWithMessage": m0,
     "facebook": MessageLookupByLibrary.simpleMessage("فەیسبووک"),
     "follow": MessageLookupByLibrary.simpleMessage("فۆڵۆومان بکەن"),
+    "foodBasketCustomizeCta": MessageLookupByLibrary.simpleMessage(
+      "گۆڕین و داواکاری",
+    ),
+    "foodBasketSectionTitle": MessageLookupByLibrary.simpleMessage(
+      "سەبەتەکانی خواردن",
+    ),
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "دیزاین کردنو پەرە پێدان لەلایەن یوئێستی ئەیجنسی",
     ),
@@ -104,6 +129,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "guestModeMessage": MessageLookupByLibrary.simpleMessage(
       "تکایە بچۆ ژوورەوە بۆ داواکردنی داواکاری",
+    ),
+    "handWorkSectionTitle": MessageLookupByLibrary.simpleMessage(
+      "کارە دەستییەکان",
+    ),
+    "handworkNoDescription": MessageLookupByLibrary.simpleMessage(
+      "هیچ وەسفێک دانەنراوە.",
     ),
     "hint": MessageLookupByLibrary.simpleMessage("بنووسە بۆ گەڕان"),
     "home": MessageLookupByLibrary.simpleMessage("ماڵەوە"),
@@ -149,6 +180,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "noOrder": MessageLookupByLibrary.simpleMessage(
       "هیچ داواکاریەک نەدۆزرایەوە",
+    ),
+    "orderHoursBody": MessageLookupByLibrary.simpleMessage(
+      "داواکارییەکان لە نێوان ٨ی بەیانی و ١٠ی ئێوارە جێبەجێ دەکرێن. داواکارییەکانی دوای ١٠ی ئێوارە بۆ ڕۆژی داهاتوو لە ٨ی بەیانی دەستپێدەکەن.",
+    ),
+    "orderHoursHeading": MessageLookupByLibrary.simpleMessage(
+      "کاتەکانی داواکاری",
     ),
     "orderOn": MessageLookupByLibrary.simpleMessage("داواکاری لە"),
     "orderTab": MessageLookupByLibrary.simpleMessage("داواکاریەکان"),
@@ -196,8 +233,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "paymentMethod": MessageLookupByLibrary.simpleMessage("Pشێوازی پارەدان"),
     "placeOrder": MessageLookupByLibrary.simpleMessage("داواکاری دابنێ"),
+    "presetBasketDescription": MessageLookupByLibrary.simpleMessage(
+      "سەبەتەی ئامادە لەلایەن بارڤین.",
+    ),
     "profileTab": MessageLookupByLibrary.simpleMessage("پڕۆفایلی"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("پەڕەی تایبەت"),
+    "qty": MessageLookupByLibrary.simpleMessage("بڕ"),
     "requiredField": MessageLookupByLibrary.simpleMessage("مەیدانی پێویست"),
     "reviewBasket": MessageLookupByLibrary.simpleMessage("پێداچوونەوە سەبەتە"),
     "save": MessageLookupByLibrary.simpleMessage("هەڵگرتن"),
@@ -289,6 +330,17 @@ class MessageLookup extends MessageLookupByLibrary {
     "total_label": MessageLookupByLibrary.simpleMessage("کۆ:"),
     "typeSearch": MessageLookupByLibrary.simpleMessage("بنووسە بۆ گەڕان"),
     "unit": MessageLookupByLibrary.simpleMessage("یەکە"),
+    "updateButton": MessageLookupByLibrary.simpleMessage("نوێکردنەوەی ئەپ"),
+    "updateRequiredBody": MessageLookupByLibrary.simpleMessage(
+      "وەشانی نوێی بارڤین بەردەستە. تکایە ئەپەکە نوێ بکەرەوە بۆ بەردەوام بوون.",
+    ),
+    "updateRequiredTitle": MessageLookupByLibrary.simpleMessage(
+      "پێویستی بە نوێکردنەوە",
+    ),
+    "updateStoreLinkHint": MessageLookupByLibrary.simpleMessage(
+      "ئەگەر دوگمەکە کار نەکرد، فڕۆشگای ئەپەکەت بکەرەوە و \"Barvin\" بگەڕێ.",
+    ),
+    "updateVersionLabel": m5,
     "waAddress": MessageLookupByLibrary.simpleMessage("ناونیشان"),
     "waDelivery": MessageLookupByLibrary.simpleMessage("گەیاندن"),
     "waFree": MessageLookupByLibrary.simpleMessage("بەخۆڕایی"),
@@ -301,6 +353,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "waTotalUpper": MessageLookupByLibrary.simpleMessage("کۆی گشتی"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("بەخێربێیتەوە!"),
     "whatsAppTooltip": MessageLookupByLibrary.simpleMessage("ناردن بە واتساپ"),
+    "whatsappHelpBody": MessageLookupByLibrary.simpleMessage(
+      "ئەگەر دوگمەی داواکاری کار نەکرد، دەتوانیت پەیوەندیی تیمی پارڤین بە واتساپ بکەیت.",
+    ),
+    "whatsappHelpCta": MessageLookupByLibrary.simpleMessage("یارمەتی واتساپ"),
     "yourOrders": MessageLookupByLibrary.simpleMessage("داواکاریەکانت"),
   };
 }

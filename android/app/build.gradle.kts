@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.barvin.barvin"
+    namespace = "com.barvin.barvin.barvin"
 
     // Either keep Flutter’s values or hardcode; both are fine.
     // compileSdk = 35
@@ -32,7 +32,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.barvin.barvin"
+        applicationId = "com.barvin.barvin.barvin"
         // min/target can come from Flutter; or set explicitly (21/35+).
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion

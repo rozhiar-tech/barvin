@@ -31,6 +31,8 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m4(lat, lng) => "الموقع: (${lat}, ${lng})";
 
+  static String m5(version) => "الإصدار المطلوب: ${version}";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("معلومات عنا"),
@@ -44,7 +46,18 @@ class MessageLookup extends MessageLookupByLibrary {
       "العودة إلى تسجيل الدخول",
     ),
     "basket": MessageLookupByLibrary.simpleMessage("سلتك"),
+    "basketBadgeCustom": MessageLookupByLibrary.simpleMessage("سلة مخصصة"),
+    "basketBadgePreset": MessageLookupByLibrary.simpleMessage("سلة طعام"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("السلة فارغة"),
+    "basketSectionCustom": MessageLookupByLibrary.simpleMessage(
+      "سلالك المخصصة",
+    ),
+    "basketSectionPreset": MessageLookupByLibrary.simpleMessage(
+      "سلال الطعام الجاهزة",
+    ),
+    "basketSectionRegular": MessageLookupByLibrary.simpleMessage(
+      "العناصر العادية",
+    ),
     "basketTab": MessageLookupByLibrary.simpleMessage("السلة"),
     "basketTitle": MessageLookupByLibrary.simpleMessage("سلة التسوق"),
     "bestPriceCampaign": MessageLookupByLibrary.simpleMessage(
@@ -62,6 +75,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "clearBasket": MessageLookupByLibrary.simpleMessage("تم مسح السلة"),
     "contact": MessageLookupByLibrary.simpleMessage("اتصل بنا"),
     "continueAsGuest": MessageLookupByLibrary.simpleMessage("المتابعة كضيف"),
+    "createBasketCardBody": MessageLookupByLibrary.simpleMessage(
+      "اختر أي صنف من كتالوجنا وأرسل سلّتك المخصصة.",
+    ),
+    "createBasketCardTitle": MessageLookupByLibrary.simpleMessage(
+      "اصنع سلّتك الخاصة",
+    ),
     "currencyIqd": MessageLookupByLibrary.simpleMessage("د.ع"),
     "currency_code_iqd": MessageLookupByLibrary.simpleMessage("دینار"),
     "deals": MessageLookupByLibrary.simpleMessage("الصفقات"),
@@ -75,6 +94,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "errorWithMessage": m0,
     "facebook": MessageLookupByLibrary.simpleMessage("فيسبوك"),
     "follow": MessageLookupByLibrary.simpleMessage("تابعنا"),
+    "foodBasketCustomizeCta": MessageLookupByLibrary.simpleMessage(
+      "خصّص واطلب",
+    ),
+    "foodBasketSectionTitle": MessageLookupByLibrary.simpleMessage(
+      "سلال الطعام",
+    ),
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "تم التصميم والتطوير بواسطة وكالة يو إس تي",
     ),
@@ -100,6 +125,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "guestModeMessage": MessageLookupByLibrary.simpleMessage(
       "يرجى تسجيل الدخول لإجراء الطلب",
+    ),
+    "handWorkSectionTitle": MessageLookupByLibrary.simpleMessage(
+      "الأعمال اليدوية",
+    ),
+    "handworkNoDescription": MessageLookupByLibrary.simpleMessage(
+      "لا يوجد وصف متاح.",
     ),
     "hint": MessageLookupByLibrary.simpleMessage("اكتب للبحث"),
     "home": MessageLookupByLibrary.simpleMessage("الرئيسية"),
@@ -146,6 +177,12 @@ class MessageLookup extends MessageLookupByLibrary {
       "أدخل المصطلح واضغط على البحث",
     ),
     "noOrder": MessageLookupByLibrary.simpleMessage("لم يتم العثور على طلبات."),
+    "orderHoursBody": MessageLookupByLibrary.simpleMessage(
+      "يتم تجهيز الطلبات من الساعة 8 صباحًا حتى 10 مساءً. الطلبات بعد 10 مساءً تُؤجل لليوم التالي عند الساعة 8 صباحًا.",
+    ),
+    "orderHoursHeading": MessageLookupByLibrary.simpleMessage(
+      "ساعات استلام الطلبات",
+    ),
     "orderOn": MessageLookupByLibrary.simpleMessage("طلب على"),
     "orderTab": MessageLookupByLibrary.simpleMessage("الطلبات"),
     "order_number_prefix": MessageLookupByLibrary.simpleMessage("#ORD-"),
@@ -192,8 +229,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "paymentMethod": MessageLookupByLibrary.simpleMessage("طريقة الدفع"),
     "placeOrder": MessageLookupByLibrary.simpleMessage("طلب"),
+    "presetBasketDescription": MessageLookupByLibrary.simpleMessage(
+      "سلّة جاهزة من بارڤين.",
+    ),
     "profileTab": MessageLookupByLibrary.simpleMessage("الملف الشخصي"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("الملف الشخصي"),
+    "qty": MessageLookupByLibrary.simpleMessage("الكمية"),
     "requiredField": MessageLookupByLibrary.simpleMessage("الحقل المطلوب"),
     "reviewBasket": MessageLookupByLibrary.simpleMessage("المراجعة سلة"),
     "save": MessageLookupByLibrary.simpleMessage("يحفظ"),
@@ -279,6 +320,17 @@ class MessageLookup extends MessageLookupByLibrary {
     "total_label": MessageLookupByLibrary.simpleMessage("الإجمالي:"),
     "typeSearch": MessageLookupByLibrary.simpleMessage("اكتب للبحث"),
     "unit": MessageLookupByLibrary.simpleMessage("وحدة"),
+    "updateButton": MessageLookupByLibrary.simpleMessage("تحديث التطبيق"),
+    "updateRequiredBody": MessageLookupByLibrary.simpleMessage(
+      "يتوفر إصدار جديد من بارڤين. يُرجى تحديث التطبيق للمتابعة.",
+    ),
+    "updateRequiredTitle": MessageLookupByLibrary.simpleMessage(
+      "يتطلب التحديث",
+    ),
+    "updateStoreLinkHint": MessageLookupByLibrary.simpleMessage(
+      "إذا لم يعمل الزر، افتح متجر التطبيقات لديك وابحث عن \"Barvin\".",
+    ),
+    "updateVersionLabel": m5,
     "waAddress": MessageLookupByLibrary.simpleMessage("العنوان"),
     "waDelivery": MessageLookupByLibrary.simpleMessage("التوصيل"),
     "waFree": MessageLookupByLibrary.simpleMessage("مجانًا"),
@@ -289,6 +341,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "waTotalUpper": MessageLookupByLibrary.simpleMessage("الإجمالي"),
     "welcomeBack": MessageLookupByLibrary.simpleMessage("مرحبًا بعودتك!"),
     "whatsAppTooltip": MessageLookupByLibrary.simpleMessage("أرسل عبر واتساب"),
+    "whatsappHelpBody": MessageLookupByLibrary.simpleMessage(
+      "إذا لم يعمل زر الدفع، يمكنك التواصل مع فريقنا عبر واتساب.",
+    ),
+    "whatsappHelpCta": MessageLookupByLibrary.simpleMessage("الدعم عبر واتساب"),
     "yourOrders": MessageLookupByLibrary.simpleMessage("طلباتك"),
   };
 }

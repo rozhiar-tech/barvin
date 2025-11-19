@@ -31,6 +31,8 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m4(lat, lng) => "Location: (${lat}, ${lng})";
 
+  static String m5(version) => "Required version: ${version}";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("About Us"),
@@ -42,7 +44,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "appTitle": MessageLookupByLibrary.simpleMessage("My Barvin App"),
     "backToLogin": MessageLookupByLibrary.simpleMessage("Back to login"),
     "basket": MessageLookupByLibrary.simpleMessage("Your basket"),
+    "basketBadgeCustom": MessageLookupByLibrary.simpleMessage("Custom basket"),
+    "basketBadgePreset": MessageLookupByLibrary.simpleMessage("Food basket"),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("Basket is empty"),
+    "basketSectionCustom": MessageLookupByLibrary.simpleMessage(
+      "Your custom baskets",
+    ),
+    "basketSectionPreset": MessageLookupByLibrary.simpleMessage(
+      "Preset food baskets",
+    ),
+    "basketSectionRegular": MessageLookupByLibrary.simpleMessage(
+      "Regular items",
+    ),
     "basketTab": MessageLookupByLibrary.simpleMessage("Basket"),
     "basketTitle": MessageLookupByLibrary.simpleMessage("Your Basket"),
     "bestPriceCampaign": MessageLookupByLibrary.simpleMessage(
@@ -62,6 +75,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "continueAsGuest": MessageLookupByLibrary.simpleMessage(
       "Continue as Guest",
     ),
+    "createBasketCardBody": MessageLookupByLibrary.simpleMessage(
+      "Pick any items from our catalog and send your personalized basket.",
+    ),
+    "createBasketCardTitle": MessageLookupByLibrary.simpleMessage(
+      "Create your own basket",
+    ),
     "currencyIqd": MessageLookupByLibrary.simpleMessage("IQD"),
     "currency_code_iqd": MessageLookupByLibrary.simpleMessage("IQD"),
     "deals": MessageLookupByLibrary.simpleMessage("Deals"),
@@ -78,6 +97,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "errorWithMessage": m0,
     "facebook": MessageLookupByLibrary.simpleMessage("Facebook"),
     "follow": MessageLookupByLibrary.simpleMessage("Follow us"),
+    "foodBasketCustomizeCta": MessageLookupByLibrary.simpleMessage(
+      "Customize & Order",
+    ),
+    "foodBasketSectionTitle": MessageLookupByLibrary.simpleMessage(
+      "Food Baskets",
+    ),
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "Designed and Developed by UST Agency",
     ),
@@ -99,6 +124,10 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "guestModeMessage": MessageLookupByLibrary.simpleMessage(
       "Please sign in to place your order",
+    ),
+    "handWorkSectionTitle": MessageLookupByLibrary.simpleMessage("Hand Work"),
+    "handworkNoDescription": MessageLookupByLibrary.simpleMessage(
+      "No description provided.",
     ),
     "hint": MessageLookupByLibrary.simpleMessage("Type To Search"),
     "home": MessageLookupByLibrary.simpleMessage("Home"),
@@ -145,6 +174,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Enter a term and press search",
     ),
     "noOrder": MessageLookupByLibrary.simpleMessage("No orders found."),
+    "orderHoursBody": MessageLookupByLibrary.simpleMessage(
+      "Orders are processed from 8:00 AM to 10:00 PM. Requests after 10:00 PM will be delayed until 8:00 AM the next day.",
+    ),
+    "orderHoursHeading": MessageLookupByLibrary.simpleMessage("Order hours"),
     "orderOn": MessageLookupByLibrary.simpleMessage("Order on"),
     "orderTab": MessageLookupByLibrary.simpleMessage("Orders"),
     "order_number_prefix": MessageLookupByLibrary.simpleMessage("#ORD-"),
@@ -185,8 +218,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "paymentMethod": MessageLookupByLibrary.simpleMessage("Payment Method"),
     "placeOrder": MessageLookupByLibrary.simpleMessage("Place Order"),
+    "presetBasketDescription": MessageLookupByLibrary.simpleMessage(
+      "Preset basket from Barvin.",
+    ),
     "profileTab": MessageLookupByLibrary.simpleMessage("Profile"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("Profile"),
+    "qty": MessageLookupByLibrary.simpleMessage("Qty"),
     "requiredField": MessageLookupByLibrary.simpleMessage("Required Field"),
     "reviewBasket": MessageLookupByLibrary.simpleMessage("Review Basket"),
     "save": MessageLookupByLibrary.simpleMessage("Save"),
@@ -274,6 +311,17 @@ class MessageLookup extends MessageLookupByLibrary {
     "total_label": MessageLookupByLibrary.simpleMessage("Total:"),
     "typeSearch": MessageLookupByLibrary.simpleMessage("Type To Search"),
     "unit": MessageLookupByLibrary.simpleMessage("Unit"),
+    "updateButton": MessageLookupByLibrary.simpleMessage("Update app"),
+    "updateRequiredBody": MessageLookupByLibrary.simpleMessage(
+      "A new version of Barvin is available. Please update the app to continue.",
+    ),
+    "updateRequiredTitle": MessageLookupByLibrary.simpleMessage(
+      "Update required",
+    ),
+    "updateStoreLinkHint": MessageLookupByLibrary.simpleMessage(
+      "If the button doesn’t work, open your app store and search for “Barvin”.",
+    ),
+    "updateVersionLabel": m5,
     "waAddress": MessageLookupByLibrary.simpleMessage("Address"),
     "waDelivery": MessageLookupByLibrary.simpleMessage("Delivery"),
     "waFree": MessageLookupByLibrary.simpleMessage("FREE"),
@@ -285,6 +333,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "welcomeBack": MessageLookupByLibrary.simpleMessage("Welcome back!"),
     "whatsAppTooltip": MessageLookupByLibrary.simpleMessage(
       "Send via WhatsApp",
+    ),
+    "whatsappHelpBody": MessageLookupByLibrary.simpleMessage(
+      "If the checkout button doesn’t work, you can contact our team on WhatsApp.",
+    ),
+    "whatsappHelpCta": MessageLookupByLibrary.simpleMessage(
+      "WhatsApp order support",
     ),
     "yourOrders": MessageLookupByLibrary.simpleMessage("Your Orders"),
   };

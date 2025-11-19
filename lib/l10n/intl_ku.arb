@@ -13,6 +13,7 @@
   "basketEmpty":"سەتلەکە بەتالە",
   "sendOrder":"ناردنی داواکاری",
   "subtotal":"نرخی پێش کۆتا",
+  "qty": "بڕ",
 
     "campaign":"کەمپەین",
   "bestPriceItem":"باشترین نرخ: داشکاندنی بابەت",
@@ -181,4 +182,31 @@
   },
   "welcomeBack": "بەخێربێیتەوە!",
   "itemsCount": "{howMany, plural, =0{هیچ بابەتێک نییە} =1{ یەک دانە} other{{howMany} چەندە}}"
+,
+  "orderHoursHeading": "کاتەکانی داواکاری",
+  "orderHoursBody": "داواکارییەکان لە نێوان ٨ی بەیانی و ١٠ی ئێوارە جێبەجێ دەکرێن. داواکارییەکانی دوای ١٠ی ئێوارە بۆ ڕۆژی داهاتوو لە ٨ی بەیانی دەستپێدەکەن.",
+  "whatsappHelpBody": "ئەگەر دوگمەی داواکاری کار نەکرد، دەتوانیت پەیوەندیی تیمی پارڤین بە واتساپ بکەیت.",
+  "whatsappHelpCta": "یارمەتی واتساپ",
+  "basketSectionCustom": "سەبەتە تایبەتەکان",
+  "basketSectionPreset": "سەبەتەی خواردنی ئامادە",
+  "basketSectionRegular": "بابەتە باشتەکان",
+  "basketBadgeCustom": "سەبەتەی تایبەت",
+  "basketBadgePreset": "سەبەتەی خواردن",
+  "handWorkSectionTitle": "کارە دەستییەکان",
+  "foodBasketSectionTitle": "سەبەتەکانی خواردن",
+  "createBasketCardTitle": "سەبەتەی خۆت دروست بکە",
+  "createBasketCardBody": "هەموو کاڵاکان لە کاتەلۆگەکەمان هەڵبژێرە و سەبەتەی تایبەتی خۆت بنێرە.",
+  "presetBasketDescription": "سەبەتەی ئامادە لەلایەن بارڤین.",
+  "handworkNoDescription": "هیچ وەسفێک دانەنراوە.",
+  "foodBasketCustomizeCta": "گۆڕین و داواکاری",
+  "updateRequiredTitle": "پێویستی بە نوێکردنەوە",
+  "updateRequiredBody": "وەشانی نوێی بارڤین بەردەستە. تکایە ئەپەکە نوێ بکەرەوە بۆ بەردەوام بوون.",
+  "updateButton": "نوێکردنەوەی ئەپ",
+  "updateStoreLinkHint": "ئەگەر دوگمەکە کار نەکرد، فڕۆشگای ئەپەکەت بکەرەوە و \"Barvin\" بگەڕێ.",
+  "updateVersionLabel": "وەشانی داواکراو: {version}",
+  "@updateVersionLabel": {
+    "placeholders": {
+      "version": {}
+    }
+  }
 }

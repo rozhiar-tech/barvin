@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:barvin/screens/update_required.dart';
+import 'package:barvin/services/app_version_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -15,6 +17,8 @@ class Splash extends StatefulWidget {
 class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   bool _isOnline = true;
+  final AppVersionService _versionService = const AppVersionService();
+  Timer? _navTimer;
 
   @override
   void initState() {
@@ -28,17 +32,33 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
       setState(() => _isOnline = result != ConnectivityResult.none);
     });
 
-    Timer(const Duration(seconds: 3), () {
+    _navTimer = Timer(const Duration(seconds: 3), () {
       if (mounted && _isOnline) {
-        Navigator.pushReplacementNamed(context, '/main');
+        _handleNavigation();
       }
     });
   }
 
   @override
   void dispose() {
+    _navTimer?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleNavigation() async {
+    final status = await _versionService.checkVersion();
+    if (!mounted) return;
+    if (status.requiresUpdate) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => UpdateRequiredScreen(status: status),
+        ),
+      );
+    } else {
+      Navigator.pushReplacementNamed(context, '/main');
+    }
   }
 
   @override

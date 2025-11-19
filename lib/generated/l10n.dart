@@ -189,6 +189,11 @@ class S {
     );
   }
 
+  /// `Qty`
+  String get qty {
+    return Intl.message('Qty', name: 'qty', desc: '', args: []);
+  }
+
   /// `No {status} orders`
   String orders_empty_status(Object status) {
     return Intl.message(
@@ -1274,6 +1279,211 @@ class S {
       name: 'itemsCount',
       desc: 'How many items in the basket',
       args: [howMany],
+    );
+  }
+
+  /// `Order hours`
+  String get orderHoursHeading {
+    return Intl.message(
+      'Order hours',
+      name: 'orderHoursHeading',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Orders are processed from 8:00 AM to 10:00 PM. Requests after 10:00 PM will be delayed until 8:00 AM the next day.`
+  String get orderHoursBody {
+    return Intl.message(
+      'Orders are processed from 8:00 AM to 10:00 PM. Requests after 10:00 PM will be delayed until 8:00 AM the next day.',
+      name: 'orderHoursBody',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `If the checkout button doesn’t work, you can contact our team on WhatsApp.`
+  String get whatsappHelpBody {
+    return Intl.message(
+      'If the checkout button doesn’t work, you can contact our team on WhatsApp.',
+      name: 'whatsappHelpBody',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `WhatsApp order support`
+  String get whatsappHelpCta {
+    return Intl.message(
+      'WhatsApp order support',
+      name: 'whatsappHelpCta',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Your custom baskets`
+  String get basketSectionCustom {
+    return Intl.message(
+      'Your custom baskets',
+      name: 'basketSectionCustom',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Preset food baskets`
+  String get basketSectionPreset {
+    return Intl.message(
+      'Preset food baskets',
+      name: 'basketSectionPreset',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Regular items`
+  String get basketSectionRegular {
+    return Intl.message(
+      'Regular items',
+      name: 'basketSectionRegular',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Custom basket`
+  String get basketBadgeCustom {
+    return Intl.message(
+      'Custom basket',
+      name: 'basketBadgeCustom',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Food basket`
+  String get basketBadgePreset {
+    return Intl.message(
+      'Food basket',
+      name: 'basketBadgePreset',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Hand Work`
+  String get handWorkSectionTitle {
+    return Intl.message(
+      'Hand Work',
+      name: 'handWorkSectionTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Food Baskets`
+  String get foodBasketSectionTitle {
+    return Intl.message(
+      'Food Baskets',
+      name: 'foodBasketSectionTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Create your own basket`
+  String get createBasketCardTitle {
+    return Intl.message(
+      'Create your own basket',
+      name: 'createBasketCardTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pick any items from our catalog and send your personalized basket.`
+  String get createBasketCardBody {
+    return Intl.message(
+      'Pick any items from our catalog and send your personalized basket.',
+      name: 'createBasketCardBody',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Preset basket from Barvin.`
+  String get presetBasketDescription {
+    return Intl.message(
+      'Preset basket from Barvin.',
+      name: 'presetBasketDescription',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No description provided.`
+  String get handworkNoDescription {
+    return Intl.message(
+      'No description provided.',
+      name: 'handworkNoDescription',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Customize & Order`
+  String get foodBasketCustomizeCta {
+    return Intl.message(
+      'Customize & Order',
+      name: 'foodBasketCustomizeCta',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update required`
+  String get updateRequiredTitle {
+    return Intl.message(
+      'Update required',
+      name: 'updateRequiredTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `A new version of Barvin is available. Please update the app to continue.`
+  String get updateRequiredBody {
+    return Intl.message(
+      'A new version of Barvin is available. Please update the app to continue.',
+      name: 'updateRequiredBody',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update app`
+  String get updateButton {
+    return Intl.message('Update app', name: 'updateButton', desc: '', args: []);
+  }
+
+  /// `If the button doesn’t work, open your app store and search for “Barvin”.`
+  String get updateStoreLinkHint {
+    return Intl.message(
+      'If the button doesn’t work, open your app store and search for “Barvin”.',
+      name: 'updateStoreLinkHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Required version: {version}`
+  String updateVersionLabel(Object version) {
+    return Intl.message(
+      'Required version: $version',
+      name: 'updateVersionLabel',
+      desc: '',
+      args: [version],
     );
   }
 }
