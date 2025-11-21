@@ -1372,10 +1372,10 @@ class S {
     );
   }
 
-  /// `Hand Work`
+  /// `Barvin Press`
   String get handWorkSectionTitle {
     return Intl.message(
-      'Hand Work',
+      'Barvin Press',
       name: 'handWorkSectionTitle',
       desc: '',
       args: [],
@@ -1437,6 +1437,126 @@ class S {
     return Intl.message(
       'Customize & Order',
       name: 'foodBasketCustomizeCta',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Featured categories`
+  String get featuredCategoriesTitle {
+    return Intl.message(
+      'Featured categories',
+      name: 'featuredCategoriesTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Tap to view more`
+  String get tapToViewMore {
+    return Intl.message(
+      'Tap to view more',
+      name: 'tapToViewMore',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For inquiries contact us`
+  String get handworkContactButton {
+    return Intl.message(
+      'For inquiries contact us',
+      name: 'handworkContactButton',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Available: {count}`
+  String handworkAvailableLabel(Object count) {
+    return Intl.message(
+      'Available: $count',
+      name: 'handworkAvailableLabel',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Quantity`
+  String get handworkDesiredQuantityLabel {
+    return Intl.message(
+      'Quantity',
+      name: 'handworkDesiredQuantityLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Verification method`
+  String get verificationMethodLabel {
+    return Intl.message(
+      'Verification method',
+      name: 'verificationMethodLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Phone OTP`
+  String get verificationPhoneOption {
+    return Intl.message(
+      'Phone OTP',
+      name: 'verificationPhoneOption',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Email OTP`
+  String get verificationEmailOption {
+    return Intl.message(
+      'Email OTP',
+      name: 'verificationEmailOption',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `How would you like to receive the code?`
+  String get forgotChooseMethod {
+    return Intl.message(
+      'How would you like to receive the code?',
+      name: 'forgotChooseMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `We sent a code to {destination}.`
+  String otpSentTo(Object destination) {
+    return Intl.message(
+      'We sent a code to $destination.',
+      name: 'otpSentTo',
+      desc: '',
+      args: [destination],
+    );
+  }
+
+  /// `Verification code re-sent.`
+  String get otpResent {
+    return Intl.message(
+      'Verification code re-sent.',
+      name: 'otpResent',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter the code we texted you`
+  String get otpTitlePhone {
+    return Intl.message(
+      'Enter the code we texted you',
+      name: 'otpTitlePhone',
       desc: '',
       args: [],
     );

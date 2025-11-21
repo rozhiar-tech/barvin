@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "711662278453",
+    "project_id": "barzi-cafe",
+    "storage_bucket": "barzi-cafe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:711662278453:android:bc06f839ccda3efe82de7c",
+        "android_client_info": {
+          "package_name": "com.barvin.barvin.barvin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKDndEPPVnv1SPDZB86C7_LgSa2-a7jYc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

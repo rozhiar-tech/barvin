@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:video_player/video_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barvin/services/api_config.dart';
@@ -447,9 +448,14 @@ class HomeScreenState extends State<HomeScreen> {
   final host = apiBase.replaceAll('/api', '');
   final _pageController = PageController(viewportFraction: 0.92);
   final PageController _handworkCardController =
-      PageController(viewportFraction: 0.82);
+      PageController(viewportFraction: 0.95);
   final PageController _basketCardController =
-      PageController(viewportFraction: 0.85);
+      PageController(viewportFraction: 0.9);
+  Timer? _handworkAutoTimer;
+  Timer? _foodAutoTimer;
+  Timer? _foodAutoResumeTimer;
+  int _handworkAutoIndex = 0;
+  int _foodAutoIndex = 0;
   // inside _HomeScreenState
 
   String? get rawPath {
@@ -557,6 +563,115 @@ class HomeScreenState extends State<HomeScreen> {
     final p = await SharedPreferences.getInstance();
     // was: _gridMode = p.getBool('gridMode') ?? false;
     setState(() => _gridMode = p.getBool('gridMode') ?? true); // ← default true
+  }
+
+  Widget _shimmerBox({
+    double height = 120,
+    double width = double.infinity,
+    BorderRadius? radius,
+  }) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        height: height,
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: radius ?? BorderRadius.circular(20),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeShimmer() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _shimmerBox(height: 180, radius: BorderRadius.circular(28)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _shimmerBox(height: 140)),
+              const SizedBox(width: 12),
+              Expanded(child: _shimmerBox(height: 140)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _shimmerBox(height: 200),
+          const SizedBox(height: 16),
+          _shimmerBox(height: 200),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _shimmerBox(height: 120)),
+              const SizedBox(width: 12),
+              Expanded(child: _shimmerBox(height: 120)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _handworkShimmerCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: _shimmerBox(height: 260, radius: BorderRadius.circular(30)),
+    );
+  }
+
+  Widget _foodShimmerCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: _shimmerBox(height: 210, radius: BorderRadius.circular(20)),
+    );
+  }
+
+  int get _foodCarouselItemCount =>
+      _foodBaskets.isEmpty ? 1 : _foodBaskets.length + 1;
+
+  void _restartHandworkAutoScroll() {
+    _handworkAutoTimer?.cancel();
+    if (!mounted || _handworks.length <= 1) return;
+    _handworkAutoTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_handworkCardController.hasClients) return;
+      _handworkAutoIndex = (_handworkAutoIndex + 1) % _handworks.length;
+      _handworkCardController.animateToPage(
+        _handworkAutoIndex,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _restartFoodAutoScroll() {
+    _foodAutoTimer?.cancel();
+    if (!mounted || _foodCarouselItemCount <= 1) return;
+    _foodAutoTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_basketCardController.hasClients) return;
+      _foodAutoIndex = (_foodAutoIndex + 1) % _foodCarouselItemCount;
+      _basketCardController.animateToPage(
+        _foodAutoIndex,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _pauseFoodAutoScroll() {
+    _foodAutoTimer?.cancel();
+    _foodAutoResumeTimer?.cancel();
+  }
+
+  void _scheduleFoodAutoResume() {
+    _foodAutoResumeTimer?.cancel();
+    _foodAutoResumeTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      _restartFoodAutoScroll();
+    });
   }
 
   Future<void> _saveGridPref(bool v) async {
@@ -862,7 +977,11 @@ class HomeScreenState extends State<HomeScreen> {
           .whereType<Map<String, dynamic>>()
           .map(HandWork.fromJson)
           .toList();
-      if (mounted) setState(() => _handworks = works);
+      if (mounted) {
+        setState(() => _handworks = works);
+        _handworkAutoIndex = 0;
+        _restartHandworkAutoScroll();
+      }
       _markFallback(res);
     } catch (_) {
       _markFallback(res);
@@ -889,7 +1008,11 @@ class HomeScreenState extends State<HomeScreen> {
           .whereType<Map<String, dynamic>>()
           .map(FoodBasket.fromJson)
           .toList();
-      if (mounted) setState(() => _foodBaskets = baskets);
+      if (mounted) {
+        setState(() => _foodBaskets = baskets);
+        _foodAutoIndex = 0;
+        _restartFoodAutoScroll();
+      }
       _markFallback(res);
     } catch (_) {
       _markFallback(res);
@@ -917,6 +1040,9 @@ class HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _carouselTimer?.cancel();
     _dealsTimer?.cancel();
+    _handworkAutoTimer?.cancel();
+    _foodAutoTimer?.cancel();
+    _foodAutoResumeTimer?.cancel();
     _pageController.dispose();
     _dealsPageController.dispose();
     _handworkCardController.dispose();
@@ -932,7 +1058,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return _buildHomeShimmer();
 // If everything is empty and we’re in fallback, show a friendly screen
     if (_usingCachedData &&
         _sections.isEmpty &&
@@ -1738,6 +1864,7 @@ class HomeScreenState extends State<HomeScreen> {
                       ],
                     ],
                     ..._buildHandworkWidgets(),
+                    ..._buildFeaturedCategorySection(),
                     ..._buildFoodBasketWidgets(),
                   ],
                 ),
@@ -1893,11 +2020,19 @@ class HomeScreenState extends State<HomeScreen> {
   List<Widget> _buildHandworkWidgets() {
     final s = S.of(context);
     if (_handworksLoading && _handworks.isEmpty) {
-      return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: CircularProgressIndicator()),
+      return [
+        _buildSectionHeader(s.handWorkSectionTitle, () {}, s),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 260,
+          child: PageView.builder(
+            controller: _handworkCardController,
+            padEnds: false,
+            itemCount: 3,
+            itemBuilder: (_, __) => _handworkShimmerCard(),
+          ),
         ),
+        const SizedBox(height: 16),
       ];
     }
     if (_handworks.isEmpty) return const [];
@@ -1911,10 +2046,15 @@ class HomeScreenState extends State<HomeScreen> {
           controller: _handworkCardController,
           padEnds: false,
           itemCount: _handworks.length,
+          onPageChanged: (index) {
+            _handworkAutoIndex = index;
+            _restartHandworkAutoScroll();
+          },
           itemBuilder: (_, idx) {
             final work = _handworks[idx];
-            final image = work.primaryImage;
-            final imageUrl = image == null ? null : mediaUrlFrom(image);
+            final imageUrl = work.primaryImage == null
+                ? null
+                : mediaUrlFrom(work.primaryImage!);
 
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1922,93 +2062,75 @@ class HomeScreenState extends State<HomeScreen> {
                 onTap: _openHandworkScreen,
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
-                        blurRadius: 16,
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 18,
                         offset: const Offset(0, 8),
                       ),
                     ],
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    borderRadius: BorderRadius.circular(30),
+                    child: Stack(
+                      fit: StackFit.expand,
                       children: [
-                        Expanded(
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              imageUrl == null
-                                  ? Container(
-                                      color: Colors.grey.shade200,
-                                      alignment: Alignment.center,
-                                      child: const Icon(Icons.image,
-                                          size: 48, color: Colors.grey),
-                                    )
-                                  : CachedNetworkImage(
-                                      imageUrl: imageUrl,
-                                      fit: BoxFit.cover,
-                                    ),
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: const BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.transparent,
-                                        Colors.black87,
-                                      ],
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        work.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${work.price.toStringAsFixed(0)} IQD',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                        imageUrl == null
+                            ? Container(
+                                color: Colors.grey.shade200,
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.image,
+                                    size: 48, color: Colors.grey),
+                              )
+                            : CachedNetworkImage(
+                                imageUrl: imageUrl,
+                                fit: BoxFit.cover,
                               ),
-                            ],
+                        Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black87,
+                              ],
+                            ),
                           ),
                         ),
-                        Container(
-                          color: const Color(0xffFEFAE0),
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          child: Text(
-                            '${s.qty}: ${work.quantity}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
-                            ),
+                        Positioned(
+                          left: 20,
+                          right: 20,
+                          bottom: 24,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                work.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${work.price.toStringAsFixed(0)} IQD',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                s.tapToViewMore,
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -2024,16 +2146,153 @@ class HomeScreenState extends State<HomeScreen> {
     ];
   }
 
+  List<Widget> _buildFeaturedCategorySection() {
+    final s = S.of(context);
+    if (_sections.isEmpty) return const [];
+    final featured = _sections.take(4).toList();
+    const gradients = [
+      [Color(0xFFECF4E7), Color(0xFFD5E4CF)],
+      [Color(0xFFF8F4EC), Color(0xFFE3D9C7)],
+      [Color(0xFFEFF4F7), Color(0xFFD6E2EA)],
+      [Color(0xFFF8EEF2), Color(0xFFE4D2DA)],
+    ];
+
+    return [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        child: Text(
+          s.featuredCategoriesTitle,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      ),
+      const SizedBox(height: 8),
+      GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: featured.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.35,
+        ),
+        itemBuilder: (_, idx) {
+          final sec = featured[idx];
+          final cover = sec.category.imageUrl.isNotEmpty
+              ? mediaUrlFrom(sec.category.imageUrl)
+              : null;
+
+          final gradient = gradients[idx % gradients.length];
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SeeMoreScreen(
+                    title: sec.category.localizedName(context),
+                    items: sec.items,
+                    host: apiBase.replaceAll('/api', ''),
+                    categoryId: sec.category.id,
+                    onExit: reload,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+                gradient: LinearGradient(
+                  colors: gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.65),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        alignment: Alignment.center,
+                        child: cover == null
+                            ? const Icon(Icons.category,
+                                size: 28, color: textColor)
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: CachedNetworkImage(
+                                  imageUrl: cover,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Text(
+                            sec.category.localizedName(context),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: textColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      const SizedBox(height: 16),
+    ];
+  }
+
   List<Widget> _buildFoodBasketWidgets() {
     final s = S.of(context);
     if (_foodBasketsLoading && _foodBaskets.isEmpty) {
-      return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: CircularProgressIndicator()),
+      return [
+        _buildSectionHeader(s.foodBasketSectionTitle, () {}, s),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 210,
+          child: PageView.builder(
+            controller: _basketCardController,
+            padEnds: false,
+            itemCount: 3,
+            itemBuilder: (_, __) => _foodShimmerCard(),
+          ),
         ),
+        const SizedBox(height: 16),
       ];
     }
+    if (_foodBaskets.isEmpty) return const [];
     final cards = [null, ..._foodBaskets];
 
     return [
@@ -2041,120 +2300,128 @@ class HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 8),
       SizedBox(
         height: 210,
-        child: PageView.builder(
-          controller: _basketCardController,
-          padEnds: false,
-          itemCount: cards.length,
-          itemBuilder: (_, idx) {
-            final basket = cards[idx];
-            if (basket == null) {
+        child: Listener(
+          onPointerDown: (_) => _pauseFoodAutoScroll(),
+          onPointerUp: (_) => _scheduleFoodAutoResume(),
+          onPointerCancel: (_) => _scheduleFoodAutoResume(),
+          child: PageView.builder(
+            controller: _basketCardController,
+            padEnds: false,
+            itemCount: cards.length,
+            onPageChanged: (index) {
+              _foodAutoIndex = index;
+            },
+            itemBuilder: (_, idx) {
+              final basket = cards[idx];
+              if (basket == null) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: GestureDetector(
+                    onTap: _openCustomBasketBuilder,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF5D8A4E), Color(0xFF9BC088)],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            s.createBasketCardTitle,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            s.createBasketCardBody,
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          const Spacer(),
+                          const Align(
+                            alignment: Alignment.bottomRight,
+                            child: Icon(Icons.add_circle_outline,
+                                color: Colors.white, size: 36),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              final imageUrl = basket.primaryImage == null
+                  ? null
+                  : mediaUrlFrom(basket.primaryImage!);
+
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: GestureDetector(
-                  onTap: _openCustomBasketBuilder,
+                  onTap: () => _openFoodBasketDetail(basket),
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF5D8A4E), Color(0xFF9BC088)],
-                      ),
+                      color: const Color(0xffFEFAE0),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: imageUrl == null
+                              ? Container(
+                                  height: 100,
+                                  width: double.infinity,
+                                  color: Colors.grey.shade200,
+                                  child: const Icon(Icons.image),
+                                )
+                              : CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  height: 100,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
+                        const SizedBox(height: 10),
                         Text(
-                          s.createBasketCardTitle,
+                          basket.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          s.createBasketCardBody,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                        const Spacer(),
-                        const Align(
-                          alignment: Alignment.bottomRight,
-                          child: Icon(Icons.add_circle_outline,
-                              color: Colors.white, size: 36),
-                        ),
+                        const SizedBox(height: 4),
+                        Text('${basket.price.toStringAsFixed(0)} IQD'),
+                        Text('${basket.items.length} items included'),
                       ],
                     ),
                   ),
                 ),
               );
-            }
-
-            final imageUrl = basket.primaryImage == null
-                ? null
-                : mediaUrlFrom(basket.primaryImage!);
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: GestureDetector(
-                onTap: () => _openFoodBasketDetail(basket),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xffFEFAE0),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: imageUrl == null
-                            ? Container(
-                                height: 100,
-                                width: double.infinity,
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.image),
-                              )
-                            : CachedNetworkImage(
-                                imageUrl: imageUrl,
-                                height: 100,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        basket.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text('${basket.price.toStringAsFixed(0)} IQD'),
-                      Text('${basket.items.length} items included'),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
+            },
+          ),
         ),
       ),
       const SizedBox(height: 16),

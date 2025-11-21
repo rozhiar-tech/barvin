@@ -22,16 +22,20 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m0(error) => "خطأ: ${error}";
 
-  static String m1(howMany) =>
+  static String m1(count) => "المتوفر: ${count}";
+
+  static String m2(howMany) =>
       "${Intl.plural(howMany, zero: 'لا عناصر', one: 'عنصر واحد', other: '${howMany} عناصر')}";
 
-  static String m2(status) => "لا توجد طلبات";
+  static String m3(status) => "لا توجد طلبات";
 
-  static String m3(seconds) => "إعادة الإرسال خلال {ثانية} ثانية";
+  static String m4(seconds) => "إعادة الإرسال خلال {ثانية} ثانية";
 
-  static String m4(lat, lng) => "الموقع: (${lat}, ${lng})";
+  static String m5(destination) => "أرسلنا الرمز إلى ${destination}.";
 
-  static String m5(version) => "الإصدار المطلوب: ${version}";
+  static String m6(lat, lng) => "الموقع: (${lat}, ${lng})";
+
+  static String m7(version) => "الإصدار المطلوب: ${version}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -93,6 +97,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "dontHaveAnAccount": MessageLookupByLibrary.simpleMessage("ليس لديك حساب؟"),
     "errorWithMessage": m0,
     "facebook": MessageLookupByLibrary.simpleMessage("فيسبوك"),
+    "featuredCategoriesTitle": MessageLookupByLibrary.simpleMessage(
+      "تصنيفات مميزة",
+    ),
     "follow": MessageLookupByLibrary.simpleMessage("تابعنا"),
     "foodBasketCustomizeCta": MessageLookupByLibrary.simpleMessage(
       "خصّص واطلب",
@@ -102,6 +109,9 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "تم التصميم والتطوير بواسطة وكالة يو إس تي",
+    ),
+    "forgotChooseMethod": MessageLookupByLibrary.simpleMessage(
+      "كيف تود استلام الرمز؟",
     ),
     "forgotEmailLabel": MessageLookupByLibrary.simpleMessage(
       "البريد الإلكتروني",
@@ -127,7 +137,14 @@ class MessageLookup extends MessageLookupByLibrary {
       "يرجى تسجيل الدخول لإجراء الطلب",
     ),
     "handWorkSectionTitle": MessageLookupByLibrary.simpleMessage(
-      "الأعمال اليدوية",
+      "مطبعة بارڤين",
+    ),
+    "handworkAvailableLabel": m1,
+    "handworkContactButton": MessageLookupByLibrary.simpleMessage(
+      "للاستفسار تواصل معنا",
+    ),
+    "handworkDesiredQuantityLabel": MessageLookupByLibrary.simpleMessage(
+      "الكمية المطلوبة",
     ),
     "handworkNoDescription": MessageLookupByLibrary.simpleMessage(
       "لا يوجد وصف متاح.",
@@ -136,7 +153,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "home": MessageLookupByLibrary.simpleMessage("الرئيسية"),
     "instagram": MessageLookupByLibrary.simpleMessage("إنستغرام"),
     "item": MessageLookupByLibrary.simpleMessage("العنصر"),
-    "itemsCount": m1,
+    "itemsCount": m2,
     "language": MessageLookupByLibrary.simpleMessage("اللغة"),
     "latitude": MessageLookupByLibrary.simpleMessage("خط العرض"),
     "login": MessageLookupByLibrary.simpleMessage("تسجيل الدخول"),
@@ -189,7 +206,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "orders_empty_all": MessageLookupByLibrary.simpleMessage(
       "لا توجد طلبات حتى الآن",
     ),
-    "orders_empty_status": m2,
+    "orders_empty_status": m3,
     "otpCodeLabel": MessageLookupByLibrary.simpleMessage("رمز من 6 أرقام"),
     "otpConfirmPasswordLabel": MessageLookupByLibrary.simpleMessage(
       "تأكيد كلمة المرور",
@@ -207,12 +224,17 @@ class MessageLookup extends MessageLookupByLibrary {
       "كلمات المرور غير متطابقة",
     ),
     "otpResend": MessageLookupByLibrary.simpleMessage("إعادة إرسال"),
-    "otpResendIn": m3,
+    "otpResendIn": m4,
+    "otpResent": MessageLookupByLibrary.simpleMessage("تمت إعادة إرسال الرمز."),
+    "otpSentTo": m5,
     "otpSubmit": MessageLookupByLibrary.simpleMessage(
       "إعادة تعيين كلمة المرور",
     ),
     "otpTitle": MessageLookupByLibrary.simpleMessage(
       "أدخل الرمز الذي أرسلناه إليك عبر البريد الإلكتروني",
+    ),
+    "otpTitlePhone": MessageLookupByLibrary.simpleMessage(
+      "أدخل الرمز الذي أرسلناه عبر الهاتف",
     ),
     "otpYouCanResend": MessageLookupByLibrary.simpleMessage(
       "يمكنك إعادة إرسال رمز جديد",
@@ -261,7 +283,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpInvalidPhone": MessageLookupByLibrary.simpleMessage(
       "رقم هاتف غير صالح",
     ),
-    "signUpLocationPicked": m4,
+    "signUpLocationPicked": m6,
     "signUpNoLocationSelected": MessageLookupByLibrary.simpleMessage(
       "لم يتم اختيار موقع",
     ),
@@ -314,6 +336,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "tapToPickLocation": MessageLookupByLibrary.simpleMessage(
       "انقر لاختيار الموقع",
     ),
+    "tapToViewMore": MessageLookupByLibrary.simpleMessage("اضغط لعرض المزيد"),
     "tiktok": MessageLookupByLibrary.simpleMessage("تيك توك"),
     "total": MessageLookupByLibrary.simpleMessage("Total"),
     "totalSpent": MessageLookupByLibrary.simpleMessage("إجمالي الإنفاق"),
@@ -330,7 +353,16 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateStoreLinkHint": MessageLookupByLibrary.simpleMessage(
       "إذا لم يعمل الزر، افتح متجر التطبيقات لديك وابحث عن \"Barvin\".",
     ),
-    "updateVersionLabel": m5,
+    "updateVersionLabel": m7,
+    "verificationEmailOption": MessageLookupByLibrary.simpleMessage(
+      "رمز عبر البريد الإلكتروني",
+    ),
+    "verificationMethodLabel": MessageLookupByLibrary.simpleMessage(
+      "طريقة التحقق",
+    ),
+    "verificationPhoneOption": MessageLookupByLibrary.simpleMessage(
+      "رمز عبر الهاتف",
+    ),
     "waAddress": MessageLookupByLibrary.simpleMessage("العنوان"),
     "waDelivery": MessageLookupByLibrary.simpleMessage("التوصيل"),
     "waFree": MessageLookupByLibrary.simpleMessage("مجانًا"),

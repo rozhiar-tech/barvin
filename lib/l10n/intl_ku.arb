@@ -192,13 +192,35 @@
   "basketSectionRegular": "بابەتە باشتەکان",
   "basketBadgeCustom": "سەبەتەی تایبەت",
   "basketBadgePreset": "سەبەتەی خواردن",
-  "handWorkSectionTitle": "کارە دەستییەکان",
+  "handWorkSectionTitle": "چاپەمەنی بارڤین",
   "foodBasketSectionTitle": "سەبەتەکانی خواردن",
   "createBasketCardTitle": "سەبەتەی خۆت دروست بکە",
   "createBasketCardBody": "هەموو کاڵاکان لە کاتەلۆگەکەمان هەڵبژێرە و سەبەتەی تایبەتی خۆت بنێرە.",
   "presetBasketDescription": "سەبەتەی ئامادە لەلایەن بارڤین.",
   "handworkNoDescription": "هیچ وەسفێک دانەنراوە.",
   "foodBasketCustomizeCta": "گۆڕین و داواکاری",
+  "featuredCategoriesTitle": "هاوپۆلە پەرەنگاوەکان",
+  "tapToViewMore": "کلیک بکە بۆ بینینی زیاتر",
+  "handworkContactButton": "بۆ پرسیار پەیوەندی بکە",
+  "handworkAvailableLabel": "بەردەستە: {count}",
+  "@handworkAvailableLabel": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "handworkDesiredQuantityLabel": "ژمارەی داواکراو",
+  "verificationMethodLabel": "شێوازی دڵنیابوونەوە",
+  "verificationPhoneOption": "کۆدی تەلەفۆن",
+  "verificationEmailOption": "کۆدی ئیمەیل",
+  "forgotChooseMethod": "دەتەوێت کۆدەکە چۆن وەربگریت؟",
+  "otpSentTo": "کۆد نێردرا بۆ {destination}.",
+  "@otpSentTo": {
+    "placeholders": {
+      "destination": {}
+    }
+  },
+  "otpResent": "کۆد دووبارە نێردرا.",
+  "otpTitlePhone": "کۆدی نێردراوی تەلەفۆن بنووسە",
   "updateRequiredTitle": "پێویستی بە نوێکردنەوە",
   "updateRequiredBody": "وەشانی نوێی بارڤین بەردەستە. تکایە ئەپەکە نوێ بکەرەوە بۆ بەردەوام بوون.",
   "updateButton": "نوێکردنەوەی ئەپ",

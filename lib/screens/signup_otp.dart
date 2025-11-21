@@ -29,10 +29,14 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
   int _remaining = _cooldownSeconds;
   Timer? _timer;
 
+  bool get _isPhoneChannel => widget.payload.otpChannel == 'phone';
+
   @override
   void initState() {
     super.initState();
-    _startCooldown();
+    final initial = widget.payload.initialResendIn;
+    final start = initial > 0 ? initial : _cooldownSeconds;
+    _startCooldown(start);
   }
 
   @override
@@ -42,9 +46,15 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
     super.dispose();
   }
 
-  void _startCooldown() {
-    _remaining = _cooldownSeconds;
+  void _startCooldown([int seconds = _cooldownSeconds]) {
     _timer?.cancel();
+    _remaining = seconds;
+    if (_remaining <= 0) {
+      setState(() {
+        _remaining = 0;
+      });
+      return;
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) return;
       setState(() {
@@ -65,13 +75,23 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
       final resp = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': widget.payload.email}),
+        body: jsonEncode({
+          'email': widget.payload.email,
+          'channel': widget.payload.otpChannel,
+          if (_isPhoneChannel) 'phone': widget.payload.phone,
+        }),
       );
       if (resp.statusCode == 200) {
+        Map<String, dynamic> body = {};
+        try {
+          body = jsonDecode(resp.body) as Map<String, dynamic>;
+        } catch (_) {}
+        final resendIn =
+            (body['resend_in'] is num) ? (body['resend_in'] as num).toInt() : 0;
         if (!mounted) return;
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Code re-sent')));
-        _startCooldown();
+            .showSnackBar(SnackBar(content: Text(S.of(context).otpResent)));
+        _startCooldown(resendIn > 0 ? resendIn : _cooldownSeconds);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed: ${resp.statusCode}')),
@@ -107,7 +127,8 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
         ..fields['phone'] = widget.payload.phone
         ..fields['address'] = widget.payload.address
         ..fields['latitude'] = widget.payload.lat
-        ..fields['longitude'] = widget.payload.lng;
+        ..fields['longitude'] = widget.payload.lng
+        ..fields['otp_channel'] = widget.payload.otpChannel;
 
       // avatar: file if chosen, else default asset
       final File? file = widget.payload.avatarFile;
@@ -175,7 +196,9 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify Email'),
+        title: Text(_isPhoneChannel
+            ? S.of(context).verificationPhoneOption
+            : S.of(context).verificationEmailOption),
         backgroundColor: primaryColor,
       ),
       body: Padding(
@@ -183,8 +206,7 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
         child: Column(
           children: [
             Text(
-              'We sent a 6-digit code to ${widget.payload.email}. '
-              'Enter it below to create your account.',
+              S.of(context).otpSentTo(widget.payload.otpDestination),
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 20),

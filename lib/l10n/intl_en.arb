@@ -193,13 +193,35 @@
   "basketSectionRegular": "Regular items",
   "basketBadgeCustom": "Custom basket",
   "basketBadgePreset": "Food basket",
-  "handWorkSectionTitle": "Hand Work",
+  "handWorkSectionTitle": "Barvin Press",
   "foodBasketSectionTitle": "Food Baskets",
   "createBasketCardTitle": "Create your own basket",
   "createBasketCardBody": "Pick any items from our catalog and send your personalized basket.",
   "presetBasketDescription": "Preset basket from Barvin.",
   "handworkNoDescription": "No description provided.",
   "foodBasketCustomizeCta": "Customize & Order",
+  "featuredCategoriesTitle": "Featured categories",
+  "tapToViewMore": "Tap to view more",
+  "handworkContactButton": "For inquiries contact us",
+  "handworkAvailableLabel": "Available: {count}",
+  "@handworkAvailableLabel": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "handworkDesiredQuantityLabel": "Quantity",
+  "verificationMethodLabel": "Verification method",
+  "verificationPhoneOption": "Phone OTP",
+  "verificationEmailOption": "Email OTP",
+  "forgotChooseMethod": "How would you like to receive the code?",
+  "otpSentTo": "We sent a code to {destination}.",
+  "@otpSentTo": {
+    "placeholders": {
+      "destination": {}
+    }
+  },
+  "otpResent": "Verification code re-sent.",
+  "otpTitlePhone": "Enter the code we texted you",
   "updateRequiredTitle": "Update required",
   "updateRequiredBody": "A new version of Barvin is available. Please update the app to continue.",
   "updateButton": "Update app",

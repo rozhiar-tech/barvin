@@ -22,16 +22,20 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m0(error) => "Error: ${error}";
 
-  static String m1(howMany) =>
+  static String m1(count) => "Available: ${count}";
+
+  static String m2(howMany) =>
       "${Intl.plural(howMany, zero: 'No items', one: '1 item', other: '${howMany} items')}";
 
-  static String m2(status) => "No ${status} orders";
+  static String m3(status) => "No ${status} orders";
 
-  static String m3(seconds) => "Resend in ${seconds}s";
+  static String m4(seconds) => "Resend in ${seconds}s";
 
-  static String m4(lat, lng) => "Location: (${lat}, ${lng})";
+  static String m5(destination) => "We sent a code to ${destination}.";
 
-  static String m5(version) => "Required version: ${version}";
+  static String m6(lat, lng) => "Location: (${lat}, ${lng})";
+
+  static String m7(version) => "Required version: ${version}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -96,6 +100,9 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "errorWithMessage": m0,
     "facebook": MessageLookupByLibrary.simpleMessage("Facebook"),
+    "featuredCategoriesTitle": MessageLookupByLibrary.simpleMessage(
+      "Featured categories",
+    ),
     "follow": MessageLookupByLibrary.simpleMessage("Follow us"),
     "foodBasketCustomizeCta": MessageLookupByLibrary.simpleMessage(
       "Customize & Order",
@@ -105,6 +112,9 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "footerCredit": MessageLookupByLibrary.simpleMessage(
       "Designed and Developed by UST Agency",
+    ),
+    "forgotChooseMethod": MessageLookupByLibrary.simpleMessage(
+      "How would you like to receive the code?",
     ),
     "forgotEmailLabel": MessageLookupByLibrary.simpleMessage("Email"),
     "forgotPasswordLink": MessageLookupByLibrary.simpleMessage(
@@ -125,7 +135,16 @@ class MessageLookup extends MessageLookupByLibrary {
     "guestModeMessage": MessageLookupByLibrary.simpleMessage(
       "Please sign in to place your order",
     ),
-    "handWorkSectionTitle": MessageLookupByLibrary.simpleMessage("Hand Work"),
+    "handWorkSectionTitle": MessageLookupByLibrary.simpleMessage(
+      "Barvin Press",
+    ),
+    "handworkAvailableLabel": m1,
+    "handworkContactButton": MessageLookupByLibrary.simpleMessage(
+      "For inquiries contact us",
+    ),
+    "handworkDesiredQuantityLabel": MessageLookupByLibrary.simpleMessage(
+      "Quantity",
+    ),
     "handworkNoDescription": MessageLookupByLibrary.simpleMessage(
       "No description provided.",
     ),
@@ -133,7 +152,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "home": MessageLookupByLibrary.simpleMessage("Home"),
     "instagram": MessageLookupByLibrary.simpleMessage("Instagram"),
     "item": MessageLookupByLibrary.simpleMessage("Item"),
-    "itemsCount": m1,
+    "itemsCount": m2,
     "language": MessageLookupByLibrary.simpleMessage("language"),
     "latitude": MessageLookupByLibrary.simpleMessage("latitude"),
     "login": MessageLookupByLibrary.simpleMessage("Login"),
@@ -182,7 +201,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "orderTab": MessageLookupByLibrary.simpleMessage("Orders"),
     "order_number_prefix": MessageLookupByLibrary.simpleMessage("#ORD-"),
     "orders_empty_all": MessageLookupByLibrary.simpleMessage("No orders yet"),
-    "orders_empty_status": m2,
+    "orders_empty_status": m3,
     "otpCodeLabel": MessageLookupByLibrary.simpleMessage("6-digit code"),
     "otpConfirmPasswordLabel": MessageLookupByLibrary.simpleMessage(
       "Confirm password",
@@ -198,10 +217,17 @@ class MessageLookup extends MessageLookupByLibrary {
       "Passwords don’t match",
     ),
     "otpResend": MessageLookupByLibrary.simpleMessage("Resend"),
-    "otpResendIn": m3,
+    "otpResendIn": m4,
+    "otpResent": MessageLookupByLibrary.simpleMessage(
+      "Verification code re-sent.",
+    ),
+    "otpSentTo": m5,
     "otpSubmit": MessageLookupByLibrary.simpleMessage("Reset password"),
     "otpTitle": MessageLookupByLibrary.simpleMessage(
       "Enter the code we emailed you",
+    ),
+    "otpTitlePhone": MessageLookupByLibrary.simpleMessage(
+      "Enter the code we texted you",
     ),
     "otpYouCanResend": MessageLookupByLibrary.simpleMessage(
       "You can resend a new code",
@@ -248,7 +274,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpFullName": MessageLookupByLibrary.simpleMessage("Full Name"),
     "signUpInvalidEmail": MessageLookupByLibrary.simpleMessage("Invalid email"),
     "signUpInvalidPhone": MessageLookupByLibrary.simpleMessage("Invalid phone"),
-    "signUpLocationPicked": m4,
+    "signUpLocationPicked": m6,
     "signUpNoLocationSelected": MessageLookupByLibrary.simpleMessage(
       "No location selected",
     ),
@@ -305,6 +331,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "tapToPickLocation": MessageLookupByLibrary.simpleMessage(
       "Tap To Pick Location",
     ),
+    "tapToViewMore": MessageLookupByLibrary.simpleMessage("Tap to view more"),
     "tiktok": MessageLookupByLibrary.simpleMessage("TikTok"),
     "total": MessageLookupByLibrary.simpleMessage("Total"),
     "totalSpent": MessageLookupByLibrary.simpleMessage("Total Spent"),
@@ -321,7 +348,16 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateStoreLinkHint": MessageLookupByLibrary.simpleMessage(
       "If the button doesn’t work, open your app store and search for “Barvin”.",
     ),
-    "updateVersionLabel": m5,
+    "updateVersionLabel": m7,
+    "verificationEmailOption": MessageLookupByLibrary.simpleMessage(
+      "Email OTP",
+    ),
+    "verificationMethodLabel": MessageLookupByLibrary.simpleMessage(
+      "Verification method",
+    ),
+    "verificationPhoneOption": MessageLookupByLibrary.simpleMessage(
+      "Phone OTP",
+    ),
     "waAddress": MessageLookupByLibrary.simpleMessage("Address"),
     "waDelivery": MessageLookupByLibrary.simpleMessage("Delivery"),
     "waFree": MessageLookupByLibrary.simpleMessage("FREE"),

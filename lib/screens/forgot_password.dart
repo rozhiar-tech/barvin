@@ -18,26 +18,47 @@ class ForgotPasswordPage extends StatefulWidget {
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   bool _loading = false;
+  bool _usePhone = true;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
+    _phoneCtrl.dispose();
     super.dispose();
   }
 
   bool _isValidEmail(String v) =>
       RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[a-zA-Z]{2,}$').hasMatch(v);
+  bool _isValidPhone(String v) => RegExp(r'^\d{9,15}$').hasMatch(v.replaceAll(RegExp(r'\D'), ''));
+
+  String _formatPhoneForBackend(String input) {
+    var digits = input.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    if (!digits.startsWith('964')) {
+      digits = '964$digits';
+    }
+    return digits;
+  }
 
   Future<void> _sendCode() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
     try {
+      final identifier = _usePhone
+          ? _formatPhoneForBackend(_phoneCtrl.text.trim())
+          : _emailCtrl.text.trim();
+      final body = <String, String>{
+        if (_usePhone) 'phone': identifier else 'email': identifier,
+      };
       final res = await http.post(
         apiUrl('/auth/request-reset-otp'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': _emailCtrl.text.trim()}),
+        body: jsonEncode(body),
       );
 
       Map<String, dynamic> data = {};
@@ -51,14 +72,19 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             (data['resend_in'] is int) ? data['resend_in'] as int : 0;
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).forgotSentCheckEmail)),
-        );
+        final channel = _usePhone ? 'phone' : 'email';
+        final successMsg = _usePhone
+            ? S.of(context).otpSentTo(identifier)
+            : S.of(context).forgotSentCheckEmail;
+
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(successMsg)));
 
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => ResetPasswordOtpPage(
-              email: _emailCtrl.text.trim(),
+              identifier: identifier,
+              channel: channel,
               initialResendIn: resendIn,
             ),
           ),
@@ -108,21 +134,66 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          labelText: S.of(context).forgotEmailLabel, // "Email"
-                          prefixIcon:
-                              const Icon(Icons.email, color: primaryColor),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        validator: (v) => (v != null && _isValidEmail(v.trim()))
-                            ? null
-                            : S.of(context).loginInvalidIdentifier,
+                      Text(
+                        S.of(context).forgotChooseMethod,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        children: [
+                          ChoiceChip(
+                            label: Text(S.of(context).verificationPhoneOption),
+                            selected: _usePhone,
+                            onSelected: (sel) {
+                              if (!sel) return;
+                              setState(() => _usePhone = true);
+                            },
+                          ),
+                          ChoiceChip(
+                            label: Text(S.of(context).verificationEmailOption),
+                            selected: !_usePhone,
+                            onSelected: (sel) {
+                              if (!sel) return;
+                              setState(() => _usePhone = false);
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (_usePhone)
+                        TextFormField(
+                          controller: _phoneCtrl,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText: S.of(context).signUpPhoneLabel,
+                            prefixIcon:
+                                const Icon(Icons.phone, color: primaryColor),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          validator: (v) => (v != null && _isValidPhone(v.trim()))
+                              ? null
+                              : S.of(context).signUpInvalidPhone,
+                        )
+                      else
+                        TextFormField(
+                          controller: _emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            labelText:
+                                S.of(context).forgotEmailLabel, // "Email"
+                            prefixIcon:
+                                const Icon(Icons.email, color: primaryColor),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          validator: (v) => (v != null && _isValidEmail(v.trim()))
+                              ? null
+                              : S.of(context).loginInvalidIdentifier,
+                        ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
@@ -163,11 +234,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 }
 
 class ResetPasswordOtpPage extends StatefulWidget {
-  final String email;
+  final String identifier;
+  final String channel;
   final int initialResendIn;
   const ResetPasswordOtpPage({
     Key? key,
-    required this.email,
+    required this.identifier,
+    required this.channel,
     this.initialResendIn = 0,
   }) : super(key: key);
 
@@ -184,6 +257,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
   bool _loading = false;
   int _resendIn = 0;
   Timer? _timer;
+  bool get _isPhone => widget.channel == 'phone';
 
   @override
   void initState() {
@@ -203,6 +277,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
 
   void _startTimer() {
     _timer?.cancel();
+    if (_resendIn <= 0) return;
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) return;
       setState(() {
@@ -225,14 +300,15 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
 
     setState(() => _loading = true);
     try {
+      final body = {
+        'otp': _otpCtrl.text.trim(),
+        'new_password': _passCtrl.text,
+        if (_isPhone) 'phone': widget.identifier else 'email': widget.identifier,
+      };
       final res = await http.post(
         apiUrl('/auth/reset-with-otp'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': widget.email,
-          'otp': _otpCtrl.text.trim(),
-          'new_password': _passCtrl.text,
-        }),
+        body: jsonEncode(body),
       );
 
       if (res.statusCode == 204) {
@@ -265,17 +341,26 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
   Future<void> _resend() async {
     setState(() => _loading = true);
     try {
+      final body = {
+        if (_isPhone) 'phone': widget.identifier else 'email': widget.identifier,
+      };
       final res = await http.post(
         apiUrl('/auth/request-reset-otp'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': widget.email}),
+        body: jsonEncode(body),
       );
 
       int cooldown = 60;
+      String successMsg = _isPhone
+          ? S.of(context).otpSentTo(widget.identifier)
+          : S.of(context).forgotSentCheckEmail;
       try {
         final data = jsonDecode(res.body);
         if (data is Map && data['resend_in'] is int) {
           cooldown = data['resend_in'] as int;
+        }
+        if (data is Map && data['message'] is String) {
+          successMsg = data['message'] as String;
         }
       } catch (_) {}
 
@@ -285,7 +370,7 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
         _startTimer();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.of(context).forgotSentCheckEmail)),
+        SnackBar(content: Text(successMsg)),
       );
     } catch (_) {
       if (!mounted) return;
@@ -336,14 +421,19 @@ class _ResetPasswordOtpPageState extends State<ResetPasswordOtpPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        S
-                            .of(context)
-                            .otpTitle, // "Enter the code we emailed you"
+                        _isPhone
+                            ? S.of(context).otpTitlePhone
+                            : S.of(context).otpTitle,
                         style: const TextStyle(
                           color: primaryColor,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        S.of(context).otpSentTo(widget.identifier),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
 

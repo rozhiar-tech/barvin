@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart';
 
 class SeeMoreScreen extends StatefulWidget {
   final String title;
@@ -544,7 +545,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
               // 2) Subcategory chips (no “All”)
               if (_subs.isNotEmpty)
                 SizedBox(
-                  height: 48,
+                  height: 52,
                   child: ListView.separated(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -555,11 +556,16 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                       final key =
                           _subChipKeys.putIfAbsent(s.id, () => GlobalKey());
 
-                      return Container(
-                        key: key,
+                      return SizedBox(
+                        height: 40,
                         child: ChoiceChip(
+                          key: key,
                           selected: selected,
                           label: Text(s.name(context)),
+                          labelPadding:
+                              const EdgeInsets.symmetric(horizontal: 14),
+                          visualDensity:
+                              const VisualDensity(horizontal: 0, vertical: -2),
                           onSelected: (sel) {
                             if (!sel) return;
                             setState(() => _selectedSubId = s.id);
@@ -595,119 +601,123 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
               Expanded(
                 child: Stack(
                   children: [
-                    GridView.builder(
-                      controller: _gridScroll,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      itemCount: _visibleItems.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 0.58,
-                      ),
-                      itemBuilder: (context, index) {
-                        final it = _visibleItems[index];
-                        final rawPath = it.imageUrl.startsWith('/')
-                            ? it.imageUrl.substring(1)
-                            : it.imageUrl;
-                        final imgUrl = '${widget.host}/$rawPath';
+                    if (_loading && _visibleItems.isEmpty)
+                      _buildGridShimmer()
+                    else
+                      GridView.builder(
+                        controller: _gridScroll,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        itemCount: _visibleItems.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.58,
+                        ),
+                        itemBuilder: (context, index) {
+                          final it = _visibleItems[index];
+                          final rawPath = it.imageUrl.startsWith('/')
+                              ? it.imageUrl.substring(1)
+                              : it.imageUrl;
+                          final imgUrl = '${widget.host}/$rawPath';
 
-                        return InkWell(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => SingleItem(
-                                  id: it.id,
-                                  icon: Icons.fastfood,
-                                  name: it.localizedName(context),
-                                  description: it.description,
-                                  unitPrice: it.price,
-                                  imageUrl: imgUrl,
-                                  discount: it.discount,
-                                ),
-                              ),
-                            );
-                            if (result is String && result.isNotEmpty) {
-                              showTopNotice(context, result);
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xffFEFAE0),
-                              border:
-                                  Border.all(color: const Color(0xFFEFEFEF)),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                const SizedBox(height: 4),
-                                // product image
-                                Expanded(
-                                  flex: 4,
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(16)),
-                                    child: it.imageUrl.isNotEmpty
-                                        ? CachedNetworkImage(
-                                            imageUrl: imgUrl,
-                                            fit: BoxFit.contain,
-                                            placeholder: (_, __) => const Center(
-                                                child:
-                                                    CircularProgressIndicator()),
-                                            errorWidget: (_, __, ___) =>
-                                                const Icon(Icons.error),
-                                          )
-                                        : Container(color: Colors.grey[300]),
+                          return InkWell(
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SingleItem(
+                                    id: it.id,
+                                    icon: Icons.fastfood,
+                                    name: it.localizedName(context),
+                                    description: it.description,
+                                    unitPrice: it.price,
+                                    imageUrl: imgUrl,
+                                    discount: it.discount,
                                   ),
                                 ),
-                                // name + price + qty controls
-                                Expanded(
-                                  flex: 5,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          it.localizedName(context),
-                                          style: const TextStyle(
-                                              fontSize: 11.5, color: textColor),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        if (it.description.isNotEmpty)
+                              );
+                              if (result is String && result.isNotEmpty) {
+                                showTopNotice(context, result);
+                              }
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xffFEFAE0),
+                                border:
+                                    Border.all(color: const Color(0xFFEFEFEF)),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Expanded(
+                                    flex: 4,
+                                    child: ClipRRect(
+                                      borderRadius:
+                                          const BorderRadius.vertical(
+                                              top: Radius.circular(16)),
+                                      child: it.imageUrl.isNotEmpty
+                                          ? CachedNetworkImage(
+                                              imageUrl: imgUrl,
+                                              fit: BoxFit.contain,
+                                              placeholder: (_, __) =>
+                                                  _gridImageShimmer(),
+                                              errorWidget: (_, __, ___) =>
+                                                  const Icon(Icons.error),
+                                            )
+                                          : _gridImageShimmer(),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 5,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      child: Column(
+                                        children: [
                                           Text(
-                                            it.description,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: textColor.withOpacity(0.6),
-                                            ),
+                                            it.localizedName(context),
+                                            style: const TextStyle(
+                                                fontSize: 11.5,
+                                                color: textColor),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                          )
-                                        else
-                                          Text(
-                                            it.description,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: textColor.withOpacity(0.6),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
                                           ),
-                                        FittedBox(
+                                          const SizedBox(height: 4),
+                                          if (it.description.isNotEmpty)
+                                            Text(
+                                              it.description,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: textColor
+                                                    .withOpacity(0.6),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            )
+                                          else
+                                            Text(
+                                              it.description,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: textColor
+                                                    .withOpacity(0.6),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          FittedBox(
                                           child: it.discount > 0
                                               ? Row(
                                                   mainAxisSize:
@@ -802,17 +812,67 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                       },
                     ),
 
-                    // overlay loader while full refresh/reset is happening
-                    if (_loading)
-                      const Positioned.fill(
+                    if (_loading && _visibleItems.isNotEmpty)
+                      Positioned.fill(
                         child: IgnorePointer(
-                          child: Center(child: CircularProgressIndicator()),
+                          child: _buildGridOverlayShimmer(),
                         ),
                       ),
                   ],
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _gridImageShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(color: Colors.white),
+    );
+  }
+
+  Widget _buildGridShimmer() {
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.58,
+      ),
+      itemCount: 6,
+      itemBuilder: (_, __) => Shimmer.fromColors(
+        baseColor: Colors.grey.shade300,
+        highlightColor: Colors.grey.shade100,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridOverlayShimmer() {
+    return Container(
+      color: Colors.white.withOpacity(0.7),
+      child: Center(
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
         ),
       ),

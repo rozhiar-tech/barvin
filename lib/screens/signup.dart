@@ -35,6 +35,7 @@ class _SignUpPageState extends State<SignUpPage> {
   String? _lat, _lng;
   bool _loading = false;
   String? _locationError;
+  bool _usePhoneOtp = true;
 
   @override
   void dispose() {
@@ -72,7 +73,18 @@ class _SignUpPageState extends State<SignUpPage> {
 
   bool _isValidEmail(String v) =>
       RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[a-zA-Z]{2,}$').hasMatch(v);
-  bool _isValidPhone(String v) => RegExp(r'^\+?\d{7,15}$').hasMatch(v);
+  bool _isValidPhone(String v) => RegExp(r'^\d{9,15}$').hasMatch(v.replaceAll(RegExp(r'\D'), ''));
+
+  String _formatPhoneForBackend(String input) {
+    var digits = input.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    if (!digits.startsWith('964')) {
+      digits = '964$digits';
+    }
+    return digits;
+  }
 
   /// Step 1: start signup → request OTP to email
   Future<void> _startSignup() async {
@@ -89,16 +101,30 @@ class _SignUpPageState extends State<SignUpPage> {
     });
 
     try {
+      final selectedChannel = _usePhoneOtp ? 'phone' : 'email';
+      final normalizedPhone = _formatPhoneForBackend(_phoneCtrl.text.trim());
       final uri = Uri.parse('$apiBase/auth/register-start');
       final resp = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailCtrl.text.trim(),
+          'channel': selectedChannel,
+          if (selectedChannel == 'phone') 'phone': normalizedPhone,
         }),
       );
 
       if (resp.statusCode == 200) {
+        Map<String, dynamic> payloadJson = {};
+        try {
+          payloadJson = jsonDecode(resp.body) as Map<String, dynamic>;
+        } catch (_) {}
+
+        final serverChannel =
+            (payloadJson['channel'] as String?) ?? selectedChannel;
+        final resendIn =
+            (payloadJson['resend_in'] is num) ? (payloadJson['resend_in'] as num).toInt() : 0;
+
         // Go to OTP screen with all data needed for /register-complete
         final payload = SignupPayload(
           name: _nameCtrl.text.trim(),
@@ -110,6 +136,11 @@ class _SignUpPageState extends State<SignUpPage> {
           lng: _lng!,
           avatarFile: _avatarFile,
           defaultAvatarAsset: DEFAULT_AVATAR_ASSET,
+          otpChannel: serverChannel,
+          otpDestination: serverChannel == 'phone'
+              ? normalizedPhone
+              : _emailCtrl.text.trim(),
+          initialResendIn: resendIn,
         );
         final ok = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
@@ -126,7 +157,19 @@ class _SignUpPageState extends State<SignUpPage> {
           }
         }
       } else {
-        final msg = resp.body.isNotEmpty ? resp.body : 'Unexpected error';
+        String msg = 'Unexpected error';
+        if (resp.body.isNotEmpty) {
+          try {
+            final data = jsonDecode(resp.body);
+            if (data is Map && data['error'] != null) {
+              msg = data['error'].toString();
+            } else {
+              msg = resp.body;
+            }
+          } catch (_) {
+            msg = resp.body;
+          }
+        }
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(msg)));
         print(msg);
@@ -284,6 +327,42 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           const SizedBox(height: 12),
 
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              S.of(context).verificationMethodLabel,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: primaryColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 12,
+                            children: [
+                              ChoiceChip(
+                                label: Text(
+                                    S.of(context).verificationPhoneOption),
+                                selected: _usePhoneOtp,
+                                onSelected: (sel) {
+                                  if (!sel) return;
+                                  setState(() => _usePhoneOtp = true);
+                                },
+                              ),
+                              ChoiceChip(
+                                label: Text(
+                                    S.of(context).verificationEmailOption),
+                                selected: !_usePhoneOtp,
+                                onSelected: (sel) {
+                                  if (!sel) return;
+                                  setState(() => _usePhoneOtp = false);
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
                           _buildField(
                             ctrl: _addressCtrl,
                             label: S.of(context).signUpAddressLabel,
@@ -385,6 +464,9 @@ class SignupPayload {
   final String lng;
   final File? avatarFile;
   final String defaultAvatarAsset;
+  final String otpChannel;
+  final String otpDestination;
+  final int initialResendIn;
 
   SignupPayload({
     required this.name,
@@ -396,5 +478,8 @@ class SignupPayload {
     required this.lng,
     required this.avatarFile,
     required this.defaultAvatarAsset,
+    required this.otpChannel,
+    required this.otpDestination,
+    required this.initialResendIn,
   });
 }

@@ -26,6 +26,17 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscure = true;
   void _togglePassword() => setState(() => _obscure = !_obscure);
 
+  String _formatPhoneForBackend(String input) {
+    var digits = input.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    if (!digits.startsWith('964')) {
+      digits = '964$digits';
+    }
+    return digits;
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
@@ -36,7 +47,7 @@ class _LoginPageState extends State<LoginPage> {
       if (_identifier.contains('@')) {
         body['email'] = _identifier;
       } else {
-        body['phone'] = _identifier;
+        body['phone'] = _formatPhoneForBackend(_identifier);
       }
 
       final res = await http.post(
