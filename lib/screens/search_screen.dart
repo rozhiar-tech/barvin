@@ -159,7 +159,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       ..._itemResults.map((it) => ListTile(
                             leading: Image.network(
-                              "${apiBase.replaceAll('/api', '')}${it.imageUrl}",
+                              mediaUrlFrom(it.imageUrl),
                               width: 40,
                               height: 40,
                               fit: BoxFit.cover,
@@ -169,15 +169,26 @@ class _SearchScreenState extends State<SearchScreen> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => SingleItem(
-                                  id: it.id,
-                                  icon: Icons.fastfood,
-                                  name: it.localizedName(context),
-                                  description: it.description,
-                                  unitPrice: it.price,
-                                  imageUrl:
-                                      "${apiBase.replaceAll('/api', '')}${it.imageUrl}",
-                                  discount: it.discount,
+                              builder: (_) => SingleItem(
+                                id: it.id,
+                                icon: Icons.fastfood,
+                                name: it.localizedName(context),
+                                description: it.description,
+                                unitPrice: it.price,
+                                imageUrl: mediaUrlFrom(it.imageUrl),
+                                discount: it.discount,
+                                supplierName: it.supplier_name,
+                                categoryId: it.categoryId,
+                                categoryNameEn: it.categoryNameEn,
+                                categoryNameKu: it.categoryNameKu,
+                                categoryNameAr: it.categoryNameAr,
+                                subcategoryId: it.subcategoryId,
+                                subcategoryNameEn: it.subcategoryNameEn,
+                                subcategoryNameKu: it.subcategoryNameKu,
+                                subcategoryNameAr: it.subcategoryNameAr,
+                                packSize: it.packSize,
+                                  unit: it.unit,
+                                  packPrice: it.packPrice,
                                 ),
                               ),
                             ),

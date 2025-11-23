@@ -5,9 +5,10 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:barvin/screens/home.dart' show apiBase;
+import 'package:barvin/screens/home.dart' show Item, apiBase, mediaUrlFrom;
 
 const Color primaryColor = Color(0xFF567765);
 
@@ -20,6 +21,14 @@ class SingleItem extends StatefulWidget {
   final double discount; // % off (item-level)
   final String imageUrl;
   final String? supplierName;
+  final int? categoryId;
+  final String? categoryNameEn;
+  final String? categoryNameKu;
+  final String? categoryNameAr;
+  final int? subcategoryId;
+  final String? subcategoryNameEn;
+  final String? subcategoryNameKu;
+  final String? subcategoryNameAr;
 
   /// OPTIONAL: pass these if you already have them; otherwise they'll be fetched.
   final int? packSize; // e.g. 24
@@ -36,6 +45,14 @@ class SingleItem extends StatefulWidget {
     required this.discount,
     required this.imageUrl,
     this.supplierName,
+    this.categoryId,
+    this.categoryNameEn,
+    this.categoryNameKu,
+    this.categoryNameAr,
+    this.subcategoryId,
+    this.subcategoryNameEn,
+    this.subcategoryNameKu,
+    this.subcategoryNameAr,
     this.packSize,
     this.unit,
     this.packPrice,
@@ -54,6 +71,18 @@ class _SingleItemState extends State<SingleItem> {
   int? _packSize; // e.g. 24
   String? _unit; // e.g. "pcs"
   double? _packPrice; // total pack price (if provided by server)
+  int? _categoryId;
+  String? _categoryNameEn;
+  String? _categoryNameKu;
+  String? _categoryNameAr;
+  int? _subcategoryId;
+  String? _subcategoryNameEn;
+  String? _subcategoryNameKu;
+  String? _subcategoryNameAr;
+  List<Item> _relatedItems = [];
+  bool _loadingRelated = false;
+  bool _relatedFetchAttempted = false;
+  String? _relatedDebugNote;
 
   // campaign discount (via discount_id → /discounts/…)
   String? _campaignKind; // "percent" | "amount"
@@ -123,6 +152,57 @@ class _SingleItemState extends State<SingleItem> {
     if (_quantity > 1) setState(() => _quantity--);
   }
 
+  void _setRelatedDebug(String message) {
+    if (mounted) {
+      setState(() => _relatedDebugNote = message);
+    } else {
+      _relatedDebugNote = message;
+    }
+    if (kDebugMode) {
+      // ignore: avoid_print
+      print('[SingleItem][related] $message');
+    }
+  }
+
+  String? _localizedSubcategoryName(BuildContext context) {
+    String? fallback =
+        _subcategoryNameEn ?? _subcategoryNameKu ?? _subcategoryNameAr;
+    final code = Localizations.localeOf(context).languageCode;
+    switch (code) {
+      case 'ku':
+        return (_subcategoryNameKu?.isNotEmpty ?? false)
+            ? _subcategoryNameKu
+            : fallback;
+      case 'ar':
+        return (_subcategoryNameAr?.isNotEmpty ?? false)
+            ? _subcategoryNameAr
+            : fallback;
+      default:
+        return (_subcategoryNameEn?.isNotEmpty ?? false)
+            ? _subcategoryNameEn
+            : fallback;
+    }
+  }
+
+  String? _localizedCategoryName(BuildContext context) {
+    String? fallback = _categoryNameEn ?? _categoryNameKu ?? _categoryNameAr;
+    final code = Localizations.localeOf(context).languageCode;
+    switch (code) {
+      case 'ku':
+        return (_categoryNameKu?.isNotEmpty ?? false)
+            ? _categoryNameKu
+            : fallback;
+      case 'ar':
+        return (_categoryNameAr?.isNotEmpty ?? false)
+            ? _categoryNameAr
+            : fallback;
+      default:
+        return (_categoryNameEn?.isNotEmpty ?? false)
+            ? _categoryNameEn
+            : fallback;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -130,9 +210,92 @@ class _SingleItemState extends State<SingleItem> {
     _packSize = widget.packSize;
     _unit = widget.unit;
     _packPrice = widget.packPrice;
+    _categoryId = widget.categoryId;
+    _categoryNameEn = widget.categoryNameEn;
+    _categoryNameKu = widget.categoryNameKu;
+    _categoryNameAr = widget.categoryNameAr;
+    _subcategoryId = widget.subcategoryId;
+    _subcategoryNameEn = widget.subcategoryNameEn;
+    _subcategoryNameKu = widget.subcategoryNameKu;
+    _subcategoryNameAr = widget.subcategoryNameAr;
+    _maybeLoadRelated();
 
     // Fetch any missing details (pack, supplier, discount_id / campaign)
     _loadDetailsFromServer();
+  }
+
+  void _maybeLoadRelated() {
+    if (_loadingRelated) return;
+    if (_subcategoryId == null && _categoryId == null) {
+      _setRelatedDebug('No subcategoryId or categoryId; skipping fetch');
+      return;
+    }
+    _loadRelatedItems();
+  }
+
+  Future<void> _loadRelatedItems() async {
+    final sid = _subcategoryId;
+    final cid = _categoryId;
+    if (sid == null && cid == null) {
+      _setRelatedDebug('No subcategoryId or categoryId; skipping fetch');
+      return;
+    }
+    setState(() => _loadingRelated = true);
+    _relatedFetchAttempted = true;
+    try {
+      final uri = Uri.parse('$apiBase/items').replace(queryParameters: {
+        if (sid != null) 'subcategoryId': '$sid',
+        if (sid == null && cid != null) 'categoryId': '$cid',
+        'shown': 'true',
+        'page': '1',
+        'pageSize': '12',
+      });
+      _setRelatedDebug(
+          'Fetching related by ${sid != null ? "subcategoryId=$sid" : "categoryId=$cid"} -> $uri');
+      final res = await http.get(uri);
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        _setRelatedDebug(
+            'Related response type=${body.runtimeType} keys=${body is Map ? (body).keys : "n/a"}');
+        final rawRows = (body is List) ? body : (body['rows'] ?? []);
+        final rowsList = rawRows is List ? rawRows : const [];
+        _setRelatedDebug(
+            'Rows type=${rawRows.runtimeType} len=${rowsList.length}');
+
+        final related = <Item>[];
+        try {
+          for (final raw in rowsList) {
+            if (raw is Map<String, dynamic>) {
+              related.add(Item.fromJson(raw));
+            } else {
+              _setRelatedDebug(
+                  'Skip row of type ${raw.runtimeType}; expected Map<String,dynamic>');
+            }
+          }
+        } catch (e, st) {
+          _setRelatedDebug('Error parsing related rows: $e');
+          if (kDebugMode) {
+            // ignore: avoid_print
+            print(st);
+          }
+        }
+
+        if (mounted) {
+          setState(() => _relatedItems = related);
+        }
+        _setRelatedDebug(
+            'Related fetch status 200, got ${related.length} item(s)');
+      } else {
+        _setRelatedDebug(
+            'Related fetch failed status ${res.statusCode} ${res.reasonPhrase ?? ""}');
+        setState(() => _loadingRelated = false);
+        return;
+      }
+    } catch (e) {
+      _setRelatedDebug('Related fetch error: $e');
+    } finally {
+      if (mounted) setState(() => _loadingRelated = false);
+    }
   }
 
   Future<void> _loadDetailsFromServer() async {
@@ -140,15 +303,40 @@ class _SingleItemState extends State<SingleItem> {
       final res = await http.get(Uri.parse('$apiBase/items/${widget.id}'));
       if (res.statusCode == 200) {
         final m = jsonDecode(res.body);
+        print("item details fetched: $m");
 
         final sup =
             (m['supplier_name'] ?? m['supplier'] ?? m['supplierName'] ?? '')
                 .toString()
                 .trim();
+        final catId = _toInt(m['category_id'] ?? m['categoryId']);
+        String? catEn = (m['category_name_en'] ?? '').toString();
+        String? catKu = (m['category_name_ku'] ?? '').toString();
+        String? catAr = (m['category_name_ar'] ?? '').toString();
+        final catObj = m['category'];
+        if (catObj is Map<String, dynamic>) {
+          catEn =
+              (catObj['name_en'] ?? catObj['name'] ?? catEn ?? '').toString();
+          catKu = (catObj['name_ku'] ?? catKu ?? '').toString();
+          catAr = (catObj['name_ar'] ?? catAr ?? '').toString();
+        }
         final pk = int.tryParse((m['pack_size'] ?? '').toString());
         final un = (m['unit'] ?? '').toString().trim();
         final pp = _toDouble(m['pack_price']);
         final did = int.tryParse((m['discount_id'] ?? '').toString());
+        final subId = _toInt(
+            m['subcategory_id'] ?? m['subcategoryId'] ?? m['sub_category_id']);
+        String? subEn = (m['subcategory_name_en'] ?? '').toString();
+        String? subKu = (m['subcategory_name_ku'] ?? '').toString();
+        String? subAr = (m['subcategory_name_ar'] ?? '').toString();
+
+        final subObj = m['subcategory'] ?? m['sub_category'];
+        if (subObj is Map<String, dynamic>) {
+          subEn =
+              (subObj['name_en'] ?? subObj['name'] ?? subEn ?? '').toString();
+          subKu = (subObj['name_ku'] ?? subKu ?? '').toString();
+          subAr = (subObj['name_ar'] ?? subAr ?? '').toString();
+        }
 
         // If backend embedded the discount itself (appliedDiscount), parse it
         final ad = m['appliedDiscount'];
@@ -181,6 +369,14 @@ class _SingleItemState extends State<SingleItem> {
           if (un.isNotEmpty) _unit = un;
           if ((pp ?? 0) > 0) _packPrice = pp;
           _discountId = did;
+          if (catId != null) _categoryId = catId;
+          if ((catEn?.trim().isNotEmpty ?? false)) _categoryNameEn = catEn;
+          if ((catKu?.trim().isNotEmpty ?? false)) _categoryNameKu = catKu;
+          if ((catAr?.trim().isNotEmpty ?? false)) _categoryNameAr = catAr;
+          if (subId != null) _subcategoryId = subId;
+          if ((subEn?.trim().isNotEmpty ?? false)) _subcategoryNameEn = subEn;
+          if ((subKu?.trim().isNotEmpty ?? false)) _subcategoryNameKu = subKu;
+          if ((subAr?.trim().isNotEmpty ?? false)) _subcategoryNameAr = subAr;
 
           if (ad is Map) {
             _campaignKind = kind;
@@ -190,6 +386,8 @@ class _SingleItemState extends State<SingleItem> {
 
           if ((_packSize ?? 1) <= 1) _orderByPack = false; // no pack option
         });
+
+        _maybeLoadRelated();
 
         // If server didn't embed the discount object, fetch it by id
         if ((ad == null || !_campaignActive) && did != null) {
@@ -224,7 +422,7 @@ class _SingleItemState extends State<SingleItem> {
           d = list
               .cast<Map<String, dynamic>>()
               .firstWhere((x) => _toInt(x['id']) == id, orElse: () => {});
-          if (d!.isEmpty) d = null;
+          if (d.isEmpty) d = null;
         }
       } catch (_) {}
     }
@@ -317,6 +515,239 @@ class _SingleItemState extends State<SingleItem> {
 
     final message = '${widget.name} added to basket ($modeLabel)';
     Navigator.pop(context, message);
+  }
+
+  Widget _buildRelatedCarousel(BuildContext context) {
+    final subLabel = _localizedSubcategoryName(context);
+    final catLabel = _localizedCategoryName(context);
+    final label = subLabel ?? catLabel;
+    final title = label == null ? 'More like this' : 'More from $label';
+
+    if (_relatedItems.isEmpty &&
+        !_loadingRelated &&
+        !(kDebugMode && _relatedDebugNote != null)) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            if (_loadingRelated) ...[
+              const SizedBox(width: 8),
+              const SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ],
+          ],
+        ),
+        if (kDebugMode && _relatedDebugNote != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            _relatedDebugNote!,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black54,
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 210,
+          child: _relatedItems.isEmpty
+              ? Center(
+                  child: _loadingRelated
+                      ? const CircularProgressIndicator()
+                      : const Text(
+                          'No related items',
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                )
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _relatedItems.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (_, i) {
+                    final it = _relatedItems[i];
+                    final imgUrl = mediaUrlFrom(it.imageUrl);
+                    final hasDiscount = it.discount > 0;
+                    final effectivePrice = hasDiscount
+                        ? it.price * (1 - it.discount / 100)
+                        : it.price;
+
+                    return InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SingleItem(
+                              id: it.id,
+                              icon: Icons.fastfood,
+                              name: it.localizedName(context),
+                              description: it.description,
+                              unitPrice: it.price,
+                              discount: it.discount,
+                              imageUrl: imgUrl,
+                              supplierName: it.supplier_name,
+                              categoryId: it.categoryId,
+                              categoryNameEn: it.categoryNameEn,
+                              categoryNameKu: it.categoryNameKu,
+                              categoryNameAr: it.categoryNameAr,
+                              subcategoryId: it.subcategoryId,
+                              subcategoryNameEn: it.subcategoryNameEn,
+                              subcategoryNameKu: it.subcategoryNameKu,
+                              subcategoryNameAr: it.subcategoryNameAr,
+                              packSize: it.packSize,
+                              unit: it.unit,
+                              packPrice: it.packPrice,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(16)),
+                                  child: AspectRatio(
+                                    aspectRatio: 1.2,
+                                    child: imgUrl.isNotEmpty
+                                        ? Image.network(
+                                            imgUrl,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                const Center(
+                                              child: Icon(Icons.fastfood),
+                                            ),
+                                          )
+                                        : Container(
+                                            color: Colors.grey.shade200,
+                                            child: const Icon(
+                                              Icons.fastfood,
+                                              size: 32,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                if (hasDiscount)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.redAccent,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        '-${it.discount.toStringAsFixed(0)}%',
+                                        style: const TextStyle(
+                                            color: Colors.white, fontSize: 11),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    it.localizedName(context),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  if (hasDiscount)
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '${it.price.toStringAsFixed(0)} IQD',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey,
+                                            decoration:
+                                                TextDecoration.lineThrough,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${effectivePrice.toStringAsFixed(0)} IQD',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Text(
+                                      '${it.price.toStringAsFixed(0)} IQD',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  if ((it.supplier_name).isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      it.supplier_name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
   }
 
   // ---------- UI ----------
@@ -485,6 +916,11 @@ class _SingleItemState extends State<SingleItem> {
             if (widget.description.trim().isNotEmpty) ...[
               Text(widget.description,
                   style: const TextStyle(fontSize: 16, height: 1.4)),
+              const SizedBox(height: 16),
+            ],
+            if ((_relatedItems.isNotEmpty || _loadingRelated) &&
+                _subcategoryId != null) ...[
+              _buildRelatedCarousel(context),
               const SizedBox(height: 16),
             ],
 

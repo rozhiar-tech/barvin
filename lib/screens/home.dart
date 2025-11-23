@@ -113,6 +113,14 @@ class Item {
   final double price, discount;
   final String description;
   final String supplier_name;
+  final int? categoryId;
+  final String? categoryNameEn;
+  final String? categoryNameKu;
+  final String? categoryNameAr;
+  final int? subcategoryId;
+  final String? subcategoryNameEn;
+  final String? subcategoryNameKu;
+  final String? subcategoryNameAr;
 
   // NEW (optional)
   final int? discountId;
@@ -130,6 +138,14 @@ class Item {
     required this.discount,
     required this.description,
     required this.supplier_name,
+    this.categoryId,
+    this.categoryNameEn,
+    this.categoryNameKu,
+    this.categoryNameAr,
+    this.subcategoryId,
+    this.subcategoryNameEn,
+    this.subcategoryNameKu,
+    this.subcategoryNameAr,
     this.discountId,
     this.packSize = 1,
     this.unit = '',
@@ -148,6 +164,34 @@ class Item {
       if (v == null) return 0;
       if (v is num) return v.toInt();
       return int.tryParse(v.toString()) ?? 0;
+    }
+
+    int? catId = _int(j['category_id'] ?? j['categoryId']);
+    String? catNameEn = (j['category_name_en'] ?? '').toString();
+    String? catNameKu = (j['category_name_ku'] ?? '').toString();
+    String? catNameAr = (j['category_name_ar'] ?? '').toString();
+
+    final catObj = j['category'];
+    if (catObj is Map<String, dynamic>) {
+      catNameEn =
+          (catObj['name_en'] ?? catObj['name'] ?? catNameEn ?? '').toString();
+      catNameKu = (catObj['name_ku'] ?? catNameKu ?? '').toString();
+      catNameAr = (catObj['name_ar'] ?? catNameAr ?? '').toString();
+    }
+
+    int? subId =
+        _int(j['subcategory_id'] ?? j['subcategoryId'] ?? j['sub_category_id']);
+
+    String? subNameEn = (j['subcategory_name_en'] ?? '').toString();
+    String? subNameKu = (j['subcategory_name_ku'] ?? '').toString();
+    String? subNameAr = (j['subcategory_name_ar'] ?? '').toString();
+
+    final subObj = j['subcategory'] ?? j['sub_category'];
+    if (subObj is Map<String, dynamic>) {
+      subNameEn =
+          (subObj['name_en'] ?? subObj['name'] ?? subNameEn ?? '').toString();
+      subNameKu = (subObj['name_ku'] ?? subNameKu ?? '').toString();
+      subNameAr = (subObj['name_ar'] ?? subNameAr ?? '').toString();
     }
 
     final price = _num(j['price']);
@@ -177,6 +221,14 @@ class Item {
       discount: discount,
       description: j['description']?.toString().trim() ?? '',
       supplier_name: supplier,
+      categoryId: catId,
+      categoryNameEn: catNameEn.isNotEmpty == true ? catNameEn : null,
+      categoryNameKu: catNameKu.isNotEmpty == true ? catNameKu : null,
+      categoryNameAr: catNameAr.isNotEmpty == true ? catNameAr : null,
+      subcategoryId: subId,
+      subcategoryNameEn: subNameEn.isNotEmpty == true ? subNameEn : null,
+      subcategoryNameKu: subNameKu.isNotEmpty == true ? subNameKu : null,
+      subcategoryNameAr: subNameAr.isNotEmpty == true ? subNameAr : null,
       discountId: did,
       packSize: packSize > 0 ? packSize : 1,
       unit: unit,
@@ -193,6 +245,45 @@ class Item {
         return nameAr.isNotEmpty ? nameAr : nameEn;
       default:
         return nameEn;
+    }
+  }
+
+  String? localizedSubcategoryName(BuildContext ctx) {
+    final code = Localizations.localeOf(ctx).languageCode;
+    String? fallback =
+        subcategoryNameEn ?? subcategoryNameKu ?? subcategoryNameAr;
+    switch (code) {
+      case 'ku':
+        return (subcategoryNameKu?.isNotEmpty ?? false)
+            ? subcategoryNameKu
+            : fallback;
+      case 'ar':
+        return (subcategoryNameAr?.isNotEmpty ?? false)
+            ? subcategoryNameAr
+            : fallback;
+      default:
+        return (subcategoryNameEn?.isNotEmpty ?? false)
+            ? subcategoryNameEn
+            : fallback;
+    }
+  }
+
+  String? localizedCategoryName(BuildContext ctx) {
+    final code = Localizations.localeOf(ctx).languageCode;
+    String? fallback = categoryNameEn ?? categoryNameKu ?? categoryNameAr;
+    switch (code) {
+      case 'ku':
+        return (categoryNameKu?.isNotEmpty ?? false)
+            ? categoryNameKu
+            : fallback;
+      case 'ar':
+        return (categoryNameAr?.isNotEmpty ?? false)
+            ? categoryNameAr
+            : fallback;
+      default:
+        return (categoryNameEn?.isNotEmpty ?? false)
+            ? categoryNameEn
+            : fallback;
     }
   }
 }
@@ -451,10 +542,8 @@ class HomeScreenState extends State<HomeScreen> {
       PageController(viewportFraction: 0.95);
   final PageController _basketCardController =
       PageController(viewportFraction: 0.9);
-  Timer? _handworkAutoTimer;
   Timer? _foodAutoTimer;
   Timer? _foodAutoResumeTimer;
-  int _handworkAutoIndex = 0;
   int _foodAutoIndex = 0;
   // inside _HomeScreenState
 
@@ -619,7 +708,7 @@ class HomeScreenState extends State<HomeScreen> {
   Widget _handworkShimmerCard() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: _shimmerBox(height: 260, radius: BorderRadius.circular(30)),
+      child: _shimmerBox(height: 160, radius: BorderRadius.circular(20)),
     );
   }
 
@@ -632,20 +721,6 @@ class HomeScreenState extends State<HomeScreen> {
 
   int get _foodCarouselItemCount =>
       _foodBaskets.isEmpty ? 1 : _foodBaskets.length + 1;
-
-  void _restartHandworkAutoScroll() {
-    _handworkAutoTimer?.cancel();
-    if (!mounted || _handworks.length <= 1) return;
-    _handworkAutoTimer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (!mounted || !_handworkCardController.hasClients) return;
-      _handworkAutoIndex = (_handworkAutoIndex + 1) % _handworks.length;
-      _handworkCardController.animateToPage(
-        _handworkAutoIndex,
-        duration: const Duration(milliseconds: 700),
-        curve: Curves.easeInOut,
-      );
-    });
-  }
 
   void _restartFoodAutoScroll() {
     _foodAutoTimer?.cancel();
@@ -889,10 +964,37 @@ class HomeScreenState extends State<HomeScreen> {
   List<Item> _flattenCategoryItems(Map<String, dynamic> map) {
     final subs = (map['subcategories'] as List?) ?? const [];
     final out = <Item>[];
+    final catId = map['id'];
+    final catNameEn = (map['name_en'] ?? '').toString();
+    final catNameKu = (map['name_ku'] ?? '').toString();
+    final catNameAr = (map['name_ar'] ?? '').toString();
     for (final s in subs) {
       final m = s as Map<String, dynamic>;
+      int? _int(dynamic v) {
+        if (v == null) return null;
+        if (v is num) return v.toInt();
+        return int.tryParse(v.toString());
+      }
+
+      final subId = _int(m['id']);
+      final nameEn = (m['name_en'] ?? '').toString();
+      final nameKu = (m['name_ku'] ?? '').toString();
+      final nameAr = (m['name_ar'] ?? '').toString();
+
       final rows = (m['items'] as List?) ?? const [];
-      out.addAll(rows.cast<Map<String, dynamic>>().map(Item.fromJson));
+      for (final raw in rows) {
+        final mapItem = Map<String, dynamic>.from(
+            raw as Map<String, dynamic>); // keep original intact
+        mapItem['category_id'] = catId;
+        mapItem['category_name_en'] = catNameEn;
+        mapItem['category_name_ku'] = catNameKu;
+        mapItem['category_name_ar'] = catNameAr;
+        if (subId != null) mapItem['subcategory_id'] = subId;
+        if (nameEn.isNotEmpty) mapItem['subcategory_name_en'] = nameEn;
+        if (nameKu.isNotEmpty) mapItem['subcategory_name_ku'] = nameKu;
+        if (nameAr.isNotEmpty) mapItem['subcategory_name_ar'] = nameAr;
+        out.add(Item.fromJson(mapItem));
+      }
     }
     return out;
   }
@@ -979,8 +1081,6 @@ class HomeScreenState extends State<HomeScreen> {
           .toList();
       if (mounted) {
         setState(() => _handworks = works);
-        _handworkAutoIndex = 0;
-        _restartHandworkAutoScroll();
       }
       _markFallback(res);
     } catch (_) {
@@ -1040,7 +1140,6 @@ class HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _carouselTimer?.cancel();
     _dealsTimer?.cancel();
-    _handworkAutoTimer?.cancel();
     _foodAutoTimer?.cancel();
     _foodAutoResumeTimer?.cancel();
     _pageController.dispose();
@@ -1585,6 +1684,23 @@ class HomeScreenState extends State<HomeScreen> {
                                                 imageUrl: imgUrl,
                                                 discount: it.discount,
                                                 supplierName: it.supplier_name,
+                                                categoryId: it.categoryId,
+                                                categoryNameEn:
+                                                    it.categoryNameEn,
+                                                categoryNameKu:
+                                                    it.categoryNameKu,
+                                                categoryNameAr:
+                                                    it.categoryNameAr,
+                                                subcategoryId: it.subcategoryId,
+                                                subcategoryNameEn:
+                                                    it.subcategoryNameEn,
+                                                subcategoryNameKu:
+                                                    it.subcategoryNameKu,
+                                                subcategoryNameAr:
+                                                    it.subcategoryNameAr,
+                                                packSize: it.packSize,
+                                                unit: it.unit,
+                                                packPrice: it.packPrice,
                                               ),
                                             ),
                                           );
@@ -1864,7 +1980,7 @@ class HomeScreenState extends State<HomeScreen> {
                       ],
                     ],
                     ..._buildHandworkWidgets(),
-                    ..._buildFeaturedCategorySection(),
+                    // ..._buildFeaturedCategorySection(),
                     ..._buildFoodBasketWidgets(),
                   ],
                 ),
@@ -2017,14 +2133,63 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _sectionDivider(IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Divider(
+              color: secondaryColor.withOpacity(0.35),
+              thickness: 1,
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                )
+              ],
+            ),
+            child: Icon(icon, color: secondaryColor, size: 18),
+          ),
+          Expanded(
+            child: Divider(
+              color: secondaryColor.withOpacity(0.35),
+              thickness: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<Widget> _buildHandworkWidgets() {
     final s = S.of(context);
     if (_handworksLoading && _handworks.isEmpty) {
       return [
-        _buildSectionHeader(s.handWorkSectionTitle, () {}, s),
-        const SizedBox(height: 8),
+        _sectionDivider(Icons.print_rounded),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: null,
+            icon: const Icon(Icons.grid_view_rounded, color: textColor),
+            label: Text(
+              s.seeMore,
+              style: const TextStyle(color: textColor),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
         SizedBox(
-          height: 260,
+          height: 160,
           child: PageView.builder(
             controller: _handworkCardController,
             padEnds: false,
@@ -2032,24 +2197,31 @@ class HomeScreenState extends State<HomeScreen> {
             itemBuilder: (_, __) => _handworkShimmerCard(),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
       ];
     }
     if (_handworks.isEmpty) return const [];
 
     return [
-      _buildSectionHeader(s.handWorkSectionTitle, _openHandworkScreen, s),
-      const SizedBox(height: 8),
+      _sectionDivider(Icons.print_rounded),
+      Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: _openHandworkScreen,
+          icon: const Icon(Icons.library_books_outlined, color: textColor),
+          label: Text(
+            s.seeMore,
+            style: const TextStyle(color: textColor),
+          ),
+        ),
+      ),
+      const SizedBox(height: 4),
       SizedBox(
-        height: 260,
+        height: 160,
         child: PageView.builder(
           controller: _handworkCardController,
           padEnds: false,
           itemCount: _handworks.length,
-          onPageChanged: (index) {
-            _handworkAutoIndex = index;
-            _restartHandworkAutoScroll();
-          },
           itemBuilder: (_, idx) {
             final work = _handworks[idx];
             final imageUrl = work.primaryImage == null
@@ -2062,17 +2234,17 @@ class HomeScreenState extends State<HomeScreen> {
                 onTap: _openHandworkScreen,
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.15),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(22),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -2102,7 +2274,7 @@ class HomeScreenState extends State<HomeScreen> {
                         Positioned(
                           left: 20,
                           right: 20,
-                          bottom: 24,
+                          bottom: 14,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -2112,24 +2284,34 @@ class HomeScreenState extends State<HomeScreen> {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 22,
+                                  fontSize: 17,
                                   fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '${work.price.toStringAsFixed(0)} IQD',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                s.tapToViewMore,
-                                style: const TextStyle(color: Colors.white70),
+                                '${work.price.toStringAsFixed(0)} IQD',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.pan_tool_alt_rounded,
+                                      size: 14, color: Colors.white70),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    s.tapToViewMore,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              )
                             ],
                           ),
                         ),
@@ -2142,135 +2324,7 @@ class HomeScreenState extends State<HomeScreen> {
           },
         ),
       ),
-      const SizedBox(height: 16),
-    ];
-  }
-
-  List<Widget> _buildFeaturedCategorySection() {
-    final s = S.of(context);
-    if (_sections.isEmpty) return const [];
-    final featured = _sections.take(4).toList();
-    const gradients = [
-      [Color(0xFFECF4E7), Color(0xFFD5E4CF)],
-      [Color(0xFFF8F4EC), Color(0xFFE3D9C7)],
-      [Color(0xFFEFF4F7), Color(0xFFD6E2EA)],
-      [Color(0xFFF8EEF2), Color(0xFFE4D2DA)],
-    ];
-
-    return [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-        child: Text(
-          s.featuredCategoriesTitle,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-          ),
-        ),
-      ),
-      const SizedBox(height: 8),
-      GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: featured.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.35,
-        ),
-        itemBuilder: (_, idx) {
-          final sec = featured[idx];
-          final cover = sec.category.imageUrl.isNotEmpty
-              ? mediaUrlFrom(sec.category.imageUrl)
-              : null;
-
-          final gradient = gradients[idx % gradients.length];
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SeeMoreScreen(
-                    title: sec.category.localizedName(context),
-                    items: sec.items,
-                    host: apiBase.replaceAll('/api', ''),
-                    categoryId: sec.category.id,
-                    onExit: reload,
-                  ),
-                ),
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-                gradient: LinearGradient(
-                  colors: gradient,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        width: 54,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.65),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        alignment: Alignment.center,
-                        child: cover == null
-                            ? const Icon(Icons.category,
-                                size: 28, color: textColor)
-                            : ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: CachedNetworkImage(
-                                  imageUrl: cover,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Text(
-                            sec.category.localizedName(context),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: textColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
     ];
   }
 
@@ -2278,8 +2332,19 @@ class HomeScreenState extends State<HomeScreen> {
     final s = S.of(context);
     if (_foodBasketsLoading && _foodBaskets.isEmpty) {
       return [
-        _buildSectionHeader(s.foodBasketSectionTitle, () {}, s),
-        const SizedBox(height: 8),
+        _sectionDivider(Icons.shopping_basket_outlined),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: null,
+            icon: const Icon(Icons.grid_view_rounded, color: textColor),
+            label: Text(
+              s.seeMore,
+              style: const TextStyle(color: textColor),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
         SizedBox(
           height: 210,
           child: PageView.builder(
@@ -2296,8 +2361,19 @@ class HomeScreenState extends State<HomeScreen> {
     final cards = [null, ..._foodBaskets];
 
     return [
-      _buildSectionHeader(s.foodBasketSectionTitle, _openFoodBasketsScreen, s),
-      const SizedBox(height: 8),
+      _sectionDivider(Icons.shopping_basket_outlined),
+      Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: _openFoodBasketsScreen,
+          icon: const Icon(Icons.list_alt_outlined, color: textColor),
+          label: Text(
+            s.seeMore,
+            style: const TextStyle(color: textColor),
+          ),
+        ),
+      ),
+      const SizedBox(height: 6),
       SizedBox(
         height: 210,
         child: Listener(
@@ -2426,29 +2502,6 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       const SizedBox(height: 16),
     ];
-  }
-
-  Widget _buildSectionHeader(String title, VoidCallback onSeeAll, dynamic s) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-          TextButton(
-            onPressed: onSeeAll,
-            child: Text(s.seeMore),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _openHandworkScreen() async {
