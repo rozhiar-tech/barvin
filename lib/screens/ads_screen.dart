@@ -40,7 +40,7 @@ class _AdsScreenState extends State<AdsScreen> {
       for (final ad in _ads) {
         if (ad.mediaType == 'video') {
           final url = mediaUrlFrom(ad.filePath);
-          final c = VideoPlayerController.network(url);
+          final c = VideoPlayerController.networkUrl(Uri.parse(url));
           await c.initialize();
           c.setLooping(true);
           _controllers[ad.id] = c;
@@ -188,7 +188,7 @@ class _AdsScreenState extends State<AdsScreen> {
                                   Border.all(color: const Color(0xFFEFEFEF)),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
+                                  color: Colors.black.withValues(alpha: 0.04),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),

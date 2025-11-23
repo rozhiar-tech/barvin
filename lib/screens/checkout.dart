@@ -1,5 +1,7 @@
 // lib/screens/checkout.dart
 
+// ignore_for_file: deprecated_member_use
+
 import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/screens/add_address.dart';
@@ -334,7 +336,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.2),
+                    color: primaryColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(

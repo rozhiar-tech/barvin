@@ -39,9 +39,7 @@ class _QuantityButton extends StatelessWidget {
         child: Icon(
           icon,
           size: 18,
-          color: onPressed == null
-              ? Colors.grey
-              : const Color(0xFF567765),
+          color: onPressed == null ? Colors.grey : const Color(0xFF567765),
         ),
       ),
     );
@@ -187,7 +185,7 @@ class _HandWorksScreenState extends State<HandWorksScreen> {
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.07),
+                          color: Colors.black.withValues(alpha: 0.07),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),
@@ -270,8 +268,7 @@ class _HandWorksScreenState extends State<HandWorksScreen> {
                                       ),
                                       _QuantityButton(
                                         icon: Icons.add,
-                                        onPressed: () =>
-                                            _changeQty(work.id, 1),
+                                        onPressed: () => _changeQty(work.id, 1),
                                       ),
                                     ],
                                   ),

@@ -453,6 +453,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
   Widget build(BuildContext context) {
     return PopScope(
       canPop: true,
+      // ignore: deprecated_member_use
       onPopInvoked: (didPop) {
         if (didPop) {
           widget.onExit?.call();
@@ -533,7 +534,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                     isScrollable: true,
                     labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                     labelColor: textColor,
-                    unselectedLabelColor: textColor.withOpacity(0.6),
+                    unselectedLabelColor: textColor.withValues(alpha: 0.6),
                     indicatorColor: primaryColor,
                     indicatorWeight: 3,
                     tabs: [
@@ -663,7 +664,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black.withValues(alpha: 0.04),
                                     blurRadius: 6,
                                     offset: const Offset(0, 2),
                                   ),
@@ -675,9 +676,8 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                                   Expanded(
                                     flex: 4,
                                     child: ClipRRect(
-                                      borderRadius:
-                                          const BorderRadius.vertical(
-                                              top: Radius.circular(16)),
+                                      borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(16)),
                                       child: it.imageUrl.isNotEmpty
                                           ? CachedNetworkImage(
                                               imageUrl: imgUrl,
@@ -712,8 +712,8 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                                               it.description,
                                               style: TextStyle(
                                                 fontSize: 10,
-                                                color: textColor
-                                                    .withOpacity(0.6),
+                                                color: textColor.withValues(
+                                                    alpha: 0.6),
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -723,107 +723,107 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
                                               it.description,
                                               style: TextStyle(
                                                 fontSize: 10,
-                                                color: textColor
-                                                    .withOpacity(0.6),
+                                                color: textColor.withValues(
+                                                    alpha: 0.6),
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           FittedBox(
-                                          child: it.discount > 0
-                                              ? Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      '${it.price.round()} IQD',
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                        decoration:
-                                                            TextDecoration
-                                                                .lineThrough,
-                                                        color: Colors.grey,
+                                            child: it.discount > 0
+                                                ? Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        '${it.price.round()} IQD',
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          decoration:
+                                                              TextDecoration
+                                                                  .lineThrough,
+                                                          color: Colors.grey,
+                                                        ),
                                                       ),
-                                                    ),
-                                                    const SizedBox(width: 6),
-                                                    Text(
-                                                      '${(it.price * (1 - it.discount / 100)).round()} IQD',
-                                                      style: const TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: textColor,
+                                                      const SizedBox(width: 6),
+                                                      Text(
+                                                        '${(it.price * (1 - it.discount / 100)).round()} IQD',
+                                                        style: const TextStyle(
+                                                          fontSize: 13,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: textColor,
+                                                        ),
                                                       ),
+                                                    ],
+                                                  )
+                                                : Text(
+                                                    '${it.price.round()} IQD',
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: textColor,
                                                     ),
-                                                  ],
-                                                )
-                                              : Text(
-                                                  '${it.price.round()} IQD',
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: textColor,
+                                                  ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          // quantity controls
+                                          Container(
+                                            height: 30,
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(
+                                                  color: Color(0xFFE7E7E7)),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                _miniQtyBtn(
+                                                  icon: Icons.remove,
+                                                  onTap:
+                                                      (_itemQty[it.id] ?? 0) > 0
+                                                          ? () => _dec(it)
+                                                          : null,
+                                                  color: Colors.redAccent,
+                                                ),
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(horizontal: 6),
+                                                  child: Text(
+                                                    '${_itemQty[it.id] ?? 0}',
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: textColor,
+                                                    ),
                                                   ),
                                                 ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        // quantity controls
-                                        Container(
-                                          height: 30,
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            border: Border.all(
-                                                color: Color(0xFFE7E7E7)),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              _miniQtyBtn(
-                                                icon: Icons.remove,
-                                                onTap:
-                                                    (_itemQty[it.id] ?? 0) > 0
-                                                        ? () => _dec(it)
-                                                        : null,
-                                                color: Colors.redAccent,
-                                              ),
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 6),
-                                                child: Text(
-                                                  '${_itemQty[it.id] ?? 0}',
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: textColor,
-                                                  ),
+                                                _miniQtyBtn(
+                                                  icon: Icons.add,
+                                                  onTap: () => _inc(it),
+                                                  color: primaryColor,
                                                 ),
-                                              ),
-                                              _miniQtyBtn(
-                                                icon: Icons.add,
-                                                onTap: () => _inc(it),
-                                                color: primaryColor,
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-
+                          );
+                        },
+                      ),
                     if (_loading && _visibleItems.isNotEmpty)
                       Positioned.fill(
                         child: IgnorePointer(
@@ -873,7 +873,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen>
 
   Widget _buildGridOverlayShimmer() {
     return Container(
-      color: Colors.white.withOpacity(0.7),
+      color: Colors.white.withValues(alpha: 0.7),
       child: Center(
         child: Shimmer.fromColors(
           baseColor: Colors.grey.shade300,

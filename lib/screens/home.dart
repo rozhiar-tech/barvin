@@ -876,8 +876,8 @@ class HomeScreenState extends State<HomeScreen> {
             final rawPath = ad.filePath.startsWith('/')
                 ? ad.filePath.substring(1)
                 : ad.filePath;
-            final url = '$host/$rawPath';
-            final vc = VideoPlayerController.network(url);
+            final url = Uri.parse('$host/$rawPath');
+            final vc = VideoPlayerController.networkUrl(url);
             await vc.initialize();
             _videoControllers[ad.id] = vc;
           }
@@ -1210,7 +1210,7 @@ class HomeScreenState extends State<HomeScreen> {
                           setState(() => _gridMode = v);
                           _saveGridPref(v);
                         },
-                        activeColor: secondaryColor,
+                        activeThumbColor: secondaryColor,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       const Icon(Icons.grid_view,
@@ -1415,7 +1415,7 @@ class HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             color: _currentPage == index
                                 ? primaryColor
-                                : secondaryColor.withOpacity(0.4),
+                                : secondaryColor.withValues(alpha: 0.4),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -1584,7 +1584,7 @@ class HomeScreenState extends State<HomeScreen> {
                             decoration: BoxDecoration(
                               color: _currentDealPage == index
                                   ? primaryColor
-                                  : secondaryColor.withOpacity(0.4),
+                                  : secondaryColor.withValues(alpha: 0.4),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -2078,7 +2078,7 @@ class HomeScreenState extends State<HomeScreen> {
                   border: Border.all(color: const Color(0xFFEFEFEF)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -2140,7 +2140,7 @@ class HomeScreenState extends State<HomeScreen> {
         children: [
           Expanded(
             child: Divider(
-              color: secondaryColor.withOpacity(0.35),
+              color: secondaryColor.withValues(alpha: 0.35),
               thickness: 1,
             ),
           ),
@@ -2152,7 +2152,7 @@ class HomeScreenState extends State<HomeScreen> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 )
@@ -2162,7 +2162,7 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           Expanded(
             child: Divider(
-              color: secondaryColor.withOpacity(0.35),
+              color: secondaryColor.withValues(alpha: 0.35),
               thickness: 1,
             ),
           ),
@@ -2237,7 +2237,7 @@ class HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
+                        color: Colors.black.withValues(alpha: 0.15),
                         blurRadius: 14,
                         offset: const Offset(0, 6),
                       ),
@@ -2402,7 +2402,7 @@ class HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 6),
                           ),
@@ -2452,7 +2452,7 @@ class HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),

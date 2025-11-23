@@ -90,7 +90,7 @@ class UpdateRequiredScreen extends StatelessWidget {
               Text(
                 s.updateStoreLinkHint,
                 style: TextStyle(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),

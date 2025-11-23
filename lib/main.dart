@@ -132,7 +132,7 @@ class _MainScreenState extends State<MainScreen> {
         showUnselectedLabels: true, // (optional) keep labels visible
         backgroundColor: Colors.white,
         selectedItemColor: const Color(0xFF567765),
-        unselectedItemColor: const Color(0xFF567765).withOpacity(0.6),
+        unselectedItemColor: const Color(0xFF567765).withValues(alpha: 0.5),
         currentIndex: _currentIndex,
         onTap: (i) {
           setState(() => _currentIndex = i);

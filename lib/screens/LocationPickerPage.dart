@@ -39,6 +39,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
 
     final pos = await Geolocator.getCurrentPosition(
+        // ignore: deprecated_member_use
         desiredAccuracy: LocationAccuracy.high);
     final latlng = LatLng(pos.latitude, pos.longitude);
 

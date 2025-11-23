@@ -90,7 +90,7 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
               const SizedBox(height: 24),
               Text(
                 'No internet connection',
-                style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
               ),
             ],
           ],

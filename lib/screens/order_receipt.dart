@@ -209,7 +209,7 @@ class _OrderReceiptPageState extends State<OrderReceiptPage> {
                       borderRadius: BorderRadius.circular(80),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 6,
                           offset: const Offset(0, 3),
                         )

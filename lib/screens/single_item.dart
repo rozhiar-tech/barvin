@@ -622,7 +622,7 @@ class _SingleItemState extends State<SingleItem> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 6,
                               offset: const Offset(0, 4),
                             ),
@@ -781,7 +781,7 @@ class _SingleItemState extends State<SingleItem> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -888,7 +888,7 @@ class _SingleItemState extends State<SingleItem> {
                 child: FilterChip(
                   selected: _orderByPack,
                   onSelected: (v) => setState(() => _orderByPack = v),
-                  selectedColor: primaryColor.withOpacity(0.15),
+                  selectedColor: primaryColor.withValues(alpha: 0.15),
                   checkmarkColor: primaryColor,
                   label: Text('${S.of(context).pack} (×${_packSize!})'),
                 ),
@@ -935,7 +935,7 @@ class _SingleItemState extends State<SingleItem> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 6,
                         offset: const Offset(0, 3),
                       ),
@@ -1170,11 +1170,12 @@ class _DiscountBadges extends StatelessWidget {
         ),
       ),
       backgroundColor:
-          applied ? primaryColor.withOpacity(0.15) : Colors.grey.shade200,
+          applied ? primaryColor.withValues(alpha: 0.15) : Colors.grey.shade200,
       shape: StadiumBorder(
         side: BorderSide(
-          color:
-              applied ? primaryColor.withOpacity(0.35) : Colors.grey.shade300,
+          color: applied
+              ? primaryColor.withValues(alpha: 0.35)
+              : Colors.grey.shade300,
         ),
       ),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

@@ -165,7 +165,7 @@ class _LoginPageState extends State<LoginPage> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
+                            color: Colors.black.withValues(alpha: 0.15),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           )
@@ -325,7 +325,7 @@ class _LoginPageState extends State<LoginPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Color(0xffFEFAE0).withOpacity(0.8),
+                        color: Color(0xffFEFAE0).withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
