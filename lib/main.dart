@@ -1,8 +1,12 @@
 import 'package:barvin/l10n/kurdish_fallback.dart';
 import 'package:barvin/screens/basket.dart';
+import 'package:barvin/services/push_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'firebase_options.dart';
 import 'generated/l10n.dart'; // ← your intl_utils output
 import 'screens/home.dart';
 import 'screens/orders.dart';
@@ -12,6 +16,14 @@ import 'screens/splash.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  FirebaseMessaging.onBackgroundMessage(
+    firebaseMessagingBackgroundHandler,
+  );
+  await PushNotifications.initialize();
 
   // 1️⃣ Load saved locale code, default to English
   final prefs = await SharedPreferences.getInstance();
