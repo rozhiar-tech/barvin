@@ -1,4 +1,4 @@
-import 'package:barvin/screens/home.dart';
+import 'package:barvin/models/item.dart';
 import 'package:flutter/material.dart';
 
 extension LocalizedItem on Item {

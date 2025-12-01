@@ -1,5 +1,7 @@
-const String apiOrigin = 'http://95.111.224.58:3000';
-const String apiBase = '$apiOrigin/api';
+import 'package:barvin/config/environment.dart';
+
+String get apiOrigin => Environment.apiOrigin;
+String get apiBase => Environment.apiBase;
 
 Uri apiUrl(String path, [Map<String, dynamic>? query]) {
   final normalized = path.startsWith('/') ? path : '/$path';

@@ -5,8 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barvin/generated/l10n.dart';
 import 'LocationPickerPage.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:barvin/constants/app_constants.dart';
 
-const Color primaryColor = Color(0xFF567765);
+const Color primaryColor = AppColors.primary;
 
 class AddAddressPage extends StatefulWidget {
   const AddAddressPage({Key? key}) : super(key: key);

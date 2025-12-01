@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:barvin/screens/home.dart'; // for Discount, Item, mediaUrlFrom, apiBase
+import 'package:barvin/models/discount.dart';
+import 'package:barvin/screens/home.dart' show apiBase;
+import 'package:barvin/constants/app_constants.dart';
 import 'single_item.dart';
 
-const Color primaryColor = Color(0xFFbed6be);
-const Color secondaryColor = Color(0xFF6D8474);
-const Color textColor = Color(0xFF212121);
+const Color primaryColor = AppColors.primaryLight;
+const Color secondaryColor = AppColors.secondary;
+const Color textColor = AppColors.textPrimary;
 
 class DiscountDetailScreen extends StatelessWidget {
   final Discount discount;

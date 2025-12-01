@@ -1,15 +1,16 @@
 // lib/screens/profile.dart
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barvin/generated/l10n.dart';
 import '../main.dart'; // for MyApp.setLocale
 import 'login.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:barvin/screens/home.dart' show apiBase;
+import 'package:barvin/constants/app_constants.dart';
+import 'package:barvin/services/api_client.dart';
+import 'package:barvin/services/token_storage.dart';
 
-const Color primaryColor = Color(0xFF567765);
+const Color primaryColor = AppColors.primary;
 
 // Optional: socials (replace with real links)
 const _instagram =
@@ -148,25 +149,23 @@ class _ProfileState extends State<Profile> {
     if (ok != true) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final token = await TokenStorage.read();
     final userId = prefs.getInt('userId');
     if (token == null || userId == null) return;
 
     try {
-      final res = await http.patch(
-        Uri.parse('$apiBase/users/$userId/deactivate'),
-        headers: {'Authorization': 'Bearer $token'},
+      await ApiClient.instance.patch(
+        '/users/$userId/deactivate',
       );
       if (!mounted) return;
-      if (res.statusCode == 204) {
-        await prefs.clear();
-        Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => LoginPage()), (_) => false);
-      } else {
-        final msg = jsonDecode(res.body)['error'] ?? 'Server error';
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Deactivate failed: $msg')));
-      }
+      await prefs.clear();
+      await TokenStorage.delete();
+      Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => LoginPage()), (_) => false);
+    } on ApiException catch (e) {
+      final msg = e.message ?? 'Server error';
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Deactivate failed: $msg')));
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Network error — please try again')));

@@ -4,8 +4,9 @@ import 'package:barvin/services/app_version_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:barvin/constants/app_constants.dart';
 
-const Color splashBackground = Color(0xFFD3E4C4);
+const Color splashBackground = AppColors.backgroundLight;
 
 class Splash extends StatefulWidget {
   const Splash({super.key});

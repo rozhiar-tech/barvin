@@ -7,10 +7,11 @@ import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/screens/add_address.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import 'package:barvin/screens/home.dart' show apiBase;
+import 'package:barvin/constants/app_constants.dart';
+import 'package:barvin/services/api_client.dart';
 
-const Color primaryColor = Color(0xFF567765);
+const Color primaryColor = AppColors.primary;
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({Key? key}) : super(key: key);
@@ -29,7 +30,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final double _taxRate = 0.02;
   bool _isSending = false;
   bool _loggedIn = false;
-  String? _token;
 // at top of _CheckoutPageState
   String _normalizeImageUrl(String raw) {
     if (raw.isEmpty) return raw;
@@ -48,23 +48,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _loadSettings() async {
     try {
-      final res = await http.get(Uri.parse('$apiBase/settings'));
-      if (res.statusCode == 200) {
-        final m = jsonDecode(res.body) as Map<String, dynamic>;
-        final raw = m['delivery_fee_iqd'];
-        final fee = raw is num
-            ? raw.toDouble()
-            : double.tryParse(raw?.toString() ?? '');
-        if (fee != null) {
-          setState(() => _deliveryFee = fee);
-        }
-      } else {
-        // debug only
-        print('Settings load failed: ${res.statusCode} ${res.body}');
+      final res = await ApiClient.instance.get(
+        AppEndpoints.settings,
+        requiresAuth: false,
+      );
+      final m = jsonDecode(res.body) as Map<String, dynamic>;
+      final raw = m['delivery_fee_iqd'];
+      final fee = raw is num
+          ? raw.toDouble()
+          : double.tryParse(raw?.toString() ?? '');
+      if (fee != null) {
+        setState(() => _deliveryFee = fee);
       }
+    } on ApiException catch (e) {
+      debugPrint('Settings load failed: ${e.message}');
     } catch (e) {
-      // debug only
-      print('Settings load error: $e');
+      debugPrint('Settings load error: $e');
     }
   }
 
@@ -72,7 +71,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _loggedIn = prefs.getBool('loggedIn') ?? false;
-      _token = prefs.getString('token');
       _address = prefs.getString('userAddress') ?? '';
       _lat = prefs.getString('latitude') ?? '';
       _lng = prefs.getString('longitude') ?? '';
@@ -147,30 +145,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
 
     try {
-      final res = await http.post(
-        Uri.parse('$apiBase/orders'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
+      await ApiClient.instance.post(
+        AppEndpoints.orders,
         body: jsonEncode(payload),
       );
-      if (res.statusCode == 201) {
-        // clear cart
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('cart');
-        // navigate to orders
-        if (!mounted) return;
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/main',
-          (Route<dynamic> route) => false,
-        );
-      } else {
-        final err = jsonDecode(res.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err['error'] ?? 'Failed to place order')),
-        );
-      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cart');
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/main',
+        (Route<dynamic> route) => false,
+      );
+    } on ApiException catch (e) {
+      final message = e.message ?? 'Failed to place order';
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Network error – please try again')),

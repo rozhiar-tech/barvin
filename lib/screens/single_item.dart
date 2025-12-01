@@ -8,9 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:barvin/screens/home.dart' show Item, apiBase, mediaUrlFrom;
+import 'package:barvin/models/item.dart';
+import 'package:barvin/screens/home.dart' show apiBase, mediaUrlFrom;
+import 'package:barvin/constants/app_constants.dart';
 
-const Color primaryColor = Color(0xFF567765);
+const Color primaryColor = AppColors.primary;
 
 class SingleItem extends StatefulWidget {
   final int id;
@@ -552,16 +554,6 @@ class _SingleItemState extends State<SingleItem> {
             ],
           ],
         ),
-        if (kDebugMode && _relatedDebugNote != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            _relatedDebugNote!,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
-            ),
-          ),
-        ],
         const SizedBox(height: 10),
         SizedBox(
           height: 210,

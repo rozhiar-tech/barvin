@@ -7,8 +7,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // reuse helpers, model, and colors
+import 'package:barvin/models/ad.dart';
 import '../screens/home.dart'
-    show apiUrl, mediaUrlFrom, Ad, primaryColor, secondaryColor, textColor;
+    show apiUrl, mediaUrlFrom, primaryColor, secondaryColor, textColor;
 
 class AdsScreen extends StatefulWidget {
   final List<Ad> initialAds;

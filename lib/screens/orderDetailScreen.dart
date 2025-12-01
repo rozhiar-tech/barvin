@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:barvin/constants/app_constants.dart';
+import 'package:barvin/services/api_client.dart';
+import 'package:barvin/services/token_storage.dart';
 
-const Color primaryColor = Color(0xFF567765);
-const String apiBase = 'http://';
+const Color primaryColor = AppColors.primary;
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -26,8 +26,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Future<void> _loadOrder() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final token = await TokenStorage.read();
     if (token == null) {
       setState(() {
         _error = 'Not authenticated';
@@ -36,25 +35,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       return;
     }
     try {
-      final res = await http.get(
-        Uri.parse('$apiBase/orders/${widget.orderId}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+      final res = await ApiClient.instance.get(
+        '${AppEndpoints.orders}/${widget.orderId}',
       );
-      if (res.statusCode == 200) {
-        setState(() {
-          _order = jsonDecode(res.body);
-        });
-      } else {
-        setState(() {
-          _error = 'Failed to load order (${res.statusCode})';
-        });
-      }
+      setState(() {
+        _order = jsonDecode(res.body);
+      });
     } catch (e) {
       setState(() {
-        _error = 'Network error';
+        _error = 'Failed to load order';
       });
     } finally {
       setState(() {

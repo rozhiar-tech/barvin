@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'package:barvin/screens/signup.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-// ignore: unused_shown_name
-import 'package:barvin/screens/home.dart' show apiUrl, apiBase;
 import 'package:barvin/generated/l10n.dart'; // ⬅️ i18n
 // at the top with other imports
 import 'package:barvin/screens/forgot_password.dart'; // NEW
+import 'package:barvin/constants/app_constants.dart';
+import 'package:barvin/services/api_client.dart';
+import 'package:barvin/services/token_storage.dart';
 
-const Color _kPrimaryGreen = Color(0xFF4BCF7B);
-const Color primaryColor = Color(0xFF567765);
+const Color _kPrimaryGreen = AppColors.successGreen;
+const Color primaryColor = AppColors.primary;
 
 class LoginPage extends StatefulWidget {
   @override
@@ -50,24 +50,24 @@ class _LoginPageState extends State<LoginPage> {
         body['phone'] = _formatPhoneForBackend(_identifier);
       }
 
-      final res = await http.post(
-        apiUrl('/auth/login'),
-        headers: {'Content-Type': 'application/json'},
+      final response = await ApiClient.instance.post(
+        AppEndpoints.authLogin,
         body: jsonEncode(body),
+        headers: {'Content-Type': 'application/json'},
+        requiresAuth: false,
       );
 
-      Map<String, dynamic> data = {};
-      try {
-        data = jsonDecode(res.body) as Map<String, dynamic>;
-      } catch (_) {}
+      final data = response.body.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(response.body) as Map<String, dynamic>;
 
-      if (res.statusCode == 200 && data['token'] is String) {
+      if (data['token'] is String) {
         final token = data['token'] as String;
         final user = (data['user'] as Map<String, dynamic>?) ?? {};
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('loggedIn', true);
-        await prefs.setString('token', token);
+        await TokenStorage.save(token);
         await prefs.setInt('userId', (user['id'] ?? 0) as int);
 
         await prefs.setString('userName', (user['name'] ?? '').toString());
@@ -124,8 +124,11 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(msg)));
       }
+    } on ApiException catch (e) {
+      final message = e.message ?? S.of(context).networkError;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
-      print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(S.of(context).networkError)),
       );

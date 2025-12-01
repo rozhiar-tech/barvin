@@ -13,6 +13,7 @@ import 'screens/orders.dart';
 import 'screens/profile.dart';
 import 'screens/login.dart';
 import 'screens/splash.dart';
+// import 'constants/app_constants.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -143,8 +144,8 @@ class _MainScreenState extends State<MainScreen> {
         iconSize: 22, // <-- slightly smaller icons
         showUnselectedLabels: true, // (optional) keep labels visible
         backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF567765),
-        unselectedItemColor: const Color(0xFF567765).withValues(alpha: 0.5),
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.primary.withValues(alpha: 0.5),
         currentIndex: _currentIndex,
         onTap: (i) {
           setState(() => _currentIndex = i);

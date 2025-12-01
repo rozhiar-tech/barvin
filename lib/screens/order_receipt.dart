@@ -1,12 +1,11 @@
 // lib/screens/order_receipt.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+import 'package:barvin/constants/app_constants.dart';
+import 'package:barvin/services/api_client.dart';
+import 'package:barvin/services/token_storage.dart';
 
-import 'home.dart' show apiBase; // reuse the real base
-
-const Color primaryColor = Color(0xFF567765);
+const Color primaryColor = AppColors.primary;
 
 class OrderReceiptPage extends StatefulWidget {
   final int orderId;
@@ -19,7 +18,6 @@ class OrderReceiptPage extends StatefulWidget {
 class _OrderReceiptPageState extends State<OrderReceiptPage> {
   Map<String, dynamic>? _order;
   bool _loading = true;
-  String? _token;
 
   // Company block (match your dashboard)
   static const _COMPANY = {
@@ -43,31 +41,32 @@ class _OrderReceiptPageState extends State<OrderReceiptPage> {
   }
 
   Future<void> _loadAndFetch() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('token');
+    final token = await TokenStorage.read();
+    if (token == null) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to view receipt')),
+      );
+      return;
+    }
     await _fetchOrder();
   }
 
   Future<void> _fetchOrder() async {
     try {
-      final res = await http.get(
-        Uri.parse('$apiBase/orders/${widget.orderId}'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (_token != null) 'Authorization': 'Bearer $_token',
-        },
+      final res = await ApiClient.instance.get(
+        '${AppEndpoints.orders}/${widget.orderId}',
       );
-      if (res.statusCode == 200) {
-        setState(() {
-          _order = jsonDecode(res.body) as Map<String, dynamic>;
-          _loading = false;
-        });
-      } else {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load order: ${res.statusCode}')),
-        );
-      }
+      setState(() {
+        _order = jsonDecode(res.body) as Map<String, dynamic>;
+        _loading = false;
+      });
+    } on ApiException catch (e) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Failed to load order')),
+      );
     } catch (e) {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(

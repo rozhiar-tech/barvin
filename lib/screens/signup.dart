@@ -11,8 +11,9 @@ import 'package:latlong2/latlong.dart';
 import 'LocationPickerPage.dart';
 import 'package:barvin/screens/home.dart' show apiBase;
 import 'signup_otp.dart';
+import 'package:barvin/constants/app_constants.dart';
 
-const Color primaryColor = Color(0xFF567765);
+const Color primaryColor = AppColors.primary;
 
 // 👇 update path & ensure it's in pubspec.yaml: assets:
 //   - assets/appicon.png
@@ -73,7 +74,8 @@ class _SignUpPageState extends State<SignUpPage> {
 
   bool _isValidEmail(String v) =>
       RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[a-zA-Z]{2,}$').hasMatch(v);
-  bool _isValidPhone(String v) => RegExp(r'^\d{9,15}$').hasMatch(v.replaceAll(RegExp(r'\D'), ''));
+  bool _isValidPhone(String v) =>
+      RegExp(r'^\d{9,15}$').hasMatch(v.replaceAll(RegExp(r'\D'), ''));
 
   String _formatPhoneForBackend(String input) {
     var digits = input.replaceAll(RegExp(r'\D'), '');
@@ -122,8 +124,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
         final serverChannel =
             (payloadJson['channel'] as String?) ?? selectedChannel;
-        final resendIn =
-            (payloadJson['resend_in'] is num) ? (payloadJson['resend_in'] as num).toInt() : 0;
+        final resendIn = (payloadJson['resend_in'] is num)
+            ? (payloadJson['resend_in'] as num).toInt()
+            : 0;
 
         // Go to OTP screen with all data needed for /register-complete
         final payload = SignupPayload(
@@ -342,8 +345,8 @@ class _SignUpPageState extends State<SignUpPage> {
                             spacing: 12,
                             children: [
                               ChoiceChip(
-                                label: Text(
-                                    S.of(context).verificationPhoneOption),
+                                label:
+                                    Text(S.of(context).verificationPhoneOption),
                                 selected: _usePhoneOtp,
                                 onSelected: (sel) {
                                   if (!sel) return;
@@ -351,8 +354,8 @@ class _SignUpPageState extends State<SignUpPage> {
                                 },
                               ),
                               ChoiceChip(
-                                label: Text(
-                                    S.of(context).verificationEmailOption),
+                                label:
+                                    Text(S.of(context).verificationEmailOption),
                                 selected: !_usePhoneOtp,
                                 onSelected: (sel) {
                                   if (!sel) return;

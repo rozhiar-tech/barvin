@@ -3,7 +3,8 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'package:barvin/screens/home.dart' show Item, primaryColor, textColor;
+import 'package:barvin/models/item.dart';
+import 'package:barvin/screens/home.dart' show primaryColor, textColor;
 import 'package:barvin/screens/single_item.dart' hide primaryColor;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';

@@ -10,7 +10,7 @@ import 'package:barvin/screens/food_basket_screen.dart';
 import 'package:barvin/screens/handworks_screen.dart';
 import 'package:barvin/widgets/search_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -19,354 +19,29 @@ import 'package:video_player/video_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barvin/services/api_config.dart';
 import 'package:barvin/models/collections.dart';
+import 'package:barvin/models/ad.dart';
+import 'package:barvin/models/category.dart';
+import 'package:barvin/models/item.dart';
+import 'package:barvin/models/discount.dart';
 
 import 'basket.dart';
 import 'seeMore.dart';
 import 'single_item.dart';
 
 export 'package:barvin/services/api_config.dart';
+export 'package:barvin/models/ad.dart';
+export 'package:barvin/models/category.dart';
+export 'package:barvin/models/item.dart';
+export 'package:barvin/models/discount.dart';
+export 'package:barvin/constants/app_constants.dart'
+    show AppColors, AppSizes, AppEndpoints;
 
-const Color primaryColor = Color(0xFFbed6be);
-const Color secondaryColor = Color(0xFF6D8474);
-const Color textColor = Color(0xFF212121);
+// Legacy exports for backward compatibility
+import 'package:barvin/constants/app_constants.dart' show AppColors;
 
-double _parseNum(dynamic v) {
-  if (v == null) return 0.0;
-  if (v is num) return v.toDouble();
-  // Clean strings like "20%", " 15 ", etc.
-  final cleaned = v.toString().trim().replaceAll(RegExp(r'[^0-9\.\-]'), '');
-  return double.tryParse(cleaned) ?? 0.0;
-}
-
-class Ad {
-  final int id;
-  final String filePath;
-  final String link;
-  final String mediaType;
-  Ad({
-    required this.id,
-    required this.filePath,
-    required this.link,
-    required this.mediaType,
-  });
-  factory Ad.fromJson(Map<String, dynamic> j) => Ad(
-        id: j['id'],
-        filePath: j['file_path'],
-        link: j['link'],
-        mediaType: j['media_type'],
-      );
-}
-
-class Category {
-  final int id;
-  final String nameEn, nameKu, nameAr;
-  final String imageUrl; // 👈 NEW
-
-  final List<Item> items;
-
-  Category({
-    required this.id,
-    required this.nameEn,
-    required this.nameKu,
-    required this.nameAr,
-    this.imageUrl = "", // 👈 NEW
-
-    this.items = const [],
-  });
-
-  factory Category.fromJson(Map<String, dynamic> j) {
-    // if the server embedded an "items" array, decode it
-    final rawItems = j['items'] as List<dynamic>?;
-    final parsedItems = rawItems
-            ?.map((m) => Item.fromJson(m as Map<String, dynamic>))
-            .toList() ??
-        <Item>[];
-
-    return Category(
-      id: j['id'],
-      nameEn: j['name_en'] ?? '',
-      nameKu: j['name_ku'] ?? '',
-      nameAr: j['name_ar'] ?? '',
-      imageUrl: j['image_url'] ?? '', // 👈 NEW
-
-      items: parsedItems, // ← shove it in here
-    );
-  }
-
-  String localizedName(BuildContext ctx) {
-    final code = Localizations.localeOf(ctx).languageCode;
-    switch (code) {
-      case 'ku':
-        return nameKu.isNotEmpty ? nameKu : nameEn;
-      case 'ar':
-        return nameAr.isNotEmpty ? nameAr : nameEn;
-      default:
-        return nameEn;
-    }
-  }
-}
-
-class Item {
-  final int id;
-  final String nameEn, nameKu, nameAr;
-  final String imageUrl;
-  final double price, discount;
-  final String description;
-  final String supplier_name;
-  final int? categoryId;
-  final String? categoryNameEn;
-  final String? categoryNameKu;
-  final String? categoryNameAr;
-  final int? subcategoryId;
-  final String? subcategoryNameEn;
-  final String? subcategoryNameKu;
-  final String? subcategoryNameAr;
-
-  // NEW (optional)
-  final int? discountId;
-  final int packSize;
-  final String unit;
-  final double? packPrice;
-
-  Item({
-    required this.id,
-    required this.nameEn,
-    required this.nameKu,
-    required this.nameAr,
-    required this.imageUrl,
-    required this.price,
-    required this.discount,
-    required this.description,
-    required this.supplier_name,
-    this.categoryId,
-    this.categoryNameEn,
-    this.categoryNameKu,
-    this.categoryNameAr,
-    this.subcategoryId,
-    this.subcategoryNameEn,
-    this.subcategoryNameKu,
-    this.subcategoryNameAr,
-    this.discountId,
-    this.packSize = 1,
-    this.unit = '',
-    this.packPrice,
-  });
-
-  factory Item.fromJson(Map<String, dynamic> j) {
-    double _num(dynamic v) {
-      if (v == null) return 0.0;
-      if (v is num) return v.toDouble();
-      final cleaned = v.toString().trim().replaceAll(RegExp(r'[^0-9\.\-]'), '');
-      return double.tryParse(cleaned) ?? 0.0;
-    }
-
-    int _int(dynamic v) {
-      if (v == null) return 0;
-      if (v is num) return v.toInt();
-      return int.tryParse(v.toString()) ?? 0;
-    }
-
-    int? catId = _int(j['category_id'] ?? j['categoryId']);
-    String? catNameEn = (j['category_name_en'] ?? '').toString();
-    String? catNameKu = (j['category_name_ku'] ?? '').toString();
-    String? catNameAr = (j['category_name_ar'] ?? '').toString();
-
-    final catObj = j['category'];
-    if (catObj is Map<String, dynamic>) {
-      catNameEn =
-          (catObj['name_en'] ?? catObj['name'] ?? catNameEn ?? '').toString();
-      catNameKu = (catObj['name_ku'] ?? catNameKu ?? '').toString();
-      catNameAr = (catObj['name_ar'] ?? catNameAr ?? '').toString();
-    }
-
-    int? subId =
-        _int(j['subcategory_id'] ?? j['subcategoryId'] ?? j['sub_category_id']);
-
-    String? subNameEn = (j['subcategory_name_en'] ?? '').toString();
-    String? subNameKu = (j['subcategory_name_ku'] ?? '').toString();
-    String? subNameAr = (j['subcategory_name_ar'] ?? '').toString();
-
-    final subObj = j['subcategory'] ?? j['sub_category'];
-    if (subObj is Map<String, dynamic>) {
-      subNameEn =
-          (subObj['name_en'] ?? subObj['name'] ?? subNameEn ?? '').toString();
-      subNameKu = (subObj['name_ku'] ?? subNameKu ?? '').toString();
-      subNameAr = (subObj['name_ar'] ?? subNameAr ?? '').toString();
-    }
-
-    final price = _num(j['price']);
-    final discount = _num(
-      j['discount'] ?? j['discount_percent'] ?? j['discountPercentage'],
-    );
-
-    final supplier =
-        (j['supplierName'] ?? j['supplier_name'] ?? j['vendor'] ?? '')
-            .toString();
-
-    final packSize = _int(j['pack_size']);
-    final unit = (j['unit'] ?? '').toString();
-    final packPriceRaw = j['pack_price'];
-    final packPrice = packPriceRaw == null ? null : _num(packPriceRaw);
-    final did = j['discount_id'] == null
-        ? null
-        : int.tryParse(j['discount_id'].toString());
-
-    return Item(
-      id: j['id'],
-      nameEn: j['name_en'] ?? '',
-      nameKu: j['name_ku'] ?? '',
-      nameAr: j['name_ar'] ?? '',
-      imageUrl: j['image_url'] ?? '',
-      price: price,
-      discount: discount,
-      description: j['description']?.toString().trim() ?? '',
-      supplier_name: supplier,
-      categoryId: catId,
-      categoryNameEn: catNameEn.isNotEmpty == true ? catNameEn : null,
-      categoryNameKu: catNameKu.isNotEmpty == true ? catNameKu : null,
-      categoryNameAr: catNameAr.isNotEmpty == true ? catNameAr : null,
-      subcategoryId: subId,
-      subcategoryNameEn: subNameEn.isNotEmpty == true ? subNameEn : null,
-      subcategoryNameKu: subNameKu.isNotEmpty == true ? subNameKu : null,
-      subcategoryNameAr: subNameAr.isNotEmpty == true ? subNameAr : null,
-      discountId: did,
-      packSize: packSize > 0 ? packSize : 1,
-      unit: unit,
-      packPrice: (packPrice != null && packPrice > 0) ? packPrice : null,
-    );
-  }
-
-  String localizedName(BuildContext ctx) {
-    final code = Localizations.localeOf(ctx).languageCode;
-    switch (code) {
-      case 'ku':
-        return nameKu.isNotEmpty ? nameKu : nameEn;
-      case 'ar':
-        return nameAr.isNotEmpty ? nameAr : nameEn;
-      default:
-        return nameEn;
-    }
-  }
-
-  String? localizedSubcategoryName(BuildContext ctx) {
-    final code = Localizations.localeOf(ctx).languageCode;
-    String? fallback =
-        subcategoryNameEn ?? subcategoryNameKu ?? subcategoryNameAr;
-    switch (code) {
-      case 'ku':
-        return (subcategoryNameKu?.isNotEmpty ?? false)
-            ? subcategoryNameKu
-            : fallback;
-      case 'ar':
-        return (subcategoryNameAr?.isNotEmpty ?? false)
-            ? subcategoryNameAr
-            : fallback;
-      default:
-        return (subcategoryNameEn?.isNotEmpty ?? false)
-            ? subcategoryNameEn
-            : fallback;
-    }
-  }
-
-  String? localizedCategoryName(BuildContext ctx) {
-    final code = Localizations.localeOf(ctx).languageCode;
-    String? fallback = categoryNameEn ?? categoryNameKu ?? categoryNameAr;
-    switch (code) {
-      case 'ku':
-        return (categoryNameKu?.isNotEmpty ?? false)
-            ? categoryNameKu
-            : fallback;
-      case 'ar':
-        return (categoryNameAr?.isNotEmpty ?? false)
-            ? categoryNameAr
-            : fallback;
-      default:
-        return (categoryNameEn?.isNotEmpty ?? false)
-            ? categoryNameEn
-            : fallback;
-    }
-  }
-}
-
-class Discount {
-  final int id;
-  final String title;
-  final String description;
-
-  /// "percent" | "amount"
-  final String kind;
-  final double value;
-  final DateTime? startAt;
-  final DateTime? endAt;
-  final bool active;
-  final String imageUrl;
-  final List<Item> items;
-
-  Discount({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.kind,
-    required this.value,
-    required this.startAt,
-    required this.endAt,
-    required this.active,
-    required this.imageUrl,
-    required this.items,
-  });
-
-  factory Discount.fromJson(Map<String, dynamic> j) {
-    DateTime? _parseDate(dynamic v) {
-      if (v == null) return null;
-      try {
-        return DateTime.parse(v.toString());
-      } catch (_) {
-        return null;
-      }
-    }
-
-    final rawItems = (j['items'] as List?) ?? const [];
-    // prefer image_url; else build from filename (what controller now sends anyway)
-    String img = (j['image_url'] ?? '').toString();
-    if (img.isEmpty) {
-      final file = (j['image'] ?? '').toString();
-      if (file.isNotEmpty) img = '/uploads/discounts/$file';
-    }
-
-    return Discount(
-      id: j['id'] as int,
-      title: (j['title'] ?? '').toString(),
-      description: (j['description'] ?? '').toString(),
-      kind: (j['kind'] ?? 'percent').toString(),
-      value: _parseNum(j['value']),
-      startAt: _parseDate(j['start_at']),
-      endAt: _parseDate(j['end_at']),
-      active: (j['active'] == true) || (j['active']?.toString() == 'true'),
-      imageUrl: img,
-      items: rawItems
-          .cast<Map<String, dynamic>>()
-          .map((m) => Item.fromJson(m))
-          .toList(),
-    );
-  }
-
-  bool get isLive {
-    if (!active) return false;
-    final now = DateTime.now().toUtc();
-    final s = startAt?.toUtc();
-    final e = endAt?.toUtc();
-    if (s != null && now.isBefore(s)) return false;
-    if (e != null && now.isAfter(e)) return false;
-    return true;
-  }
-
-  /// Formatted badge like "-14%" or "-500 IQD"
-  String get badge {
-    if (kind == 'percent') return '-${value.toStringAsFixed(0)}%';
-    // assuming IQD; change label if you localize currency
-    return '-${value.toStringAsFixed(0)} IQD';
-  }
-}
+const Color primaryColor = AppColors.primaryLight;
+const Color secondaryColor = AppColors.secondary;
+const Color textColor = AppColors.textPrimary;
 
 class _CachedResult {
   final String? body;
@@ -550,10 +225,7 @@ class HomeScreenState extends State<HomeScreen> {
         _LayoutBlock(
             type: 'product_carousel', visible: true, order: 2, slot: 'deals'),
         _LayoutBlock(
-            type: 'featured_categories',
-            visible: true,
-            order: 3,
-            slot: 'top'),
+            type: 'featured_categories', visible: true, order: 3, slot: 'top'),
         _LayoutBlock(type: 'brands', visible: true, order: 4),
         _LayoutBlock(
             type: 'product_carousel',
@@ -1475,6 +1147,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   List<Widget> _buildHomeBlocks(String host, S s) {
     final widgets = <Widget>[];
+    var categoriesRendered = false; // avoid duplicating the category grid
 
     for (final block in _effectiveBlocks) {
       if (!block.visible) continue;
@@ -1490,9 +1163,11 @@ class HomeScreenState extends State<HomeScreen> {
           } else {
             if (_gridMode) {
               widgets.add(_buildCategoryGrid(host));
+              categoriesRendered = true;
               widgets.add(const SizedBox(height: 10));
             } else {
               widgets.addAll(_buildCategoryRows(host, s));
+              categoriesRendered = true;
             }
           }
           break;
@@ -1501,8 +1176,11 @@ class HomeScreenState extends State<HomeScreen> {
           if (w != null) widgets.add(w);
           break;
         case 'brands':
-          widgets.add(_buildCategoryGrid(host));
-          widgets.add(const SizedBox(height: 10));
+          if (!categoriesRendered) {
+            widgets.add(_buildCategoryGrid(host));
+            widgets.add(const SizedBox(height: 10));
+            categoriesRendered = true;
+          }
           break;
         default:
           break;
@@ -1542,8 +1220,9 @@ class HomeScreenState extends State<HomeScreen> {
             onPageChanged: (i) => setState(() => _currentPage = i),
             itemBuilder: (context, i) {
               final ad = _ads[i];
-              final rawPath =
-                  ad.filePath.startsWith('/') ? ad.filePath.substring(1) : ad.filePath;
+              final rawPath = ad.filePath.startsWith('/')
+                  ? ad.filePath.substring(1)
+                  : ad.filePath;
               final mediaUrl = '$host/$rawPath';
 
               return Padding(
@@ -1575,15 +1254,17 @@ class HomeScreenState extends State<HomeScreen> {
                     child: ad.mediaType == 'image'
                         ? CachedNetworkImage(
                             imageUrl: mediaUrl,
-                            placeholder: (_, __) =>
-                                const Center(child: CircularProgressIndicator()),
-                            errorWidget: (_, __, ___) => const Icon(Icons.error),
+                            placeholder: (_, __) => const Center(
+                                child: CircularProgressIndicator()),
+                            errorWidget: (_, __, ___) =>
+                                const Icon(Icons.error),
                           )
                         : FittedBox(
                             fit: BoxFit.cover,
                             child: SizedBox(
                               width: _videoControllers[ad.id]!.value.size.width,
-                              height: _videoControllers[ad.id]!.value.size.height,
+                              height:
+                                  _videoControllers[ad.id]!.value.size.height,
                               child: VideoPlayer(_videoControllers[ad.id]!),
                             ),
                           ),
@@ -1657,8 +1338,8 @@ class HomeScreenState extends State<HomeScreen> {
                           CachedNetworkImage(
                             imageUrl: cover,
                             fit: BoxFit.cover,
-                            placeholder: (_, __) =>
-                                const Center(child: CircularProgressIndicator()),
+                            placeholder: (_, __) => const Center(
+                                child: CircularProgressIndicator()),
                             errorWidget: (_, __, ___) =>
                                 const Icon(Icons.error, size: 40),
                           )
@@ -1715,7 +1396,8 @@ class HomeScreenState extends State<HomeScreen> {
                                       fontWeight: FontWeight.bold,
                                       shadows: [
                                         Shadow(
-                                            color: Colors.black54, blurRadius: 4)
+                                            color: Colors.black54,
+                                            blurRadius: 4)
                                       ],
                                     ),
                                   ),
@@ -1812,8 +1494,9 @@ class HomeScreenState extends State<HomeScreen> {
                     );
                   }
                   final it = feed.items[idx];
-                  final rawPath =
-                      it.imageUrl.startsWith('/') ? it.imageUrl.substring(1) : it.imageUrl;
+                  final rawPath = it.imageUrl.startsWith('/')
+                      ? it.imageUrl.substring(1)
+                      : it.imageUrl;
                   final imgUrl = '$host/$rawPath';
                   return InkWell(
                     onTap: () async {
@@ -1873,8 +1556,8 @@ class HomeScreenState extends State<HomeScreen> {
                                       ? CachedNetworkImage(
                                           imageUrl: imgUrl,
                                           placeholder: (_, __) => const Center(
-                                            child:
-                                                CircularProgressIndicator(color: Colors.white),
+                                            child: CircularProgressIndicator(
+                                                color: Colors.white),
                                           ),
                                           errorWidget: (_, __, ___) =>
                                               const Icon(Icons.error),
@@ -1932,7 +1615,8 @@ class HomeScreenState extends State<HomeScreen> {
                                         '${it.price.toStringAsFixed(0)} IQD',
                                         style: const TextStyle(
                                           fontSize: 9,
-                                          decoration: TextDecoration.lineThrough,
+                                          decoration:
+                                              TextDecoration.lineThrough,
                                           color: Colors.grey,
                                         ),
                                       ),
@@ -1962,13 +1646,16 @@ class HomeScreenState extends State<HomeScreen> {
                             builder: (_) {
                               final q = _itemQty[it.id] ?? 0;
                               return Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 4),
                                 height: 34,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: const Color(0xFFE6E6E6)),
+                                  border: Border.all(
+                                      color: const Color(0xFFE6E6E6)),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1979,7 +1666,9 @@ class HomeScreenState extends State<HomeScreen> {
                                       child: IconButton(
                                         padding: EdgeInsets.zero,
                                         iconSize: 18,
-                                        onPressed: q > 0 ? () => _decrementItem(it) : null,
+                                        onPressed: q > 0
+                                            ? () => _decrementItem(it)
+                                            : null,
                                         icon: const Icon(Icons.remove),
                                         color: Colors.redAccent,
                                         disabledColor: Colors.grey,
@@ -2028,8 +1717,9 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Widget? _buildFeaturedCategoriesBlock(String slot, String host) {
-    final sets =
-        _featuredSets.where((s) => s.slot.toLowerCase() == slot.toLowerCase()).toList();
+    final sets = _featuredSets
+        .where((s) => s.slot.toLowerCase() == slot.toLowerCase())
+        .toList();
     if (sets.isEmpty) return null;
     final catMap = _categoryById;
 
@@ -2086,7 +1776,8 @@ class HomeScreenState extends State<HomeScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xffFEFAE0),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFEFEFEF)),
+                              border:
+                                  Border.all(color: const Color(0xFFEFEFEF)),
                             ),
                             padding: const EdgeInsets.all(10),
                             child: Column(
@@ -2101,12 +1792,14 @@ class HomeScreenState extends State<HomeScreen> {
                                   ),
                                   child: cover != null
                                       ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(14),
+                                          borderRadius:
+                                              BorderRadius.circular(14),
                                           child: CachedNetworkImage(
                                             imageUrl: cover,
                                             fit: BoxFit.cover,
                                             placeholder: (_, __) => const Center(
-                                                child: CircularProgressIndicator()),
+                                                child:
+                                                    CircularProgressIndicator()),
                                             errorWidget: (_, __, ___) =>
                                                 const Icon(Icons.error),
                                           ),

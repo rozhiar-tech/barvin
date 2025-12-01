@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/screens/order_receipt.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'package:barvin/screens/home.dart' show apiBase;
+import 'package:barvin/constants/app_constants.dart';
+import 'package:barvin/services/api_client.dart';
+import 'package:barvin/services/token_storage.dart';
 
-const Color primaryColor = Color(0xFF567765);
+const Color primaryColor = AppColors.primary;
 
 extension StringCap on String {
   String capitalize() => isEmpty ? '' : this[0].toUpperCase() + substring(1);
@@ -22,7 +22,6 @@ class Orders extends StatefulWidget {
 class _OrdersState extends State<Orders> {
   bool _loading = true;
   bool _loggedIn = false;
-  String? _token;
   List<Map<String, dynamic>> _orders = [];
 
   @override
@@ -32,9 +31,8 @@ class _OrdersState extends State<Orders> {
   }
 
   Future<void> _initAndFetch() async {
-    final prefs = await SharedPreferences.getInstance();
-    final t = prefs.getString('token');
-    if (t == null) {
+    final token = await TokenStorage.read();
+    if (token == null) {
       setState(() {
         _loggedIn = false;
         _loading = false;
@@ -42,7 +40,6 @@ class _OrdersState extends State<Orders> {
     } else {
       setState(() {
         _loggedIn = true;
-        _token = t;
       });
       await _fetchOrders();
     }
@@ -50,13 +47,7 @@ class _OrdersState extends State<Orders> {
 
   Future<void> _fetchOrders() async {
     try {
-      final res = await http.get(
-        Uri.parse('$apiBase/orders/user'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-      );
+      final res = await ApiClient.instance.get(AppEndpoints.ordersUser);
 
       final decoded = jsonDecode(res.body);
       final List<dynamic> dataList = decoded is List
@@ -99,8 +90,18 @@ class _OrdersState extends State<Orders> {
       setState(() {
         _orders = list;
       });
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Failed to load orders')),
+        );
+      }
     } catch (_) {
-      // swallow; UI shows empty state
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Network error')),
+        );
+      }
     } finally {
       setState(() => _loading = false);
     }

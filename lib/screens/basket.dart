@@ -6,13 +6,14 @@ import 'package:barvin/screens/checkout.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:barvin/screens/home.dart'
-    show Item, apiBase, textColor, secondaryColor;
+import 'package:barvin/models/item.dart';
+import 'package:barvin/screens/home.dart' show apiBase;
 import 'package:url_launcher/url_launcher.dart'; // NEW
+import 'package:barvin/constants/app_constants.dart';
+import 'package:barvin/services/token_storage.dart';
 
-const Color whatsAppGreen = Color(0xFF25D366);
-
-const Color primaryColor = Color(0xFF567765);
+const Color whatsAppGreen = AppColors.whatsAppGreen;
+const Color primaryColor = AppColors.primary;
 
 class BasketPage extends StatefulWidget {
   const BasketPage({super.key});
@@ -91,7 +92,7 @@ class BasketPageState extends State<BasketPage> {
   Future<void> _checkLoginAndLoadCart() async {
     final prefs = await SharedPreferences.getInstance();
     _isLoggedIn = prefs.getBool('loggedIn') ?? false;
-    token = prefs.getString('token') ?? '';
+    token = await TokenStorage.read() ?? '';
     await _loadCart();
     setState(() {
       if (_isLoggedIn) {
@@ -354,7 +355,7 @@ class BasketPageState extends State<BasketPage> {
 
     setState(() => _isLoadingOrder = true);
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final token = await TokenStorage.read();
 
     final payload = {
       'items': _entries
@@ -429,7 +430,8 @@ class BasketPageState extends State<BasketPage> {
         backgroundColor: const Color(0xffFEFAE0),
         elevation: 1,
         iconTheme: const IconThemeData(color: primaryColor),
-        title: Text(s.basketTitle, style: const TextStyle(color: textColor)),
+        title: Text(s.basketTitle,
+            style: const TextStyle(color: AppColors.textPrimary)),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -450,7 +452,7 @@ class BasketPageState extends State<BasketPage> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: secondaryColor,
+                          color: AppColors.secondary,
                         ),
                       ),
                     );
@@ -510,15 +512,15 @@ class BasketPageState extends State<BasketPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color:
-                                        secondaryColor.withValues(alpha: 0.15),
+                                    color: AppColors.secondary
+                                        .withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     badge,
                                     style: const TextStyle(
                                       fontSize: 11,
-                                      color: secondaryColor,
+                                      color: AppColors.secondary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -649,7 +651,7 @@ class BasketPageState extends State<BasketPage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.schedule, color: secondaryColor),
+                      const Icon(Icons.schedule, color: AppColors.secondary),
                       const SizedBox(width: 8),
                       Text(
                         s.orderHoursHeading,
@@ -665,7 +667,8 @@ class BasketPageState extends State<BasketPage> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.info_outline, color: secondaryColor),
+                      const Icon(Icons.info_outline,
+                          color: AppColors.secondary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
