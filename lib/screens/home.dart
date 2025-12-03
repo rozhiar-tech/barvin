@@ -1,10 +1,9 @@
-// ignore_for_file: unused_field
+// ignore_for_file: unused_field, unused_element
 
 import 'dart:async';
 import 'dart:convert';
 import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/screens/ads_screen.dart';
-import 'package:barvin/screens/custom_basket_builder.dart';
 import 'package:barvin/screens/discounts_screen.dart';
 import 'package:barvin/screens/food_basket_screen.dart';
 import 'package:barvin/screens/handworks_screen.dart';
@@ -100,7 +99,34 @@ class _SectionData {
   _SectionData(this.category, this.items);
 }
 
+class _HandworkThumb {
+  final int id;
+  final int handworkId;
+  final String imageUrl;
+  final DateTime? createdAt;
+
+  _HandworkThumb({
+    required this.id,
+    required this.handworkId,
+    required this.imageUrl,
+    this.createdAt,
+  });
+
+  factory _HandworkThumb.fromJson(Map<String, dynamic> j) {
+    DateTime? ts;
+    final rawTs = j['created_at'] ?? j['createdAt'];
+    if (rawTs != null) ts = DateTime.tryParse(rawTs.toString());
+    return _HandworkThumb(
+      id: int.tryParse(j['id']?.toString() ?? '') ?? 0,
+      handworkId: int.tryParse(j['handwork_id']?.toString() ?? '') ?? 0,
+      imageUrl: (j['image_url'] ?? '').toString(),
+      createdAt: ts,
+    );
+  }
+}
+
 class _LayoutBlock {
+  // Deprecated: kept only to avoid breaking older cached code paths.
   final String type;
   final bool visible;
   final int order;
@@ -109,8 +135,29 @@ class _LayoutBlock {
     required this.type,
     required this.visible,
     required this.order,
+    // ignore: unused_element_parameter
     this.slot = "",
   });
+}
+
+class _LayoutSection {
+  final String type;
+  final String slot;
+  final List<int> featuredSetIds;
+  final List<int> adIds;
+  final String? title;
+  final String? description;
+
+  const _LayoutSection({
+    required this.type,
+    this.slot = '',
+    this.featuredSetIds = const [],
+    this.adIds = const [],
+    this.title,
+    this.description,
+  });
+
+  String get typeLower => type.toLowerCase();
 }
 
 class _FeaturedSet {
@@ -133,8 +180,6 @@ class HomeScreen extends StatefulWidget {
   HomeScreenState createState() => HomeScreenState();
 }
 
-/// Parse either a raw JSON list or a JSON object
-/// with an array under one of the keys.
 List<dynamic> parseSectionsPayload(String jsonStr) {
   // print(jsonStr);
   final decoded = jsonDecode(jsonStr);
@@ -174,6 +219,24 @@ class HomeScreenState extends State<HomeScreen> {
   bool _usingCachedData = false;
   String? _backendIssue;
   DateTime? _cacheTimestamp;
+
+  String _describeSections(List<_LayoutSection> sections) {
+    return sections.map((s) {
+      final extras = <String>[];
+      if (s.slot.isNotEmpty) extras.add('slot:${s.slot}');
+      if (s.featuredSetIds.isNotEmpty) {
+        extras.add('sets:${s.featuredSetIds.length}');
+      }
+      if (s.adIds.isNotEmpty) extras.add('ads:${s.adIds.length}');
+      final extra = extras.isEmpty ? '' : '(${extras.join('/')})';
+      return '${s.type}$extra';
+    }).join(', ');
+  }
+
+  void _logLayout(String message, {List<_LayoutSection>? sections}) {
+    final list = sections ?? _effectiveSections;
+    debugPrint('[HOME_LAYOUT] $message -> ${_describeSections(list)}');
+  }
 
 // convenience
   void _markFallback(_CachedResult r) {
@@ -218,26 +281,38 @@ class HomeScreenState extends State<HomeScreen> {
       _discounts.where((d) => d.isLive).toList(growable: false);
 
   List<Ad> _ads = [];
-  List<_LayoutBlock> _layoutBlocks = [];
+  List<_LayoutSection> _layoutSections = [];
   List<_FeaturedSet> _featuredSets = [];
-  List<_LayoutBlock> get _defaultLayout => [
-        _LayoutBlock(type: 'banner', visible: true, order: 1),
-        _LayoutBlock(
-            type: 'product_carousel', visible: true, order: 2, slot: 'deals'),
-        _LayoutBlock(
-            type: 'featured_categories', visible: true, order: 3, slot: 'top'),
-        _LayoutBlock(type: 'brands', visible: true, order: 4),
-        _LayoutBlock(
-            type: 'product_carousel',
-            visible: true,
-            order: 5,
-            slot: 'categories'),
+
+  List<_LayoutSection> get _defaultSections => const [
+        _LayoutSection(type: 'deals'),
+        _LayoutSection(type: 'categories'),
+        _LayoutSection(type: 'featured_category', slot: 'feature-1'),
+        _LayoutSection(type: 'food_basket'),
+        _LayoutSection(type: 'handwork'),
       ];
 
-  List<_LayoutBlock> get _effectiveBlocks {
-    final list = _layoutBlocks.isNotEmpty ? _layoutBlocks : _defaultLayout;
-    final sorted = [...list]..sort((a, b) => a.order.compareTo(b.order));
-    return sorted;
+  List<_LayoutSection> get _effectiveSections {
+    final list = _layoutSections.isNotEmpty
+        ? [..._layoutSections]
+        : [..._defaultSections];
+
+    // Ensure required anchors exist at least once.
+    final types = list.map((s) => s.typeLower).toList();
+    if (!types.contains('categories')) {
+      list.insert(0, const _LayoutSection(type: 'categories'));
+      debugPrint('[HOME_LAYOUT] injected missing "categories" anchor');
+    }
+    if (!types.contains('food_basket')) {
+      list.add(const _LayoutSection(type: 'food_basket'));
+      debugPrint('[HOME_LAYOUT] injected missing "food_basket" anchor');
+    }
+    if (!types.contains('handwork')) {
+      list.add(const _LayoutSection(type: 'handwork'));
+      debugPrint('[HOME_LAYOUT] injected missing "handwork" anchor');
+    }
+
+    return list;
   }
 
   int _currentPage = 0;
@@ -246,8 +321,10 @@ class HomeScreenState extends State<HomeScreen> {
   bool _loading = true;
   List<_SectionData> _sections = [];
   List<HandWork> _handworks = [];
+  List<_HandworkThumb> _handworkThumbs = [];
   List<FoodBasket> _foodBaskets = [];
   bool _handworksLoading = false;
+  bool _handworkThumbsLoading = false;
   bool _foodBasketsLoading = false;
   Map<int, VideoPlayerController> _videoControllers = {};
   int _cartCount = 0;
@@ -328,6 +405,7 @@ class HomeScreenState extends State<HomeScreen> {
     _startCarousel();
     _loadLayoutConfig();
     _loadFeaturedSets();
+    _loadHandworkThumbnails();
     _loadSections();
     _loadHandworks();
     _loadFoodBaskets();
@@ -366,29 +444,90 @@ class HomeScreenState extends State<HomeScreen> {
       final res = await http.get(apiUrl('/ui-layouts/home', {
         'clientId': 'default',
         'includeDefault': 'true',
+        'activeOnly': 'true',
       }));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
-        final list = (data['layout'] as List?) ?? const [];
-        final blocks = list
-            .whereType<Map<String, dynamic>>()
-            .map((m) => _LayoutBlock(
-                  type: (m['type'] ?? '').toString(),
-                  visible: m['visible'] != false,
-                  order: int.tryParse(m['order']?.toString() ?? '') ?? 0,
-                  slot: (m['payload'] is Map && m['payload']['slot'] != null)
-                      ? m['payload']['slot'].toString()
-                      : '',
-                ))
-            .where((b) => b.type.isNotEmpty)
-            .toList();
-        if (mounted) setState(() => _layoutBlocks = blocks);
+        final layoutField = data['layout'];
+        final sectionsRaw = layoutField is Map<String, dynamic>
+            ? (layoutField['sections'] as List?) ?? const []
+            : (layoutField is List ? layoutField : const []);
+        final sections = _parseLayoutSections(List<dynamic>.from(sectionsRaw));
+        final source = data['source'] ?? 'unknown';
+        final active = data['is_active'];
+        _logLayout(
+          'API layout fetched source=$source active=$active (${sections.length} section(s))',
+          sections: sections,
+        );
+        if (mounted) setState(() => _layoutSections = sections);
       } else if (res.statusCode == 404) {
-        if (mounted) setState(() => _layoutBlocks = []);
+        debugPrint(
+            '[HOME_LAYOUT] /ui-layouts/home returned 404, using defaults');
+        if (mounted) setState(() => _layoutSections = []);
       }
     } catch (_) {
       // ignore network/layout errors; fallback will be used
+      debugPrint(
+          '[HOME_LAYOUT] Failed to load layout config, falling back to defaults');
     }
+  }
+
+  List<_LayoutSection> _parseLayoutSections(List<dynamic> raw) {
+    List<int> _parseIds(dynamic value) {
+      final list = (value is List) ? value : const [];
+      return list
+          .whereType<dynamic>()
+          .map((e) => int.tryParse(e.toString()) ?? -1)
+          .where((id) => id > 0)
+          .toList();
+    }
+
+    final sections = <_LayoutSection>[];
+    for (final entry in raw) {
+      if (entry is String) {
+        sections.add(_LayoutSection(type: entry));
+        continue;
+      }
+      if (entry is Map) {
+        final map = Map<String, dynamic>.from(entry);
+        if (map['visible'] == false) continue; // legacy support
+        final payload = map['payload'];
+        final type = (map['type'] ?? '').toString();
+        if (type.isEmpty) continue;
+        var slot = (map['slot'] ?? '').toString();
+        if (slot.isEmpty &&
+            payload is Map &&
+            payload['slot'] != null &&
+            payload['slot'].toString().isNotEmpty) {
+          slot = payload['slot'].toString();
+        }
+        final featuredSetIds = _parseIds(map['featured_set_ids'] ??
+            (payload is Map ? payload['featured_set_ids'] : null));
+        final adIds = _parseIds(
+            map['ad_ids'] ?? (payload is Map ? payload['ad_ids'] : null));
+        String? title;
+        final rawTitle =
+            map['title'] ?? (payload is Map ? payload['title'] : null);
+        if (rawTitle != null && rawTitle.toString().trim().isNotEmpty) {
+          title = rawTitle.toString().trim();
+        }
+        String? description;
+        final rawDesc = map['description'] ??
+            (payload is Map ? payload['description'] : null);
+        if (rawDesc != null && rawDesc.toString().trim().isNotEmpty) {
+          description = rawDesc.toString().trim();
+        }
+        sections.add(_LayoutSection(
+          type: type,
+          slot: slot,
+          featuredSetIds: featuredSetIds,
+          adIds: adIds,
+          title: title,
+          description: description,
+        ));
+      }
+    }
+    return sections;
   }
 
   Future<void> _loadFeaturedSets() async {
@@ -397,6 +536,7 @@ class HomeScreenState extends State<HomeScreen> {
         'clientId': 'default',
         'page': 'home',
         'includeDefault': 'true',
+        'activeOnly': 'true',
       }));
       if (res.statusCode == 200) {
         final list = jsonDecode(res.body) as List<dynamic>;
@@ -413,10 +553,13 @@ class HomeScreenState extends State<HomeScreen> {
                       .toList(),
                 ))
             .toList();
+        debugPrint(
+            '[HOME_FEATURED] fetched ${sets.length} set(s): ${sets.map((s) => '${s.slot}:${s.categoryIds.length}').join(', ')}');
         if (mounted) setState(() => _featuredSets = sets);
       }
     } catch (_) {
       // ignore errors; fallback to defaults
+      debugPrint('[HOME_FEATURED] failed to load featured category sets');
     }
   }
 
@@ -502,8 +645,7 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  int get _foodCarouselItemCount =>
-      _foodBaskets.isEmpty ? 1 : _foodBaskets.length + 1;
+  int get _foodCarouselItemCount => _foodBaskets.length;
 
   void _restartFoodAutoScroll() {
     _foodAutoTimer?.cancel();
@@ -881,6 +1023,39 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadHandworkThumbnails() async {
+    if (mounted) setState(() => _handworkThumbsLoading = true);
+    final res = await _Cache.fetch('handwork_thumbnails', () {
+      return http.get(apiUrl('/handwork-thumbnails'));
+    });
+
+    if (!res.hasData) {
+      _markFallback(res);
+      if (mounted) setState(() => _handworkThumbsLoading = false);
+      return;
+    }
+
+    try {
+      final List data = jsonDecode(res.body!) as List;
+      final thumbs = data
+          .whereType<Map<String, dynamic>>()
+          .map(_HandworkThumb.fromJson)
+          .where((t) => t.imageUrl.isNotEmpty)
+          .toList();
+      thumbs.sort((a, b) {
+        final aTs = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTs = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTs.compareTo(aTs);
+      });
+      if (mounted) setState(() => _handworkThumbs = thumbs);
+      _markFallback(res);
+    } catch (_) {
+      _markFallback(res);
+    } finally {
+      if (mounted) setState(() => _handworkThumbsLoading = false);
+    }
+  }
+
   Future<void> _loadFoodBaskets() async {
     if (mounted) setState(() => _foodBasketsLoading = true);
     final res = await _Cache.fetch('food_baskets', () {
@@ -1145,85 +1320,208 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Wraps multi-widget sections so we only insert one divider between sections.
+  Widget? _wrapSection(List<Widget> children) {
+    if (children.isEmpty) return null;
+    if (children.length == 1) return children.first;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
+  }
+
   List<Widget> _buildHomeBlocks(String host, S s) {
     final widgets = <Widget>[];
-    var categoriesRendered = false; // avoid duplicating the category grid
+    final sections = _effectiveSections;
+    var categoriesRendered = false;
+    var foodRendered = false;
+    var handworkRendered = false;
+    var dealsRendered = false;
+    _logLayout(
+      'building home blocks; gridMode=$_gridMode; sections=${_sections.length}; source=${_layoutSections.isEmpty ? 'default' : 'remote'}',
+      sections: sections,
+    );
 
-    for (final block in _effectiveBlocks) {
-      if (!block.visible) continue;
-      switch (block.type) {
-        case 'banner':
-          if (_ads.isNotEmpty) widgets.add(_buildAdsBlock(host));
-          break;
-        case 'product_carousel':
-          if (block.slot == 'deals') {
-            if (_activeDiscounts.isNotEmpty) {
-              widgets.add(_buildDealsBlock(s));
-            }
+    // Always show the full ads carousel first.
+    if (_ads.isNotEmpty) {
+      widgets.add(_buildAdsBlock(host));
+    }
+
+    // Show discounts near the top by default.
+    if (_activeDiscounts.isNotEmpty) {
+      widgets.add(_buildDealsBlock(s));
+      dealsRendered = true;
+    }
+
+    for (final section in sections) {
+      switch (section.typeLower) {
+        case 'deals':
+          if (dealsRendered) {
+            debugPrint('[HOME_LAYOUT] skipping duplicate deals section');
+            break;
+          }
+          if (_activeDiscounts.isNotEmpty) {
+            widgets.add(_buildDealsBlock(s));
+            dealsRendered = true;
           } else {
-            if (_gridMode) {
-              widgets.add(_buildCategoryGrid(host));
-              categoriesRendered = true;
-              widgets.add(const SizedBox(height: 10));
-            } else {
-              widgets.addAll(_buildCategoryRows(host, s));
-              categoriesRendered = true;
-            }
+            debugPrint(
+                '[HOME_LAYOUT] deals section present but no active discounts');
           }
           break;
-        case 'featured_categories':
-          final w = _buildFeaturedCategoriesBlock(block.slot, host);
+        case 'categories':
+          if (categoriesRendered) {
+            debugPrint('[HOME_LAYOUT] skipping duplicate categories section');
+            break;
+          }
+          debugPrint('[HOME_LAYOUT] rendering categories gridMode=$_gridMode');
+          if (_gridMode) {
+            widgets.add(_wrapSection([
+              _buildCategoryGrid(host),
+              const SizedBox(height: 10),
+            ])!);
+          } else {
+            final content = _wrapSection(_buildCategoryRows(host, s));
+            if (content != null) widgets.add(content);
+          }
+          categoriesRendered = true;
+          break;
+        case 'featured_category':
+        case 'featured_categories': // legacy
+          final w = _buildFeaturedCategoriesBlock(section, host);
           if (w != null) widgets.add(w);
           break;
-        case 'brands':
+        case 'custom_ad':
+        case 'banner': // legacy
+          final w = _buildCustomAdBlock(section, host);
+          if (w != null) widgets.add(w);
+          break;
+        case 'food_basket':
+          if (foodRendered) {
+            debugPrint('[HOME_LAYOUT] skipping duplicate food_basket section');
+            break;
+          }
+          final content = _wrapSection(_buildFoodBasketWidgets());
+          if (content != null) widgets.add(content);
+          foodRendered = true;
+          break;
+        case 'handwork':
+          if (handworkRendered) {
+            debugPrint('[HOME_LAYOUT] skipping duplicate handwork section');
+            break;
+          }
+          final content = _wrapSection(_buildHandworkWidgets());
+          if (content != null) widgets.add(content);
+          handworkRendered = true;
+          break;
+        case 'product_carousel': // legacy
+          if (section.slot.toLowerCase() == 'deals') {
+            if (!dealsRendered && _activeDiscounts.isNotEmpty) {
+              widgets.add(_buildDealsBlock(s));
+              dealsRendered = true;
+            }
+          } else {
+            if (categoriesRendered) {
+              debugPrint(
+                  '[HOME_LAYOUT] skipping legacy product_carousel slot=${section.slot} because categories already rendered');
+              break;
+            }
+            debugPrint(
+                '[HOME_LAYOUT] legacy category render via product_carousel slot=${section.slot} gridMode=$_gridMode');
+            if (_gridMode) {
+              widgets.add(_wrapSection([
+                _buildCategoryGrid(host),
+                const SizedBox(height: 10),
+              ])!);
+            } else {
+              final content = _wrapSection(_buildCategoryRows(host, s));
+              if (content != null) widgets.add(content);
+            }
+            categoriesRendered = true;
+          }
+          break;
+        case 'brands': // legacy fallback to categories
           if (!categoriesRendered) {
-            widgets.add(_buildCategoryGrid(host));
-            widgets.add(const SizedBox(height: 10));
+            debugPrint(
+                '[HOME_LAYOUT] legacy brands block triggering categories render');
+            widgets.add(_wrapSection([
+              _buildCategoryGrid(host),
+              const SizedBox(height: 10),
+            ])!);
             categoriesRendered = true;
           }
           break;
         default:
+          debugPrint('[HOME_LAYOUT] unknown section type "${section.type}"');
           break;
       }
     }
 
-    widgets.addAll(_buildFoodBasketWidgets());
-    widgets.addAll(_buildHandworkWidgets());
-    return widgets;
+    // Insert a divider between every section.
+    if (widgets.isEmpty) return widgets;
+    final interleaved = <Widget>[];
+    for (var i = 0; i < widgets.length; i++) {
+      if (i > 0) interleaved.add(_sectionDivider(Icons.more_horiz));
+      interleaved.add(widgets[i]);
+    }
+    return interleaved;
   }
 
-  Widget _buildAdsBlock(String host) {
-    if (_ads.isEmpty) return const SizedBox.shrink();
+  Widget? _buildCustomAdBlock(_LayoutSection section, String host) {
+    List<Ad> adsToShow = [];
+    if (section.adIds.isNotEmpty) {
+      final idSet = section.adIds.toSet();
+      adsToShow = _ads.where((a) => idSet.contains(a.id)).toList();
+    } else {
+      adsToShow = List<Ad>.from(_ads);
+    }
+    debugPrint(
+        '[HOME_AD] slot="${section.slot}" adIds=${section.adIds} matched ${adsToShow.length} ads');
+    if (adsToShow.isEmpty) return null;
+    return _buildAdsBlock(
+      host,
+      ads: adsToShow,
+      title: section.title,
+      description: section.description,
+    );
+  }
+
+  Widget _buildAdsBlock(String host,
+      {List<Ad>? ads, String? title, String? description}) {
+    final list = ads ?? _ads;
+    if (list.isEmpty) return const SizedBox.shrink();
+    final showSeeAll = ads == null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            icon: const Icon(Icons.collections),
-            label: const Text('See all ads'),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AdsScreen(initialAds: _ads),
-                ),
-              );
-            },
+        if (showSeeAll)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              icon: const Icon(Icons.collections),
+              label: const Text('See all ads'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdsScreen(initialAds: _ads),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
         SizedBox(
           height: 180,
           child: PageView.builder(
             controller: _pageController,
-            itemCount: _ads.length,
+            itemCount: list.length,
             onPageChanged: (i) => setState(() => _currentPage = i),
             itemBuilder: (context, i) {
-              final ad = _ads[i];
+              final ad = list[i];
               final rawPath = ad.filePath.startsWith('/')
                   ? ad.filePath.substring(1)
                   : ad.filePath;
               final mediaUrl = '$host/$rawPath';
+              final vc = _videoControllers[ad.id];
 
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -1259,15 +1557,21 @@ class HomeScreenState extends State<HomeScreen> {
                             errorWidget: (_, __, ___) =>
                                 const Icon(Icons.error),
                           )
-                        : FittedBox(
-                            fit: BoxFit.cover,
-                            child: SizedBox(
-                              width: _videoControllers[ad.id]!.value.size.width,
-                              height:
-                                  _videoControllers[ad.id]!.value.size.height,
-                              child: VideoPlayer(_videoControllers[ad.id]!),
-                            ),
-                          ),
+                        : (vc != null
+                            ? FittedBox(
+                                fit: BoxFit.cover,
+                                child: SizedBox(
+                                  width: vc.value.size.width,
+                                  height: vc.value.size.height,
+                                  child: VideoPlayer(vc),
+                                ),
+                              )
+                            : Container(
+                                color: Colors.black12,
+                                child: const Center(
+                                  child: Icon(Icons.play_arrow),
+                                ),
+                              )),
                   ),
                 ),
               );
@@ -1278,7 +1582,7 @@ class HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
-            _ads.length,
+            list.length,
             (index) => Container(
               margin: const EdgeInsets.symmetric(horizontal: 4),
               width: _currentPage == index ? 12 : 8,
@@ -1301,12 +1605,6 @@ class HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          s.tDeals,
-          style: const TextStyle(
-              fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
-        ),
-        const SizedBox(height: 12),
         SizedBox(
           height: 140,
           child: PageView.builder(
@@ -1716,16 +2014,46 @@ class HomeScreenState extends State<HomeScreen> {
     return widgets;
   }
 
-  Widget? _buildFeaturedCategoriesBlock(String slot, String host) {
-    final sets = _featuredSets
-        .where((s) => s.slot.toLowerCase() == slot.toLowerCase())
-        .toList();
+  Widget? _buildFeaturedCategoriesBlock(_LayoutSection section, String host) {
+    final normalizedSlot = section.slot.toLowerCase().trim();
+    List<_FeaturedSet> sets;
+    if (section.featuredSetIds.isNotEmpty) {
+      final idSet = section.featuredSetIds.toSet();
+      sets = _featuredSets.where((s) => idSet.contains(s.id)).toList();
+      debugPrint(
+          '[HOME_FEATURED] ids=${section.featuredSetIds} matched ${sets.length} set(s)');
+    } else if (normalizedSlot.isNotEmpty) {
+      sets = _featuredSets
+          .where((s) => s.slot.toLowerCase() == normalizedSlot)
+          .toList();
+      if (sets.isEmpty && _featuredSets.length == 1) {
+        // fallback: if only one set exists, show it regardless of slot mismatch
+        sets = _featuredSets;
+        debugPrint(
+            '[HOME_FEATURED] slot="${section.slot}" matched 0 set(s); falling back to the only available set "${sets.first.slot}"');
+      } else {
+        debugPrint(
+            '[HOME_FEATURED] slot="${section.slot}" matched ${sets.length} set(s)');
+      }
+    } else {
+      sets = List<_FeaturedSet>.from(_featuredSets);
+      debugPrint(
+          '[HOME_FEATURED] no slot provided; using ${sets.length} set(s)');
+    }
     if (sets.isEmpty) return null;
     final catMap = _categoryById;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (section.description != null && section.description!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6.0),
+            child: Text(
+              section.description!,
+              style: const TextStyle(color: textColor),
+            ),
+          ),
         for (final set in sets)
           Builder(
             builder: (_) {
@@ -1733,18 +2061,14 @@ class HomeScreenState extends State<HomeScreen> {
                   .map((id) => catMap[id]?.category)
                   .whereType<Category>()
                   .toList();
+              if (cats.isEmpty) {
+                debugPrint(
+                    '[HOME_FEATURED] set "${set.title}" slot=${set.slot} resolved 0 categories from ids ${set.categoryIds}');
+              }
               if (cats.isEmpty) return const SizedBox.shrink();
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    set.title.isNotEmpty ? set.title : 'Featured',
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: textColor),
-                  ),
-                  const SizedBox(height: 8),
                   SizedBox(
                     height: 150,
                     child: ListView.separated(
@@ -1951,22 +2275,6 @@ class HomeScreenState extends State<HomeScreen> {
               thickness: 1,
             ),
           ),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 10),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                )
-              ],
-            ),
-            child: Icon(icon, color: secondaryColor, size: 18),
-          ),
           Expanded(
             child: Divider(
               color: secondaryColor.withValues(alpha: 0.35),
@@ -1980,23 +2288,11 @@ class HomeScreenState extends State<HomeScreen> {
 
   List<Widget> _buildHandworkWidgets() {
     final s = S.of(context);
-    if (_handworksLoading && _handworks.isEmpty) {
+    final thumb = _handworkThumbs.isNotEmpty ? _handworkThumbs.first : null;
+    if (_handworkThumbsLoading && thumb == null) {
       return [
-        _sectionDivider(Icons.print_rounded),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.grid_view_rounded, color: textColor),
-            label: Text(
-              s.seeMore,
-              style: const TextStyle(color: textColor),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
         SizedBox(
-          height: 160,
+          height: 200,
           child: PageView.builder(
             controller: _handworkCardController,
             padEnds: false,
@@ -2007,10 +2303,12 @@ class HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 12),
       ];
     }
-    if (_handworks.isEmpty) return const [];
+    if (thumb == null) return const [];
+
+    final imageUrl =
+        thumb.imageUrl.isNotEmpty ? mediaUrlFrom(thumb.imageUrl) : null;
 
     return [
-      _sectionDivider(Icons.print_rounded),
       Align(
         alignment: Alignment.centerRight,
         child: TextButton.icon(
@@ -2023,112 +2321,80 @@ class HomeScreenState extends State<HomeScreen> {
         ),
       ),
       const SizedBox(height: 4),
-      SizedBox(
-        height: 160,
-        child: PageView.builder(
-          controller: _handworkCardController,
-          padEnds: false,
-          itemCount: _handworks.length,
-          itemBuilder: (_, idx) {
-            final work = _handworks[idx];
-            final imageUrl = work.primaryImage == null
-                ? null
-                : mediaUrlFrom(work.primaryImage!);
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: GestureDetector(
-                onTap: _openHandworkScreen,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
+      GestureDetector(
+        onTap: _openHandworkScreen,
+        child: Container(
+          height: 200,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                imageUrl == null
+                    ? Container(
+                        color: Colors.grey.shade200,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.image,
+                            size: 48, color: Colors.grey),
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        imageUrl == null
-                            ? Container(
-                                color: Colors.grey.shade200,
-                                alignment: Alignment.center,
-                                child: const Icon(Icons.image,
-                                    size: 48, color: Colors.grey),
-                              )
-                            : CachedNetworkImage(
-                                imageUrl: imageUrl,
-                                fit: BoxFit.cover,
-                              ),
-                        Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black87,
-                              ],
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          left: 20,
-                          right: 20,
-                          bottom: 14,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                work.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${work.price.toStringAsFixed(0)} IQD',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  const Icon(Icons.pan_tool_alt_rounded,
-                                      size: 14, color: Colors.white70),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    s.tapToViewMore,
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            ],
-                          ),
-                        ),
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black87,
                       ],
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: 14,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.tapToViewMore,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        s.seeMore,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       const SizedBox(height: 12),
@@ -2139,7 +2405,6 @@ class HomeScreenState extends State<HomeScreen> {
     final s = S.of(context);
     if (_foodBasketsLoading && _foodBaskets.isEmpty) {
       return [
-        _sectionDivider(Icons.shopping_basket_outlined),
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
@@ -2161,14 +2426,13 @@ class HomeScreenState extends State<HomeScreen> {
             itemBuilder: (_, __) => _foodShimmerCard(),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
       ];
     }
     if (_foodBaskets.isEmpty) return const [];
-    final cards = [null, ..._foodBaskets];
+    final cards = _foodBaskets;
 
     return [
-      _sectionDivider(Icons.shopping_basket_outlined),
       Align(
         alignment: Alignment.centerRight,
         child: TextButton.icon(
@@ -2180,7 +2444,7 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      const SizedBox(height: 6),
+      // const SizedBox(height: 6),
       SizedBox(
         height: 210,
         child: Listener(
@@ -2196,55 +2460,6 @@ class HomeScreenState extends State<HomeScreen> {
             },
             itemBuilder: (_, idx) {
               final basket = cards[idx];
-              if (basket == null) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: GestureDetector(
-                    onTap: _openCustomBasketBuilder,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF5D8A4E), Color(0xFF9BC088)],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            s.createBasketCardTitle,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            s.createBasketCardBody,
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                          const Spacer(),
-                          const Align(
-                            alignment: Alignment.bottomRight,
-                            child: Icon(Icons.add_circle_outline,
-                                color: Colors.white, size: 36),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
-
               final imageUrl = basket.primaryImage == null
                   ? null
                   : mediaUrlFrom(basket.primaryImage!);
@@ -2265,30 +2480,30 @@ class HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(14),
-                          child: imageUrl == null
-                              ? Container(
-                                  height: 100,
-                                  width: double.infinity,
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(Icons.image),
-                                )
-                              : CachedNetworkImage(
-                                  imageUrl: imageUrl,
-                                  height: 100,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
+                          child: AspectRatio(
+                            aspectRatio: 16 / 5.5,
+                            child: imageUrl == null
+                                ? Container(
+                                    width: double.infinity,
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(Icons.image),
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 4),
                         Text(
                           basket.name,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
@@ -2296,8 +2511,14 @@ class HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text('${basket.price.toStringAsFixed(0)} IQD'),
-                        Text('${basket.items.length} items included'),
+                        Text(
+                          '${basket.price.toStringAsFixed(0)} IQD',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF567765),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -2307,7 +2528,7 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      const SizedBox(height: 16),
+      // const SizedBox(height: 16),
     ];
   }
 
@@ -2325,18 +2546,6 @@ class HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => FoodBasketsScreen(initialBaskets: _foodBaskets),
-      ),
-    );
-    if (changed == true) {
-      await _loadCartCount();
-    }
-  }
-
-  Future<void> _openCustomBasketBuilder() async {
-    final changed = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const CustomBasketBuilder(),
       ),
     );
     if (changed == true) {

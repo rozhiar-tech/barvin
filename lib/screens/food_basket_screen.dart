@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/models/collections.dart';
-import 'package:barvin/screens/custom_basket_builder.dart';
 import 'package:barvin/services/api_config.dart';
+import 'package:barvin/constants/contact.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class FoodBasketsScreen extends StatefulWidget {
   final List<FoodBasket> initialBaskets;
@@ -22,7 +22,6 @@ class _FoodBasketsScreenState extends State<FoodBasketsScreen> {
   late List<FoodBasket> _baskets;
   bool _loading = false;
   String? _error;
-  bool _cartChanged = false;
 
   @override
   void initState() {
@@ -59,199 +58,195 @@ class _FoodBasketsScreenState extends State<FoodBasketsScreen> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          Navigator.pop(context, _cartChanged);
-        }
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xffD3E4C4),
-        appBar: AppBar(
-          backgroundColor: const Color(0xffFEFAE0),
-          iconTheme: const IconThemeData(color: Color(0xFF567765)),
-          title: Text(s.foodBasketSectionTitle,
-              style: const TextStyle(color: Colors.black87)),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context, _cartChanged),
-          ),
-        ),
-        body: RefreshIndicator(
-          onRefresh: _fetchBaskets,
-          child: _loading && _baskets.isEmpty
-              ? const Center(child: CircularProgressIndicator())
-              : ListView.builder(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  itemCount: _baskets.length + 1 + (_error != null ? 1 : 0),
-                  itemBuilder: (_, idx) {
-                    if (idx == 0) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () async {
-                              final changed = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const CustomBasketBuilder(),
-                                ),
-                              );
-                              if (changed == true) {
-                                setState(() => _cartChanged = true);
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'Added custom basket items to cart.')),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.add_circle_outline),
-                            label: Text(s.createBasketCardTitle),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              backgroundColor: const Color(0xFF567765),
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      );
-                    }
-
-                    final dataIndex = idx - 1;
-
-                    if (_error != null && dataIndex == _baskets.length) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 24.0),
-                        child: Text(
-                          _error!,
-                          style: const TextStyle(color: Colors.red),
-                          textAlign: TextAlign.center,
-                        ),
-                      );
-                    }
-                    final basket = _baskets[dataIndex];
-                    final imageUrl = basket.primaryImage == null
-                        ? null
-                        : mediaUrlFrom(basket.primaryImage!);
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      color: const Color(0xffFEFAE0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: imageUrl == null
-                                      ? Container(
-                                          width: 90,
-                                          height: 90,
-                                          color: Colors.grey.shade200,
-                                          child: const Icon(Icons.image),
-                                        )
-                                      : CachedNetworkImage(
-                                          imageUrl: imageUrl,
-                                          width: 90,
-                                          height: 90,
-                                          fit: BoxFit.cover,
-                                          placeholder: (_, __) => Container(
-                                            width: 90,
-                                            height: 90,
-                                            alignment: Alignment.center,
-                                            child:
-                                                const CircularProgressIndicator(),
-                                          ),
-                                          errorWidget: (_, __, ___) =>
-                                              Container(
-                                            width: 90,
-                                            height: 90,
-                                            color: Colors.grey.shade200,
-                                            child:
-                                                const Icon(Icons.broken_image),
-                                          ),
-                                        ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        basket.name,
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        basket.description.isNotEmpty
-                                            ? basket.description
-                                            : s.presetBasketDescription,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        '${basket.price.toStringAsFixed(0)} IQD',
-                                        style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                          'Includes ${basket.items.length} items'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            OutlinedButton(
-                              onPressed: () async {
-                                final changed = await Navigator.push<bool>(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => FoodBasketDetailPage(
-                                      basket: basket,
-                                    ),
-                                  ),
-                                );
-                                if (changed == true) {
-                                  setState(() => _cartChanged = true);
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Basket items added to your cart.'),
-                                    ),
-                                  );
-                                }
-                              },
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF567765),
-                              ),
-                              child: Text(s.foodBasketCustomizeCta),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+    return Scaffold(
+      backgroundColor: const Color(0xffD3E4C4),
+      appBar: AppBar(
+        backgroundColor: const Color(0xffFEFAE0),
+        iconTheme: const IconThemeData(color: Color(0xFF567765)),
+        title: Text(s.foodBasketSectionTitle,
+            style: const TextStyle(color: Colors.black87)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
+      body: RefreshIndicator(
+        onRefresh: _fetchBaskets,
+        child: _loading && _baskets.isEmpty
+            ? ListView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                children: const [
+                  SizedBox(height: 220),
+                  Center(child: CircularProgressIndicator()),
+                ],
+              )
+            : _buildBasketList(context, s),
+      ),
+    );
+  }
+
+  Widget _buildBasketList(BuildContext context, S s) {
+    if (_baskets.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        children: [
+          const SizedBox(height: 16),
+          Card(
+            color: const Color(0xffFEFAE0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                _error ?? 'No baskets available right now.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final itemCount = _baskets.length + (_error != null ? 1 : 0);
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: itemCount,
+      itemBuilder: (_, idx) {
+        if (_error != null && idx == itemCount - 1) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              _error!,
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+
+        final basket = _baskets[idx];
+        final imageUrl = basket.primaryImage == null
+            ? null
+            : mediaUrlFrom(basket.primaryImage!);
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => FoodBasketDetailPage(basket: basket),
+              ),
+            );
+          },
+          child: Card(
+            margin: const EdgeInsets.only(bottom: 16),
+            color: const Color(0xffFEFAE0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: imageUrl == null
+                        ? Container(
+                            color: Colors.grey.shade200,
+                            child: const Icon(Icons.image, size: 40),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(
+                              color: Colors.grey.shade100,
+                              alignment: Alignment.center,
+                              child: const CircularProgressIndicator(),
+                            ),
+                            errorWidget: (_, __, ___) => Container(
+                              color: Colors.grey.shade200,
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.broken_image),
+                            ),
+                          ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              basket.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${basket.price.toStringAsFixed(0)} IQD',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF567765),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        basket.description.isNotEmpty
+                            ? basket.description
+                            : s.presetBasketDescription,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${basket.items.length} items included',
+                        style: const TextStyle(color: Colors.black54),
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    FoodBasketDetailPage(basket: basket),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.info_outline),
+                          label: Text(s.seeMore),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF567765),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -266,113 +261,63 @@ class FoodBasketDetailPage extends StatefulWidget {
 }
 
 class _FoodBasketDetailPageState extends State<FoodBasketDetailPage> {
-  late Map<int, int> _quantities;
-  late Map<int, bool> _selected;
-  bool _saving = false;
+  int _basketQty = 100;
+  bool _sending = false;
 
   @override
   void initState() {
     super.initState();
-    _quantities = {
-      for (final item in widget.basket.items)
-        item.itemId: item.defaultQuantity > 0 ? item.defaultQuantity : 1
-    };
-    _selected = {
-      for (final item in widget.basket.items)
-        item.itemId: (item.defaultQuantity > 0)
-    };
   }
 
-  double get _estimatedTotal {
-    double total = 0;
+  double get _total => widget.basket.price * _basketQty;
+
+  Future<void> _openWhatsApp() async {
+    final s = S.of(context);
+    setState(() => _sending = true);
+    final phone = kWhatsAppNumber.replaceAll(RegExp(r'[^0-9]'), '');
+
+    final buffer = StringBuffer()
+      ..writeln('Food basket order')
+      ..writeln('Basket: ${widget.basket.name}')
+      ..writeln('Quantity: $_basketQty')
+      ..writeln('Total: ${_total.toStringAsFixed(0)} ${s.currencyIqd}')
+      ..writeln('Items included:');
+
     for (final item in widget.basket.items) {
-      final qty =
-          _selected[item.itemId] == true ? _quantities[item.itemId]! : 0;
-      total += qty * item.price;
-    }
-    return total;
-  }
-
-  void _increment(FoodBasketProduct item) {
-    setState(() {
-      _selected[item.itemId] = true;
-      _quantities[item.itemId] = (_quantities[item.itemId] ?? 1) + 1;
-    });
-  }
-
-  void _decrement(FoodBasketProduct item) {
-    setState(() {
-      final current = _quantities[item.itemId] ?? 1;
-      final next = (current - 1).clamp(0, current);
-      _quantities[item.itemId] = next;
-      if (next == 0) _selected[item.itemId] = false;
-    });
-  }
-
-  Future<void> _saveSelection() async {
-    final entries = _quantities.entries
-        .where((entry) => _selected[entry.key] == true && entry.value > 0)
-        .toList();
-    if (entries.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one item.')),
-      );
-      return;
+      final qty = item.defaultQuantity > 0 ? item.defaultQuantity : 1;
+      buffer.writeln('- ${item.localizedName(context)} x$qty');
     }
 
-    setState(() => _saving = true);
+    final msg = buffer.toString();
+    final uriApp = Uri.parse(
+        'whatsapp://send?phone=$phone&text=${Uri.encodeComponent(msg)}');
+    final uriWeb =
+        Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(msg)}');
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final cartList = prefs.getStringList('cart') ?? [];
-      final cart =
-          cartList.map((e) => jsonDecode(e) as Map<String, dynamic>).toList();
-
-      for (final entry in entries) {
-        final product = widget.basket.items
-            .firstWhere((element) => element.itemId == entry.key);
-        final idStr = product.itemId.toString();
-        final idx = cart.indexWhere((m) => m['id']?.toString() == idStr);
-        final baseRecord = {
-          'id': idStr,
-          'name': product.nameEn.isNotEmpty
-              ? product.nameEn
-              : (product.nameKu.isNotEmpty ? product.nameKu : product.nameAr),
-          'price': product.price.toString(),
-          'discount': '0',
-          'quantity': entry.value.toString(),
-          'imageUrl': product.imageUrl,
-          'supplierName': '',
-          'basket_type': 'food_basket',
-          'basket_id': widget.basket.id,
-        };
-
-        if (idx >= 0) {
-          final existing = cart[idx];
-          final existingQty =
-              int.tryParse(existing['quantity'].toString()) ?? 0;
-          baseRecord['quantity'] = (existingQty + entry.value).toString();
-          cart[idx] = baseRecord;
-        } else {
-          cart.add(baseRecord);
-        }
+      if (await canLaunchUrl(uriApp)) {
+        await launchUrl(uriApp, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(uriWeb)) {
+        await launchUrl(uriWeb, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Cannot open WhatsApp';
       }
-
-      final updated = cart.map((m) => jsonEncode(m)).toList();
-      await prefs.setStringList('cart', updated);
-      if (!mounted) return;
-      Navigator.pop(context, true);
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to update your basket.')),
+        const SnackBar(content: Text('Could not open WhatsApp.')),
       );
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() => _sending = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
+    final imageUrl = widget.basket.primaryImage == null
+        ? null
+        : mediaUrlFrom(widget.basket.primaryImage!);
     return Scaffold(
       backgroundColor: const Color(0xffD3E4C4),
       appBar: AppBar(
@@ -384,89 +329,134 @@ class _FoodBasketDetailPageState extends State<FoodBasketDetailPage> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: widget.basket.items.length,
-              itemBuilder: (_, idx) {
-                final item = widget.basket.items[idx];
-                final selected = _selected[item.itemId] ?? false;
-                final qty = _quantities[item.itemId] ?? 0;
-                final imageUrl =
-                    item.imageUrl.isEmpty ? null : mediaUrlFrom(item.imageUrl);
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Row(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(18),
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: imageUrl == null
+                          ? Container(
+                              color: Colors.grey.shade200,
+                              child: const Icon(Icons.image, size: 48),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              fit: BoxFit.cover,
+                            ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 18),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Checkbox(
-                          value: selected,
-                          onChanged: (val) {
-                            setState(() {
-                              _selected[item.itemId] = val ?? false;
-                              if (val == true && qty == 0) {
-                                _quantities[item.itemId] = 1;
-                              }
-                            });
-                          },
-                        ),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: imageUrl == null
-                              ? Container(
-                                  width: 64,
-                                  height: 64,
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(Icons.image),
-                                )
-                              : CachedNetworkImage(
-                                  imageUrl: imageUrl,
-                                  width: 64,
-                                  height: 64,
-                                  fit: BoxFit.cover,
-                                ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.localizedName(context),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text('${item.price.toStringAsFixed(0)} IQD'),
-                              if (selected)
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.remove_circle),
-                                      onPressed: () => _decrement(item),
-                                    ),
-                                    Text('$qty'),
-                                    IconButton(
-                                      icon: const Icon(Icons.add_circle),
-                                      onPressed: () => _increment(item),
-                                    ),
-                                  ],
-                                ),
-                            ],
+                        Text(
+                          widget.basket.name,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
                           ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${widget.basket.price.toStringAsFixed(0)} IQD',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF567765),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          widget.basket.description.isNotEmpty
+                              ? widget.basket.description
+                              : s.presetBasketDescription,
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                        const SizedBox(height: 18),
+                        const Text(
+                          'What is inside',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ListView.separated(
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          itemCount: widget.basket.items.length,
+                          separatorBuilder: (_, __) =>
+                              const Divider(height: 12),
+                          itemBuilder: (_, idx) {
+                            final item = widget.basket.items[idx];
+                            final itemImage = item.imageUrl.isEmpty
+                                ? null
+                                : mediaUrlFrom(item.imageUrl);
+                            final qty = item.defaultQuantity > 0
+                                ? item.defaultQuantity
+                                : 1;
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: itemImage == null
+                                      ? Container(
+                                          width: 64,
+                                          height: 64,
+                                          color: Colors.grey.shade200,
+                                          child: const Icon(Icons.image),
+                                        )
+                                      : CachedNetworkImage(
+                                          imageUrl: itemImage,
+                                          width: 64,
+                                          height: 64,
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.localizedName(context),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'x$qty',
+                                        style: const TextStyle(
+                                            color: Colors.black54),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),
                   ),
-                );
-              },
+                ],
+              ),
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
               color: Color(0xffFEFAE0),
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -474,22 +464,55 @@ class _FoodBasketDetailPageState extends State<FoodBasketDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Quantity',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: _basketQty > 100
+                              ? () => setState(() => _basketQty -= 100)
+                              : null,
+                          icon: const Icon(Icons.remove_circle_outline),
+                        ),
+                        Text(
+                          '$_basketQty',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        IconButton(
+                          onPressed: () => setState(() => _basketQty += 100),
+                          icon: const Icon(Icons.add_circle_outline),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
                 Text(
-                  'Estimated total: ${_estimatedTotal.toStringAsFixed(0)} IQD',
+                  'Total: ${_total.toStringAsFixed(0)} IQD',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: _saving ? null : _saveSelection,
+                ElevatedButton.icon(
+                  onPressed: _sending ? null : _openWhatsApp,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF567765),
+                    backgroundColor: const Color(0xFF25D366),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: Text(_saving ? 'Adding…' : 'Add items to basket'),
+                  icon: const Icon(
+                    Icons.message,
+                    color: Colors.green,
+                  ),
+                  label:
+                      Text(_sending ? 'Opening WhatsApp…' : s.whatsAppTooltip),
                 ),
               ],
             ),

@@ -133,16 +133,16 @@ class _SignUpPageState extends State<SignUpPage> {
           name: _nameCtrl.text.trim(),
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
-          phone: _phoneCtrl.text.trim(),
+          // Store normalized phone so all subsequent OTP calls use the same value
+          phone: normalizedPhone,
           address: _addressCtrl.text.trim(),
           lat: _lat!,
           lng: _lng!,
           avatarFile: _avatarFile,
           defaultAvatarAsset: DEFAULT_AVATAR_ASSET,
           otpChannel: serverChannel,
-          otpDestination: serverChannel == 'phone'
-              ? normalizedPhone
-              : _emailCtrl.text.trim(),
+          otpDestination:
+              serverChannel == 'phone' ? normalizedPhone : _emailCtrl.text.trim(),
           initialResendIn: resendIn,
         );
         final ok = await Navigator.of(context).push<bool>(

@@ -29,6 +29,8 @@ android {
         // AGP 8.x runs on Java 17; compile/target on 17 to avoid toolchain warnings.
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Needed for java.time APIs used by flutter_local_notifications.
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -78,4 +80,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.3")
 }
