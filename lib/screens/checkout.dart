@@ -135,6 +135,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           .map((e) => {
                 'item_id': e.id,
                 'quantity': e.quantity,
+                'price': e.price, // Send the actual price (including pack price if applicable)
               })
           .toList(),
     };

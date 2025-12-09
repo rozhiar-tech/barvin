@@ -86,12 +86,12 @@ class _HandWorksScreenState extends State<HandWorksScreen> {
     }
   }
 
-  int _qtyFor(int workId) => _desiredQty[workId] ?? 1;
+  int _qtyFor(int workId) => _desiredQty[workId] ?? 100;
 
   void _changeQty(int workId, int delta) {
     setState(() {
-      final current = _desiredQty[workId] ?? 1;
-      final next = (current + delta).clamp(1, 999);
+      final current = _desiredQty[workId] ?? 100;
+      final next = (current + delta).clamp(100, 99900);
       _desiredQty[workId] = next;
     });
   }
@@ -245,12 +245,12 @@ class _HandWorksScreenState extends State<HandWorksScreen> {
                                     children: [
                                       _QuantityButton(
                                         icon: Icons.remove,
-                                        onPressed: qty > 1
-                                            ? () => _changeQty(work.id, -1)
+                                        onPressed: qty > 100
+                                            ? () => _changeQty(work.id, -100)
                                             : null,
                                       ),
                                       Container(
-                                        width: 48,
+                                        width: 56,
                                         height: 36,
                                         alignment: Alignment.center,
                                         margin: const EdgeInsets.symmetric(
@@ -261,14 +261,14 @@ class _HandWorksScreenState extends State<HandWorksScreen> {
                                               BorderRadius.circular(12),
                                         ),
                                         child: Text(
-                                          qty.toString().padLeft(2, '0'),
+                                          qty.toString(),
                                           style: const TextStyle(
                                               fontWeight: FontWeight.bold),
                                         ),
                                       ),
                                       _QuantityButton(
                                         icon: Icons.add,
-                                        onPressed: () => _changeQty(work.id, 1),
+                                        onPressed: () => _changeQty(work.id, 100),
                                       ),
                                     ],
                                   ),

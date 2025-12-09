@@ -173,6 +173,157 @@ class _FeaturedSet {
   });
 }
 
+/// New Featured Category model from /api/featured-categories/with-items
+class _FeaturedCategory {
+  final int id;
+  final String nameEn;
+  final String nameKu;
+  final String nameAr;
+  final String? description;
+  final String? imageUrl;
+  final String layoutType; // 'banner', 'grid_2', 'grid_4'
+  final int displayOrder;
+  final bool isActive;
+  final List<_FeaturedSubcategory> subcategories;
+  final List<_FeaturedCategoryItem> categoryItems;
+
+  _FeaturedCategory({
+    required this.id,
+    required this.nameEn,
+    required this.nameKu,
+    required this.nameAr,
+    this.description,
+    this.imageUrl,
+    required this.layoutType,
+    required this.displayOrder,
+    required this.isActive,
+    required this.subcategories,
+    required this.categoryItems,
+  });
+
+  factory _FeaturedCategory.fromJson(Map<String, dynamic> j) {
+    final subsRaw = j['subcategories'] as List? ?? [];
+    final itemsRaw = j['categoryItems'] as List? ?? [];
+    return _FeaturedCategory(
+      id: j['id'] ?? 0,
+      nameEn: (j['name_en'] ?? '').toString(),
+      nameKu: (j['name_ku'] ?? '').toString(),
+      nameAr: (j['name_ar'] ?? '').toString(),
+      description: j['description']?.toString(),
+      imageUrl: j['image_url']?.toString(),
+      layoutType: (j['layout_type'] ?? 'banner').toString(),
+      displayOrder: j['display_order'] ?? 0,
+      isActive: j['is_active'] == true,
+      subcategories: subsRaw
+          .whereType<Map<String, dynamic>>()
+          .map(_FeaturedSubcategory.fromJson)
+          .toList(),
+      categoryItems: itemsRaw
+          .whereType<Map<String, dynamic>>()
+          .map(_FeaturedCategoryItem.fromJson)
+          .toList(),
+    );
+  }
+
+  String localizedName(BuildContext context) {
+    final code = Localizations.localeOf(context).languageCode;
+    switch (code) {
+      case 'ku':
+        return nameKu.isNotEmpty ? nameKu : nameEn;
+      case 'ar':
+        return nameAr.isNotEmpty ? nameAr : nameEn;
+      default:
+        return nameEn;
+    }
+  }
+
+  /// Get all items from both direct items and subcategory items
+  List<Item> getAllItems() {
+    final items = <Item>[];
+    for (final ci in categoryItems) {
+      if (ci.item != null) items.add(ci.item!);
+    }
+    for (final sub in subcategories) {
+      for (final si in sub.subcategoryItems) {
+        if (si.item != null) items.add(si.item!);
+      }
+    }
+    return items;
+  }
+}
+
+class _FeaturedSubcategory {
+  final int id;
+  final String nameEn;
+  final String nameKu;
+  final String nameAr;
+  final int displayOrder;
+  final bool isActive;
+  final List<_FeaturedCategoryItem> subcategoryItems;
+
+  _FeaturedSubcategory({
+    required this.id,
+    required this.nameEn,
+    required this.nameKu,
+    required this.nameAr,
+    required this.displayOrder,
+    required this.isActive,
+    required this.subcategoryItems,
+  });
+
+  factory _FeaturedSubcategory.fromJson(Map<String, dynamic> j) {
+    final itemsRaw = j['subcategoryItems'] as List? ?? [];
+    return _FeaturedSubcategory(
+      id: j['id'] ?? 0,
+      nameEn: (j['name_en'] ?? '').toString(),
+      nameKu: (j['name_ku'] ?? '').toString(),
+      nameAr: (j['name_ar'] ?? '').toString(),
+      displayOrder: j['display_order'] ?? 0,
+      isActive: j['is_active'] == true,
+      subcategoryItems: itemsRaw
+          .whereType<Map<String, dynamic>>()
+          .map(_FeaturedCategoryItem.fromJson)
+          .toList(),
+    );
+  }
+
+  String localizedName(BuildContext context) {
+    final code = Localizations.localeOf(context).languageCode;
+    switch (code) {
+      case 'ku':
+        return nameKu.isNotEmpty ? nameKu : nameEn;
+      case 'ar':
+        return nameAr.isNotEmpty ? nameAr : nameEn;
+      default:
+        return nameEn;
+    }
+  }
+}
+
+class _FeaturedCategoryItem {
+  final int id;
+  final int itemId;
+  final int displayOrder;
+  final Item? item;
+
+  _FeaturedCategoryItem({
+    required this.id,
+    required this.itemId,
+    required this.displayOrder,
+    this.item,
+  });
+
+  factory _FeaturedCategoryItem.fromJson(Map<String, dynamic> j) {
+    final itemRaw = j['item'];
+    return _FeaturedCategoryItem(
+      id: j['id'] ?? 0,
+      itemId: j['item_id'] ?? 0,
+      displayOrder: j['display_order'] ?? 0,
+      item: itemRaw is Map<String, dynamic> ? Item.fromJson(itemRaw) : null,
+    );
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -283,6 +434,8 @@ class HomeScreenState extends State<HomeScreen> {
   List<Ad> _ads = [];
   List<_LayoutSection> _layoutSections = [];
   List<_FeaturedSet> _featuredSets = [];
+  List<_FeaturedCategory> _newFeaturedCategories = [];
+  bool _featuredCategoriesLoading = false;
 
   List<_LayoutSection> get _defaultSections => const [
         _LayoutSection(type: 'deals'),
@@ -405,6 +558,7 @@ class HomeScreenState extends State<HomeScreen> {
     _startCarousel();
     _loadLayoutConfig();
     _loadFeaturedSets();
+    _loadNewFeaturedCategories(); // New featured categories API
     _loadHandworkThumbnails();
     _loadSections();
     _loadHandworks();
@@ -560,6 +714,46 @@ class HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       // ignore errors; fallback to defaults
       debugPrint('[HOME_FEATURED] failed to load featured category sets');
+    }
+  }
+
+  /// Load new featured categories from /api/featured-categories/with-items
+  Future<void> _loadNewFeaturedCategories() async {
+    if (mounted) setState(() => _featuredCategoriesLoading = true);
+
+    final res = await _Cache.fetch('new_featured_categories', () {
+      return http.get(apiUrl('/featured-categories/with-items'));
+    });
+
+    if (!res.hasData) {
+      _markFallback(res);
+      if (mounted) setState(() => _featuredCategoriesLoading = false);
+      return;
+    }
+
+    try {
+      final List list = jsonDecode(res.body!) as List;
+      final categories = list
+          .whereType<Map<String, dynamic>>()
+          .map(_FeaturedCategory.fromJson)
+          .where((c) => c.isActive)
+          .toList();
+
+      // Sort by display_order
+      categories.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+
+      debugPrint(
+          '[HOME_FEATURED_NEW] Loaded ${categories.length} featured categories');
+
+      if (mounted) {
+        setState(() => _newFeaturedCategories = categories);
+      }
+      _markFallback(res);
+    } catch (e) {
+      debugPrint('[HOME_FEATURED_NEW] Error parsing featured categories: $e');
+      _markFallback(res);
+    } finally {
+      if (mounted) setState(() => _featuredCategoriesLoading = false);
     }
   }
 
@@ -1384,6 +1578,13 @@ class HomeScreenState extends State<HomeScreen> {
             if (content != null) widgets.add(content);
           }
           categoriesRendered = true;
+
+          // Add new featured categories right after our categories
+          if (_newFeaturedCategories.isNotEmpty || _featuredCategoriesLoading) {
+            final featuredContent =
+                _wrapSection(_buildNewFeaturedCategoriesWidgets());
+            if (featuredContent != null) widgets.add(featuredContent);
+          }
           break;
         case 'featured_category':
         case 'featured_categories': // legacy
@@ -1524,7 +1725,7 @@ class HomeScreenState extends State<HomeScreen> {
               final vc = _videoControllers[ad.id];
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                padding: const EdgeInsets.symmetric(horizontal: 6.0),
                 child: GestureDetector(
                   onTap: () async {
                     final url = ad.link;
@@ -1547,56 +1748,75 @@ class HomeScreenState extends State<HomeScreen> {
                       await launchUrl(Uri.parse(url));
                     }
                   },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: ad.mediaType == 'image'
-                        ? CachedNetworkImage(
-                            imageUrl: mediaUrl,
-                            placeholder: (_, __) => const Center(
-                                child: CircularProgressIndicator()),
-                            errorWidget: (_, __, ___) =>
-                                const Icon(Icons.error),
-                          )
-                        : (vc != null
-                            ? FittedBox(
-                                fit: BoxFit.cover,
-                                child: SizedBox(
-                                  width: vc.value.size.width,
-                                  height: vc.value.size.height,
-                                  child: VideoPlayer(vc),
-                                ),
-                              )
-                            : Container(
-                                color: Colors.black12,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.12),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: ad.mediaType == 'image'
+                          ? CachedNetworkImage(
+                              imageUrl: mediaUrl,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(
+                                color: Colors.grey.shade200,
                                 child: const Center(
-                                  child: Icon(Icons.play_arrow),
-                                ),
-                              )),
+                                    child: CircularProgressIndicator()),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.error, size: 40),
+                              ),
+                            )
+                          : (vc != null
+                              ? FittedBox(
+                                  fit: BoxFit.cover,
+                                  child: SizedBox(
+                                    width: vc.value.size.width,
+                                    height: vc.value.size.height,
+                                    child: VideoPlayer(vc),
+                                  ),
+                                )
+                              : Container(
+                                  color: Colors.black12,
+                                  child: const Center(
+                                    child: Icon(Icons.play_arrow, size: 48),
+                                  ),
+                                )),
+                    ),
                   ),
                 ),
               );
             },
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             list.length,
-            (index) => Container(
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
               margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: _currentPage == index ? 12 : 8,
-              height: _currentPage == index ? 12 : 8,
+              width: _currentPage == index ? 24 : 8,
+              height: 8,
               decoration: BoxDecoration(
                 color: _currentPage == index
                     ? primaryColor
                     : secondaryColor.withValues(alpha: 0.4),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
       ],
     );
   }
@@ -1754,26 +1974,27 @@ class HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(sec.category.localizedName(context),
-                    style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: textColor)),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SeeMoreScreen(
-                            title: sec.category.localizedName(context),
-                            items: sec.items,
-                            host: apiBase.replaceAll('/api', ''),
-                            categoryId: sec.category.id,
-                            onExit: reload,
-                          ),
-                        ));
-                  },
-                  child: Text(s.seeMore, style: TextStyle(color: textColor)),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SeeMoreScreen(
+                              title: sec.category.localizedName(context),
+                              items: sec.items,
+                              host: apiBase.replaceAll('/api', ''),
+                              categoryId: sec.category.id,
+                              onExit: reload,
+                            ),
+                          ));
+                    },
+                    child: Text(sec.category.localizedName(context),
+                        style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: textColor)),
+                  ),
                 ),
               ],
             ),
@@ -2286,6 +2507,715 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Build the new featured categories section
+  List<Widget> _buildNewFeaturedCategoriesWidgets() {
+    if (_featuredCategoriesLoading && _newFeaturedCategories.isEmpty) {
+      return [
+        _shimmerBox(height: 180, radius: BorderRadius.circular(20)),
+        const SizedBox(height: 16),
+      ];
+    }
+
+    if (_newFeaturedCategories.isEmpty) return const [];
+
+    final widgets = <Widget>[];
+
+    for (final category in _newFeaturedCategories) {
+      switch (category.layoutType) {
+        case 'banner':
+          widgets.add(_buildFeaturedBanner(category));
+          break;
+        case 'grid_2':
+          widgets.add(_buildFeaturedGrid2(category));
+          break;
+        case 'grid_4':
+          widgets.add(_buildFeaturedGrid4(category));
+          break;
+        default:
+          widgets.add(_buildFeaturedBanner(category));
+      }
+      widgets.add(const SizedBox(height: 16));
+    }
+
+    return widgets;
+  }
+
+  /// Banner layout - full-width promotional banner
+  Widget _buildFeaturedBanner(_FeaturedCategory category) {
+    final imageUrl = category.imageUrl != null && category.imageUrl!.isNotEmpty
+        ? mediaUrlFrom(category.imageUrl!)
+        : null;
+    final items = category.getAllItems();
+
+    return GestureDetector(
+      onTap:
+          items.isNotEmpty ? () => _openFeaturedCategoryDetail(category) : null,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              // Background image
+              AspectRatio(
+                aspectRatio: 16 / 7,
+                child: imageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(
+                          color: Colors.grey.shade200,
+                          child:
+                              const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
+                          color: const Color(0xFFE8F4E8),
+                          child: const Center(
+                            child: Icon(Icons.category,
+                                size: 48, color: primaryColor),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF5D8A4E), Color(0xFF567765)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                      ),
+              ),
+              // Gradient overlay
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.7),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Content
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      category.localizedName(context),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                      ),
+                    ),
+                    if (category.description != null &&
+                        category.description!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          category.description!,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    if (items.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${items.length} items',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Grid 2 layout - 2-column grid for brand showcases
+  Widget _buildFeaturedGrid2(_FeaturedCategory category) {
+    final items = category.getAllItems();
+    if (items.isEmpty && category.subcategories.isEmpty) {
+      return _buildFeaturedBanner(category);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  category.localizedName(context),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ),
+              if (category.description != null &&
+                  category.description!.isNotEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    category.description!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        // Grid of items or subcategories
+        if (category.subcategories.isNotEmpty)
+          _buildSubcategoryGrid2(category)
+        else
+          _buildItemsGrid2(items, category),
+      ],
+    );
+  }
+
+  Widget _buildSubcategoryGrid2(_FeaturedCategory category) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: category.subcategories.length.clamp(0, 4),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.3,
+        ),
+        itemBuilder: (_, i) {
+          final sub = category.subcategories[i];
+          final subItems = sub.subcategoryItems
+              .map((si) => si.item)
+              .whereType<Item>()
+              .toList();
+          final previewItem = subItems.isNotEmpty ? subItems.first : null;
+          final imageUrl =
+              previewItem?.imageUrl != null && previewItem!.imageUrl.isNotEmpty
+                  ? mediaUrlFrom(previewItem.imageUrl)
+                  : null;
+
+          return GestureDetector(
+            onTap: () => _openFeaturedSubcategoryDetail(category, sub),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xffFEFAE0),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (imageUrl != null)
+                      CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) =>
+                            Container(color: Colors.grey.shade100),
+                        errorWidget: (_, __, ___) => Container(
+                          color: const Color(0xFFE8F4E8),
+                          child:
+                              const Icon(Icons.category, color: primaryColor),
+                        ),
+                      )
+                    else
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              primaryColor.withOpacity(0.3),
+                              secondaryColor.withOpacity(0.3),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: const Icon(Icons.category,
+                            size: 40, color: primaryColor),
+                      ),
+                    // Overlay with name
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.7)
+                            ],
+                          ),
+                        ),
+                        child: Text(
+                          sub.localizedName(context),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildItemsGrid2(List<Item> items, _FeaturedCategory category) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: items.length.clamp(0, 4),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.85,
+        ),
+        itemBuilder: (_, i) => _buildFeaturedItemCard(items[i]),
+      ),
+    );
+  }
+
+  /// Grid 4 layout - 4-column grid for smaller tiles
+  Widget _buildFeaturedGrid4(_FeaturedCategory category) {
+    final items = category.getAllItems();
+    if (items.isEmpty) {
+      return _buildFeaturedBanner(category);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  category.localizedName(context),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ),
+              if (category.description != null &&
+                  category.description!.isNotEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    category.description!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        // 4-column grid
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length.clamp(0, 8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.75,
+            ),
+            itemBuilder: (_, i) => _buildFeaturedItemCardCompact(items[i]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeaturedItemCard(Item item) {
+    final imageUrl =
+        item.imageUrl.isNotEmpty ? mediaUrlFrom(item.imageUrl) : null;
+    final hasDiscount = item.discount > 0;
+    final effectivePrice =
+        hasDiscount ? item.price * (1 - item.discount / 100) : item.price;
+
+    return GestureDetector(
+      onTap: () => _openItemDetail(item),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xffFEFAE0),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: imageUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            placeholder: (_, __) =>
+                                Container(color: Colors.grey.shade100),
+                            errorWidget: (_, __, ___) => Container(
+                              color: Colors.grey.shade100,
+                              child:
+                                  const Icon(Icons.image, color: Colors.grey),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey.shade100,
+                            child:
+                                const Icon(Icons.fastfood, color: Colors.grey),
+                          ),
+                  ),
+                  if (hasDiscount)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '-${item.discount.toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.localizedName(context),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: textColor),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    if (hasDiscount)
+                      Row(
+                        children: [
+                          Text(
+                            '${item.price.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              decoration: TextDecoration.lineThrough,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${effectivePrice.toStringAsFixed(0)} IQD',
+                            style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: primaryColor),
+                          ),
+                        ],
+                      )
+                    else
+                      Text(
+                        '${item.price.toStringAsFixed(0)} IQD',
+                        style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeaturedItemCardCompact(Item item) {
+    final imageUrl =
+        item.imageUrl.isNotEmpty ? mediaUrlFrom(item.imageUrl) : null;
+
+    return GestureDetector(
+      onTap: () => _openItemDetail(item),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xffFEFAE0),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              flex: 3,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
+                child: imageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        placeholder: (_, __) =>
+                            Container(color: Colors.grey.shade100),
+                        errorWidget: (_, __, ___) => Container(
+                          color: Colors.grey.shade100,
+                          child: const Icon(Icons.image,
+                              size: 20, color: Colors.grey),
+                        ),
+                      )
+                    : Container(
+                        color: Colors.grey.shade100,
+                        child: const Icon(Icons.fastfood,
+                            size: 20, color: Colors.grey),
+                      ),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      item.localizedName(context),
+                      style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w500,
+                          color: textColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${item.price.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openFeaturedCategoryDetail(_FeaturedCategory category) {
+    final items = category.getAllItems();
+    if (items.isEmpty) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SeeMoreScreen(
+          title: category.localizedName(context),
+          items: items,
+          host: apiBase.replaceAll('/api', ''),
+          categoryId: 0, // Featured category doesn't have a regular category ID
+          onExit: reload,
+        ),
+      ),
+    );
+  }
+
+  void _openFeaturedSubcategoryDetail(
+      _FeaturedCategory category, _FeaturedSubcategory sub) {
+    final items =
+        sub.subcategoryItems.map((si) => si.item).whereType<Item>().toList();
+    if (items.isEmpty) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SeeMoreScreen(
+          title: sub.localizedName(context),
+          items: items,
+          host: apiBase.replaceAll('/api', ''),
+          categoryId: 0,
+          onExit: reload,
+        ),
+      ),
+    );
+  }
+
+  void _openItemDetail(Item item) async {
+    final imgUrl = item.imageUrl.isNotEmpty ? mediaUrlFrom(item.imageUrl) : '';
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SingleItem(
+          id: item.id,
+          icon: Icons.fastfood,
+          name: item.localizedName(context),
+          description: item.description,
+          unitPrice: item.price,
+          imageUrl: imgUrl,
+          discount: item.discount,
+          supplierName: item.supplier_name,
+          categoryId: item.categoryId,
+          categoryNameEn: item.categoryNameEn,
+          categoryNameKu: item.categoryNameKu,
+          categoryNameAr: item.categoryNameAr,
+          subcategoryId: item.subcategoryId,
+          subcategoryNameEn: item.subcategoryNameEn,
+          subcategoryNameKu: item.subcategoryNameKu,
+          subcategoryNameAr: item.subcategoryNameAr,
+          packSize: item.packSize,
+          unit: item.unit,
+          packPrice: item.packPrice,
+        ),
+      ),
+    );
+    _loadCartCount();
+    if (result is String && result.isNotEmpty) {
+      showTopNotice(context, result);
+    }
+  }
+
   List<Widget> _buildHandworkWidgets() {
     final s = S.of(context);
     final thumb = _handworkThumbs.isNotEmpty ? _handworkThumbs.first : null;
@@ -2309,18 +3239,7 @@ class HomeScreenState extends State<HomeScreen> {
         thumb.imageUrl.isNotEmpty ? mediaUrlFrom(thumb.imageUrl) : null;
 
     return [
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton.icon(
-          onPressed: _openHandworkScreen,
-          icon: const Icon(Icons.library_books_outlined, color: textColor),
-          label: Text(
-            s.seeMore,
-            style: const TextStyle(color: textColor),
-          ),
-        ),
-      ),
-      const SizedBox(height: 4),
+      const SizedBox(height: 8),
       GestureDetector(
         onTap: _openHandworkScreen,
         child: Container(
@@ -2368,28 +3287,15 @@ class HomeScreenState extends State<HomeScreen> {
                   left: 20,
                   right: 20,
                   bottom: 14,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        s.tapToViewMore,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        s.seeMore,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    s.tapToViewMore,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -2402,21 +3308,9 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   List<Widget> _buildFoodBasketWidgets() {
-    final s = S.of(context);
     if (_foodBasketsLoading && _foodBaskets.isEmpty) {
       return [
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.grid_view_rounded, color: textColor),
-            label: Text(
-              s.seeMore,
-              style: const TextStyle(color: textColor),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         SizedBox(
           height: 210,
           child: PageView.builder(
@@ -2433,18 +3327,7 @@ class HomeScreenState extends State<HomeScreen> {
     final cards = _foodBaskets;
 
     return [
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton.icon(
-          onPressed: _openFoodBasketsScreen,
-          icon: const Icon(Icons.list_alt_outlined, color: textColor),
-          label: Text(
-            s.seeMore,
-            style: const TextStyle(color: textColor),
-          ),
-        ),
-      ),
-      // const SizedBox(height: 6),
+      const SizedBox(height: 8),
       SizedBox(
         height: 210,
         child: Listener(
@@ -2487,7 +3370,7 @@ class HomeScreenState extends State<HomeScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: AspectRatio(
-                            aspectRatio: 16 / 5.5,
+                            aspectRatio: 16 / 7,
                             child: imageUrl == null
                                 ? Container(
                                     width: double.infinity,
@@ -2507,14 +3390,14 @@ class HomeScreenState extends State<HomeScreen> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 13,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '${basket.price.toStringAsFixed(0)} IQD',
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF567765),
                           ),

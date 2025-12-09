@@ -219,26 +219,6 @@ class _FoodBasketsScreenState extends State<FoodBasketsScreen> {
                         '${basket.items.length} items included',
                         style: const TextStyle(color: Colors.black54),
                       ),
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    FoodBasketDetailPage(basket: basket),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.info_outline),
-                          label: Text(s.seeMore),
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFF567765),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -261,7 +241,7 @@ class FoodBasketDetailPage extends StatefulWidget {
 }
 
 class _FoodBasketDetailPageState extends State<FoodBasketDetailPage> {
-  int _basketQty = 100;
+  int _basketQty = 1;
   bool _sending = false;
 
   @override
@@ -474,8 +454,8 @@ class _FoodBasketDetailPageState extends State<FoodBasketDetailPage> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: _basketQty > 100
-                              ? () => setState(() => _basketQty -= 100)
+                          onPressed: _basketQty > 1
+                              ? () => setState(() => _basketQty -= 1)
                               : null,
                           icon: const Icon(Icons.remove_circle_outline),
                         ),
@@ -484,7 +464,7 @@ class _FoodBasketDetailPageState extends State<FoodBasketDetailPage> {
                           style: const TextStyle(fontSize: 16),
                         ),
                         IconButton(
-                          onPressed: () => setState(() => _basketQty += 100),
+                          onPressed: () => setState(() => _basketQty += 1),
                           icon: const Icon(Icons.add_circle_outline),
                         ),
                       ],

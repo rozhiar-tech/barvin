@@ -250,7 +250,7 @@ class _SingleItemState extends State<SingleItem> {
         if (sid == null && cid != null) 'categoryId': '$cid',
         'shown': 'true',
         'page': '1',
-        'pageSize': '12',
+        'pageSize': '50',
       });
       _setRelatedDebug(
           'Fetching related by ${sid != null ? "subcategoryId=$sid" : "categoryId=$cid"} -> $uri');
@@ -910,11 +910,6 @@ class _SingleItemState extends State<SingleItem> {
                   style: const TextStyle(fontSize: 16, height: 1.4)),
               const SizedBox(height: 16),
             ],
-            if ((_relatedItems.isNotEmpty || _loadingRelated) &&
-                _subcategoryId != null) ...[
-              _buildRelatedCarousel(context),
-              const SizedBox(height: 16),
-            ],
 
             // QUANTITY & LINE TOTAL
             Row(
@@ -987,6 +982,13 @@ class _SingleItemState extends State<SingleItem> {
                 ),
               ),
             ),
+
+            // RELATED ITEMS - Now below the Add to Basket button
+            if ((_relatedItems.isNotEmpty || _loadingRelated) &&
+                _subcategoryId != null) ...[
+              const SizedBox(height: 24),
+              _buildRelatedCarousel(context),
+            ],
           ],
         ),
       ),

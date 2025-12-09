@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart' show rootBundle;
@@ -18,6 +19,14 @@ const Color primaryColor = AppColors.primary;
 // 👇 update path & ensure it's in pubspec.yaml: assets:
 //   - assets/appicon.png
 const String DEFAULT_AVATAR_ASSET = 'assets/appicon.png';
+
+/// Generates a random placeholder email for users who choose phone verification
+String _generatePlaceholderEmail() {
+  final random = Random();
+  final timestamp = DateTime.now().millisecondsSinceEpoch;
+  final randomStr = List.generate(8, (_) => random.nextInt(36).toRadixString(36)).join();
+  return 'user_${timestamp}_$randomStr@placeholder.barvin.app';
+}
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -88,7 +97,7 @@ class _SignUpPageState extends State<SignUpPage> {
     return digits;
   }
 
-  /// Step 1: start signup → request OTP to email
+  /// Step 1: start signup → request OTP to email or phone
   Future<void> _startSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -105,12 +114,18 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       final selectedChannel = _usePhoneOtp ? 'phone' : 'email';
       final normalizedPhone = _formatPhoneForBackend(_phoneCtrl.text.trim());
+      
+      // Use placeholder email if phone OTP is selected
+      final emailToUse = _usePhoneOtp 
+          ? _generatePlaceholderEmail() 
+          : _emailCtrl.text.trim();
+      
       final uri = Uri.parse('$apiBase/auth/register-start');
       final resp = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': _emailCtrl.text.trim(),
+          'email': emailToUse,
           'channel': selectedChannel,
           if (selectedChannel == 'phone') 'phone': normalizedPhone,
         }),
@@ -131,7 +146,7 @@ class _SignUpPageState extends State<SignUpPage> {
         // Go to OTP screen with all data needed for /register-complete
         final payload = SignupPayload(
           name: _nameCtrl.text.trim(),
-          email: _emailCtrl.text.trim(),
+          email: emailToUse, // Use placeholder email if phone OTP selected
           password: _passwordCtrl.text,
           // Store normalized phone so all subsequent OTP calls use the same value
           phone: normalizedPhone,
@@ -142,7 +157,7 @@ class _SignUpPageState extends State<SignUpPage> {
           defaultAvatarAsset: DEFAULT_AVATAR_ASSET,
           otpChannel: serverChannel,
           otpDestination:
-              serverChannel == 'phone' ? normalizedPhone : _emailCtrl.text.trim(),
+              serverChannel == 'phone' ? normalizedPhone : emailToUse,
           initialResendIn: resendIn,
         );
         final ok = await Navigator.of(context).push<bool>(
@@ -277,59 +292,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           const SizedBox(height: 12),
 
-                          _buildField(
-                            ctrl: _emailCtrl,
-                            label: S.of(context).signUpEmailLabel,
-                            type: TextInputType.emailAddress,
-                            prefixIcon:
-                                const Icon(Icons.email, color: primaryColor),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return S.of(context).signUpEnterEmail;
-                              }
-                              return _isValidEmail(v.trim())
-                                  ? null
-                                  : S.of(context).signUpInvalidEmail;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-
-                          _buildField(
-                            ctrl: _passwordCtrl,
-                            label: S.of(context).signUpPasswordLabel,
-                            type: TextInputType.visiblePassword,
-                            obscure: true,
-                            prefixIcon:
-                                const Icon(Icons.lock, color: primaryColor),
-                            validator: (v) {
-                              if (v == null || v.length < 8) {
-                                return S.of(context).signUpPasswordMin8;
-                              }
-                              if (!RegExp(r'^[A-Za-z0-9.]+$').hasMatch(v)) {
-                                return S.of(context).signUpPasswordAllowedChars;
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-
-                          _buildField(
-                            ctrl: _phoneCtrl,
-                            label: S.of(context).signUpPhoneLabel,
-                            type: TextInputType.phone,
-                            prefixIcon:
-                                const Icon(Icons.phone, color: primaryColor),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return S.of(context).signUpEnterPhone;
-                              }
-                              return _isValidPhone(v.trim())
-                                  ? null
-                                  : S.of(context).signUpInvalidPhone;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-
+                          // Verification method selection - FIRST so user chooses method
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -363,6 +326,63 @@ class _SignUpPageState extends State<SignUpPage> {
                                 },
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Email field - only required if user chooses email OTP
+                          if (!_usePhoneOtp) ...[
+                            _buildField(
+                              ctrl: _emailCtrl,
+                              label: S.of(context).signUpEmailLabel,
+                              type: TextInputType.emailAddress,
+                              prefixIcon:
+                                  const Icon(Icons.email, color: primaryColor),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return S.of(context).signUpEnterEmail;
+                                }
+                                return _isValidEmail(v.trim())
+                                    ? null
+                                    : S.of(context).signUpInvalidEmail;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+
+                          // Phone field - always required
+                          _buildField(
+                            ctrl: _phoneCtrl,
+                            label: S.of(context).signUpPhoneLabel,
+                            type: TextInputType.phone,
+                            prefixIcon:
+                                const Icon(Icons.phone, color: primaryColor),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) {
+                                return S.of(context).signUpEnterPhone;
+                              }
+                              return _isValidPhone(v.trim())
+                                  ? null
+                                  : S.of(context).signUpInvalidPhone;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+
+                          _buildField(
+                            ctrl: _passwordCtrl,
+                            label: S.of(context).signUpPasswordLabel,
+                            type: TextInputType.visiblePassword,
+                            obscure: true,
+                            prefixIcon:
+                                const Icon(Icons.lock, color: primaryColor),
+                            validator: (v) {
+                              if (v == null || v.length < 8) {
+                                return S.of(context).signUpPasswordMin8;
+                              }
+                              if (!RegExp(r'^[A-Za-z0-9.]+$').hasMatch(v)) {
+                                return S.of(context).signUpPasswordAllowedChars;
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 12),
 
