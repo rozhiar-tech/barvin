@@ -2825,23 +2825,8 @@ class HomeScreenState extends State<HomeScreen> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black87,
+                        Colors.black12,
                       ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 20,
-                  right: 20,
-                  bottom: 14,
-                  child: Text(
-                    s.tapToViewMore,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -3648,7 +3633,7 @@ ${orderItems.join('\n')}
 
     // WhatsApp number - you may want to make this configurable
     const whatsappNumber =
-        '9647507779779'; // Replace with your actual WhatsApp number
+        '+9647702877878'; // Replace with your actual WhatsApp number
 
     final encodedMessage = Uri.encodeComponent(message);
     final whatsappUrl = 'https://wa.me/$whatsappNumber?text=$encodedMessage';

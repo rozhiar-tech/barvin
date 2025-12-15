@@ -30,19 +30,27 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   }
 
   Future<void> _goToMyLocation({bool autoLoad = false}) async {
+    print('📍 [LOCATION] Getting location (autoLoad: $autoLoad)');
     if (!autoLoad) {
       setState(() => _isLoadingLocation = true);
     }
-    
+
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
+      // Check if location services are enabled
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      print('📍 [LOCATION] Service enabled: $serviceEnabled');
+
+      if (!serviceEnabled) {
+        print('❌ [LOCATION] Location services are disabled');
         if (!autoLoad && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Location services are disabled'),
+              content: const Text(
+                  'Location services are disabled. Please enable GPS.'),
               backgroundColor: Colors.orange.shade700,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
           );
         }
@@ -50,17 +58,25 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         return;
       }
 
+      // Check permission status
       var perm = await Geolocator.checkPermission();
+      print('📍 [LOCATION] Current permission: $perm');
+
       if (perm == LocationPermission.denied) {
+        print('📍 [LOCATION] Requesting permission...');
         perm = await Geolocator.requestPermission();
+        print('📍 [LOCATION] Permission after request: $perm');
+
         if (perm == LocationPermission.denied) {
+          print('❌ [LOCATION] Permission denied by user');
           if (!autoLoad && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text('Location permission denied'),
                 backgroundColor: Colors.orange.shade700,
                 behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             );
           }
@@ -68,14 +84,19 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           return;
         }
       }
+
       if (perm == LocationPermission.deniedForever) {
+        print('❌ [LOCATION] Permission permanently denied');
         if (!autoLoad && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Location permissions are permanently denied'),
+              content: const Text(
+                  'Location permissions are permanently denied. Enable in Settings.'),
               backgroundColor: Colors.red.shade700,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              duration: const Duration(seconds: 4),
             ),
           );
         }
@@ -83,23 +104,41 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         return;
       }
 
+      print('📍 [LOCATION] Getting current position...');
       final pos = await Geolocator.getCurrentPosition(
           // ignore: deprecated_member_use
           desiredAccuracy: LocationAccuracy.high);
+
       final latlng = LatLng(pos.latitude, pos.longitude);
+      print('✅ [LOCATION] Got location: ${pos.latitude}, ${pos.longitude}');
+      print('✅ [LOCATION] Accuracy: ${pos.accuracy}m');
 
       setState(() {
         _userLocation = latlng;
         _picked = latlng;
         _isLoadingLocation = false;
       });
-      
+
       // Re-center the map at zoom 16 for better detail
       if (_mapReady) {
+        print('📍 [LOCATION] Moving map to user location');
         _mapController.move(latlng, 16);
       }
     } catch (e) {
+      print('💥 [LOCATION] Error: $e');
+      print('💥 [LOCATION] Error type: ${e.runtimeType}');
       setState(() => _isLoadingLocation = false);
+      if (!autoLoad && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error getting location: $e'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 
@@ -154,7 +193,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.example.barvin',
                   ),
                   // User's current location marker (blue circle)

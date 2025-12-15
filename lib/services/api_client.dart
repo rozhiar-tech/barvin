@@ -40,6 +40,10 @@ class ApiClient {
       () async {
         final uri = apiUrl(path);
         final resolvedHeaders = await _buildHeaders(headers, requiresAuth);
+        print('🌐 [API POST] URL: $uri');
+        print('🌐 [API POST] Headers: $resolvedHeaders');
+        print('🌐 [API POST] Body: $body');
+        print('🌐 [API POST] RequiresAuth: $requiresAuth');
         return _http.post(uri, headers: resolvedHeaders, body: body);
       },
     );
@@ -93,18 +97,29 @@ class ApiClient {
     Future<http.Response> Function() request,
   ) async {
     try {
+      print('🌐 [API] Sending request...');
       final response = await request().timeout(const Duration(seconds: 30));
+      print('🌐 [API] Response received:');
+      print('🌐 [API]   Status: ${response.statusCode}');
+      print('🌐 [API]   Body length: ${response.body.length} chars');
+      print('🌐 [API]   Body: ${response.body}');
+      print('🌐 [API]   Headers: ${response.headers}');
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        print('✅ [API] Success response (${response.statusCode})');
         return ApiResponse(
           statusCode: response.statusCode,
           body: response.body,
           headers: response.headers,
         );
       }
+      print('❌ [API] Error response (${response.statusCode})');
       throw ApiException.fromResponse(response);
     } on SocketException catch (e) {
+      print('💥 [API] Socket exception: $e');
       throw ApiException.network(e);
     } on TimeoutException {
+      print('⏱️ [API] Request timeout');
       throw ApiException(
         statusCode: -1,
         message: 'Request timed out. Please try again.',

@@ -71,28 +71,44 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
     if (_remaining > 0) return;
     setState(() => _resending = true);
     try {
+      print('🔄 [OTP RESEND] Resending OTP');
+      print('🔄 Channel: ${widget.payload.otpChannel}');
+      print('🔄 Email: ${widget.payload.email}');
+      if (_isPhoneChannel) {
+        print('🔄 Phone: ${widget.payload.phone}');
+      }
+
       final uri = Uri.parse('$apiBase/auth/register-start');
+      final body = {
+        'email': widget.payload.email,
+        'channel': widget.payload.otpChannel,
+        if (_isPhoneChannel) 'phone': widget.payload.phone,
+      };
+      print('🔄 Request body: ${jsonEncode(body)}');
+
       final resp = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': widget.payload.email,
-          'channel': widget.payload.otpChannel,
-          if (_isPhoneChannel) 'phone': widget.payload.phone,
-        }),
+        body: jsonEncode(body),
       );
+      print('🔄 [OTP RESEND] Response status: ${resp.statusCode}');
+      print('🔄 [OTP RESEND] Response body: ${resp.body}');
+
       if (resp.statusCode == 200) {
+        print('✅ [OTP RESEND] OTP resent successfully');
         Map<String, dynamic> body = {};
         try {
           body = jsonDecode(resp.body) as Map<String, dynamic>;
         } catch (_) {}
         final resendIn =
             (body['resend_in'] is num) ? (body['resend_in'] as num).toInt() : 0;
+        print('🔄 [OTP RESEND] Resend cooldown: ${resendIn}s');
         if (!mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(S.of(context).otpResent)));
         _startCooldown(resendIn > 0 ? resendIn : _cooldownSeconds);
       } else {
+        print('❌ [OTP RESEND] Failed with status ${resp.statusCode}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed: ${resp.statusCode}')),
         );
@@ -117,6 +133,15 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
 
     setState(() => _submitting = true);
     try {
+      print('✅ [COMPLETE SIGNUP] Starting registration completion');
+      print('✅ Name: ${widget.payload.name}');
+      print('✅ Email: ${widget.payload.email}');
+      print('✅ Phone: ${widget.payload.phone}');
+      print('✅ Address: ${widget.payload.address}');
+      print('✅ Location: ${widget.payload.lat}, ${widget.payload.lng}');
+      print('✅ OTP Channel: ${widget.payload.otpChannel}');
+      print('✅ OTP Code length: ${code.length}');
+
       // register-complete is multipart to optionally include avatar
       final uri = Uri.parse('$apiBase/auth/register-complete');
       final req = http.MultipartRequest('POST', uri)
@@ -156,13 +181,19 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
       final streamed = await req.send();
       final bodyText = await streamed.stream.bytesToString();
 
+      print('📥 [COMPLETE SIGNUP] Response status: ${streamed.statusCode}');
+      print('📥 [COMPLETE SIGNUP] Response body: $bodyText');
+
       if (streamed.statusCode == 201) {
+        print('✅ [COMPLETE SIGNUP] Registration successful!');
         // body: { token, user: {...} }
         // If you store token, parse it here:
         // final json = jsonDecode(bodyText);
         if (!mounted) return;
         Navigator.of(context).pop(true);
       } else {
+        print(
+            '❌ [COMPLETE SIGNUP] Registration failed with status ${streamed.statusCode}');
         String message = 'Failed';
         if (bodyText.isNotEmpty) {
           try {
@@ -176,6 +207,7 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
             message = bodyText;
           }
         }
+        print('❌ [COMPLETE SIGNUP] Error message: $message');
         if (!mounted) return;
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));

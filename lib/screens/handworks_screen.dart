@@ -268,7 +268,8 @@ class _HandWorksScreenState extends State<HandWorksScreen> {
                                       ),
                                       _QuantityButton(
                                         icon: Icons.add,
-                                        onPressed: () => _changeQty(work.id, 100),
+                                        onPressed: () =>
+                                            _changeQty(work.id, 100),
                                       ),
                                     ],
                                   ),

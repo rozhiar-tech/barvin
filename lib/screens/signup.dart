@@ -24,7 +24,8 @@ const String DEFAULT_AVATAR_ASSET = 'assets/appicon.png';
 String _generatePlaceholderEmail() {
   final random = Random();
   final timestamp = DateTime.now().millisecondsSinceEpoch;
-  final randomStr = List.generate(8, (_) => random.nextInt(36).toRadixString(36)).join();
+  final randomStr =
+      List.generate(8, (_) => random.nextInt(36).toRadixString(36)).join();
   return 'user_${timestamp}_$randomStr@placeholder.barvin.app';
 }
 
@@ -87,13 +88,23 @@ class _SignUpPageState extends State<SignUpPage> {
       RegExp(r'^\d{9,15}$').hasMatch(v.replaceAll(RegExp(r'\D'), ''));
 
   String _formatPhoneForBackend(String input) {
+    print('📞 [SIGNUP PHONE FORMAT] Input: "$input"');
     var digits = input.replaceAll(RegExp(r'\D'), '');
+    print('📞 [SIGNUP PHONE FORMAT] After removing non-digits: "$digits"');
     if (digits.startsWith('0')) {
       digits = digits.substring(1);
+      print('📞 [SIGNUP PHONE FORMAT] After removing leading 0: "$digits"');
     }
     if (!digits.startsWith('964')) {
       digits = '964$digits';
+      print('📞 [SIGNUP PHONE FORMAT] After adding 964: "$digits"');
     }
+    // Always ensure it starts with +
+    if (!digits.startsWith('+')) {
+      digits = '+$digits';
+      print('📞 [SIGNUP PHONE FORMAT] After adding + prefix: "$digits"');
+    }
+    print('📞 [SIGNUP PHONE FORMAT] Final result: "$digits"');
     return digits;
   }
 
@@ -114,24 +125,39 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       final selectedChannel = _usePhoneOtp ? 'phone' : 'email';
       final normalizedPhone = _formatPhoneForBackend(_phoneCtrl.text.trim());
-      
+
       // Use placeholder email if phone OTP is selected
-      final emailToUse = _usePhoneOtp 
-          ? _generatePlaceholderEmail() 
-          : _emailCtrl.text.trim();
-      
+      final emailToUse =
+          _usePhoneOtp ? _generatePlaceholderEmail() : _emailCtrl.text.trim();
+
+      print('📝 [SIGNUP START] Starting registration');
+      print('📝 Channel: $selectedChannel');
+      print('📝 Name: ${_nameCtrl.text.trim()}');
+      print('📝 Original phone input: ${_phoneCtrl.text.trim()}');
+      print('📝 Normalized phone: $normalizedPhone');
+      print('📝 Email: $emailToUse');
+      print('📝 Address: ${_addressCtrl.text.trim()}');
+      print('📝 Location: $_lat, $_lng');
+
       final uri = Uri.parse('$apiBase/auth/register-start');
+      final requestBody = {
+        'email': emailToUse,
+        'channel': selectedChannel,
+        if (selectedChannel == 'phone') 'phone': normalizedPhone,
+      };
+      print('📝 Request body: ${jsonEncode(requestBody)}');
+
       final resp = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': emailToUse,
-          'channel': selectedChannel,
-          if (selectedChannel == 'phone') 'phone': normalizedPhone,
-        }),
+        body: jsonEncode(requestBody),
       );
 
+      print('📥 [SIGNUP START] Response status: ${resp.statusCode}');
+      print('📥 [SIGNUP START] Response body: ${resp.body}');
+
       if (resp.statusCode == 200) {
+        print('✅ [SIGNUP START] Registration started successfully');
         Map<String, dynamic> payloadJson = {};
         try {
           payloadJson = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -142,6 +168,9 @@ class _SignUpPageState extends State<SignUpPage> {
         final resendIn = (payloadJson['resend_in'] is num)
             ? (payloadJson['resend_in'] as num).toInt()
             : 0;
+
+        print('📥 [SIGNUP START] Server channel: $serverChannel');
+        print('📥 [SIGNUP START] Resend cooldown: ${resendIn}s');
 
         // Go to OTP screen with all data needed for /register-complete
         final payload = SignupPayload(
@@ -160,6 +189,11 @@ class _SignUpPageState extends State<SignUpPage> {
               serverChannel == 'phone' ? normalizedPhone : emailToUse,
           initialResendIn: resendIn,
         );
+
+        print('📦 [SIGNUP START] Payload for OTP screen:');
+        print('📦 Phone in payload: ${payload.phone}');
+        print('📦 OTP destination: ${payload.otpDestination}');
+        print('📦 OTP channel: ${payload.otpChannel}');
         final ok = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
             builder: (_) => SignupOtpPage(payload: payload),
@@ -175,6 +209,7 @@ class _SignUpPageState extends State<SignUpPage> {
           }
         }
       } else {
+        print('❌ [SIGNUP START] Failed with status ${resp.statusCode}');
         String msg = 'Unexpected error';
         if (resp.body.isNotEmpty) {
           try {
@@ -188,11 +223,14 @@ class _SignUpPageState extends State<SignUpPage> {
             msg = resp.body;
           }
         }
+        print('❌ [SIGNUP START] Error message: $msg');
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(msg)));
         print(msg);
       }
-    } catch (_) {
+    } catch (e) {
+      print('💥 [SIGNUP START] Exception: $e');
+      print('💥 [SIGNUP START] Exception type: ${e.runtimeType}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(S.of(context).networkErrorTryAgain)),
       );

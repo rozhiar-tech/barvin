@@ -27,13 +27,23 @@ class _LoginPageState extends State<LoginPage> {
   void _togglePassword() => setState(() => _obscure = !_obscure);
 
   String _formatPhoneForBackend(String input) {
+    print('📞 [PHONE FORMAT] Input: "$input"');
     var digits = input.replaceAll(RegExp(r'\D'), '');
+    print('📞 [PHONE FORMAT] After removing non-digits: "$digits"');
     if (digits.startsWith('0')) {
       digits = digits.substring(1);
+      print('📞 [PHONE FORMAT] After removing leading 0: "$digits"');
     }
     if (!digits.startsWith('964')) {
       digits = '964$digits';
+      print('📞 [PHONE FORMAT] After adding 964: "$digits"');
     }
+    // Always ensure it starts with +
+    if (!digits.startsWith('+')) {
+      digits = '+$digits';
+      print('📞 [PHONE FORMAT] After adding + prefix: "$digits"');
+    }
+    print('📞 [PHONE FORMAT] Final result: "$digits"');
     return digits;
   }
 
@@ -46,9 +56,21 @@ class _LoginPageState extends State<LoginPage> {
       final body = <String, String>{'password': _password};
       if (_identifier.contains('@')) {
         body['email'] = _identifier;
+        print('🔐 [LOGIN DEBUG] Using EMAIL login');
+        print('📧 Email: ${_identifier}');
       } else {
-        body['phone'] = _formatPhoneForBackend(_identifier);
+        final formattedPhone = _formatPhoneForBackend(_identifier);
+        body['phone'] = formattedPhone;
+        print('🔐 [LOGIN DEBUG] Using PHONE login');
+        print('📱 Original input: ${_identifier}');
+        print('📱 Formatted phone: $formattedPhone');
       }
+      print('🔑 Password length: ${_password.length} chars');
+      print('📤 Sending request to: ${AppEndpoints.authLogin}');
+      print('📦 Request body: ${jsonEncode({
+            ...body,
+            'password': '***hidden***'
+          })}');
 
       final response = await ApiClient.instance.post(
         AppEndpoints.authLogin,
@@ -57,11 +79,19 @@ class _LoginPageState extends State<LoginPage> {
         requiresAuth: false,
       );
 
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
+
       final data = response.body.isEmpty
           ? <String, dynamic>{}
           : jsonDecode(response.body) as Map<String, dynamic>;
 
+      print('🔍 Parsed response data: $data');
+      print('🔍 Has token? ${data.containsKey('token')}');
+      print('🔍 Token type: ${data['token']?.runtimeType}');
+
       if (data['token'] is String) {
+        print('✅ Login successful! Token received.');
         final token = data['token'] as String;
         final user = (data['user'] as Map<String, dynamic>?) ?? {};
 
@@ -119,16 +149,25 @@ class _LoginPageState extends State<LoginPage> {
         );
         Navigator.pushNamedAndRemoveUntil(context, '/main', (_) => false);
       } else {
+        print('❌ Login failed - no token in response');
+        print('❌ Response data keys: ${data.keys.toList()}');
         final msg =
             (data['error'] as String?) ?? S.of(context).loginInvalidCredentials;
+        print('❌ Error message: $msg');
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(msg)));
       }
     } on ApiException catch (e) {
+      print('⚠️ ApiException caught:');
+      print('⚠️ Status code: ${e.statusCode}');
+      print('⚠️ Message: ${e.message}');
+      print('⚠️ Body: ${e.body}');
       final message = e.message ?? S.of(context).networkError;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
+      print('💥 Unexpected error: $e');
+      print('💥 Error type: ${e.runtimeType}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(S.of(context).networkError)),
       );
