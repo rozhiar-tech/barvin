@@ -2,10 +2,8 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart' show rootBundle;
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
@@ -19,15 +17,6 @@ const Color primaryColor = AppColors.primary;
 // 👇 update path & ensure it's in pubspec.yaml: assets:
 //   - assets/appicon.png
 const String DEFAULT_AVATAR_ASSET = 'assets/appicon.png';
-
-/// Generates a random placeholder email for users who choose phone verification
-String _generatePlaceholderEmail() {
-  final random = Random();
-  final timestamp = DateTime.now().millisecondsSinceEpoch;
-  final randomStr =
-      List.generate(8, (_) => random.nextInt(36).toRadixString(36)).join();
-  return 'user_${timestamp}_$randomStr@placeholder.barvin.app';
-}
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -46,7 +35,6 @@ class _SignUpPageState extends State<SignUpPage> {
   String? _lat, _lng;
   bool _loading = false;
   String? _locationError;
-  bool _usePhoneOtp = true;
 
   @override
   void dispose() {
@@ -99,16 +87,12 @@ class _SignUpPageState extends State<SignUpPage> {
       digits = '964$digits';
       print('📞 [SIGNUP PHONE FORMAT] After adding 964: "$digits"');
     }
-    // Always ensure it starts with +
-    if (!digits.startsWith('+')) {
-      digits = '+$digits';
-      print('📞 [SIGNUP PHONE FORMAT] After adding + prefix: "$digits"');
-    }
+    // API accepts with or without + prefix, we'll send without + to match docs
     print('📞 [SIGNUP PHONE FORMAT] Final result: "$digits"');
     return digits;
   }
 
-  /// Step 1: start signup → request OTP to email or phone
+  /// Step 1: start signup → request OTP via phone
   Future<void> _startSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -123,27 +107,15 @@ class _SignUpPageState extends State<SignUpPage> {
     });
 
     try {
-      final selectedChannel = _usePhoneOtp ? 'phone' : 'email';
       final normalizedPhone = _formatPhoneForBackend(_phoneCtrl.text.trim());
 
-      // Use placeholder email if phone OTP is selected
-      final emailToUse =
-          _usePhoneOtp ? _generatePlaceholderEmail() : _emailCtrl.text.trim();
-
       print('📝 [SIGNUP START] Starting registration');
-      print('📝 Channel: $selectedChannel');
-      print('📝 Name: ${_nameCtrl.text.trim()}');
       print('📝 Original phone input: ${_phoneCtrl.text.trim()}');
       print('📝 Normalized phone: $normalizedPhone');
-      print('📝 Email: $emailToUse');
-      print('📝 Address: ${_addressCtrl.text.trim()}');
-      print('📝 Location: $_lat, $_lng');
 
       final uri = Uri.parse('$apiBase/auth/register-start');
       final requestBody = {
-        'email': emailToUse,
-        'channel': selectedChannel,
-        if (selectedChannel == 'phone') 'phone': normalizedPhone,
+        'phone': normalizedPhone,
       };
       print('📝 Request body: ${jsonEncode(requestBody)}');
 
@@ -163,19 +135,20 @@ class _SignUpPageState extends State<SignUpPage> {
           payloadJson = jsonDecode(resp.body) as Map<String, dynamic>;
         } catch (_) {}
 
-        final serverChannel =
-            (payloadJson['channel'] as String?) ?? selectedChannel;
         final resendIn = (payloadJson['resend_in'] is num)
             ? (payloadJson['resend_in'] as num).toInt()
-            : 0;
+            : 60;
+        final expiresIn = (payloadJson['expires_in'] is num)
+            ? (payloadJson['expires_in'] as num).toInt()
+            : 300;
 
-        print('📥 [SIGNUP START] Server channel: $serverChannel');
         print('📥 [SIGNUP START] Resend cooldown: ${resendIn}s');
+        print('📥 [SIGNUP START] OTP expires in: ${expiresIn}s');
 
         // Go to OTP screen with all data needed for /register-complete
         final payload = SignupPayload(
           name: _nameCtrl.text.trim(),
-          email: emailToUse, // Use placeholder email if phone OTP selected
+          email: _emailCtrl.text.trim(), // Optional email field
           password: _passwordCtrl.text,
           // Store normalized phone so all subsequent OTP calls use the same value
           phone: normalizedPhone,
@@ -184,16 +157,14 @@ class _SignUpPageState extends State<SignUpPage> {
           lng: _lng!,
           avatarFile: _avatarFile,
           defaultAvatarAsset: DEFAULT_AVATAR_ASSET,
-          otpChannel: serverChannel,
-          otpDestination:
-              serverChannel == 'phone' ? normalizedPhone : emailToUse,
+          otpChannel: 'phone', // Always phone now
+          otpDestination: normalizedPhone,
           initialResendIn: resendIn,
         );
 
         print('📦 [SIGNUP START] Payload for OTP screen:');
         print('📦 Phone in payload: ${payload.phone}');
         print('📦 OTP destination: ${payload.otpDestination}');
-        print('📦 OTP channel: ${payload.otpChannel}');
         final ok = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
             builder: (_) => SignupOtpPage(payload: payload),
@@ -330,64 +301,25 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           const SizedBox(height: 12),
 
-                          // Verification method selection - FIRST so user chooses method
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              S.of(context).verificationMethodLabel,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: primaryColor,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 12,
-                            children: [
-                              ChoiceChip(
-                                label:
-                                    Text(S.of(context).verificationPhoneOption),
-                                selected: _usePhoneOtp,
-                                onSelected: (sel) {
-                                  if (!sel) return;
-                                  setState(() => _usePhoneOtp = true);
-                                },
-                              ),
-                              ChoiceChip(
-                                label:
-                                    Text(S.of(context).verificationEmailOption),
-                                selected: !_usePhoneOtp,
-                                onSelected: (sel) {
-                                  if (!sel) return;
-                                  setState(() => _usePhoneOtp = false);
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Email field - only required if user chooses email OTP
-                          if (!_usePhoneOtp) ...[
-                            _buildField(
-                              ctrl: _emailCtrl,
-                              label: S.of(context).signUpEmailLabel,
-                              type: TextInputType.emailAddress,
-                              prefixIcon:
-                                  const Icon(Icons.email, color: primaryColor),
-                              validator: (v) {
-                                if (v == null || v.trim().isEmpty) {
-                                  return S.of(context).signUpEnterEmail;
-                                }
+                          // Email field - optional
+                          _buildField(
+                            ctrl: _emailCtrl,
+                            label: S.of(context).signUpEmailLabel,
+                            type: TextInputType.emailAddress,
+                            prefixIcon:
+                                const Icon(Icons.email, color: primaryColor),
+                            validator: (v) {
+                              if (v != null && v.trim().isNotEmpty) {
                                 return _isValidEmail(v.trim())
                                     ? null
                                     : S.of(context).signUpInvalidEmail;
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                          ],
+                              }
+                              return null; // Email is optional
+                            },
+                          ),
+                          const SizedBox(height: 12),
 
-                          // Phone field - always required
+                          // Phone field - required
                           _buildField(
                             ctrl: _phoneCtrl,
                             label: S.of(context).signUpPhoneLabel,

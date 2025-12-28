@@ -15,7 +15,7 @@ import 'package:shimmer/shimmer.dart';
 class SeeMoreScreen extends StatefulWidget {
   final String title;
   final List<Item> items; // initial items (optional)
-  final String host; // e.g. http://95.111.224.58:4000
+  final String host; // e.g. http://62.84.176.8:4000
   final int categoryId;
   final VoidCallback? onExit;
 

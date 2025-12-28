@@ -4,8 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barvin/generated/l10n.dart';
 import '../main.dart'; // for MyApp.setLocale
 import 'login.dart';
+import 'edit_profile.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:barvin/screens/home.dart' show apiBase;
+import 'package:latlong2/latlong.dart';
+import 'LocationPickerPage.dart';
 import 'package:barvin/constants/app_constants.dart';
 import 'package:barvin/services/api_client.dart';
 import 'package:barvin/services/token_storage.dart';
@@ -34,6 +37,8 @@ class _ProfileState extends State<Profile> {
   String _address = '';
   String _phone = '';
   String _selectedLanguage = 'English';
+  String? _userLat;
+  String? _userLng;
 
   String? get rawPath => avatarUrl == null
       ? null
@@ -100,6 +105,8 @@ class _ProfileState extends State<Profile> {
         _address = prefs.getString('userAddress') ?? '';
         _phone = prefs.getString('userPhone') ?? '';
         avatarUrl = prefs.getString('userAvatar');
+        _userLat = prefs.getString('userLatitude');
+        _userLng = prefs.getString('userLongitude');
       } else {
         _name = S.of(context).guest;
         _address = '';
@@ -181,63 +188,122 @@ class _ProfileState extends State<Profile> {
     setState(() => _selectedLanguage = lang);
   }
 
-  // Address editor (bottom sheet)
+  // Address editor (bottom sheet with map picker)
   Future<void> _editAddress() async {
-    final ctrl = TextEditingController(text: _address);
-    final result = await showModalBottomSheet<String>(
+    final addressCtrl = TextEditingController(text: _address);
+    String? newLat = _userLat;
+    String? newLng = _userLng;
+
+    final result = await showModalBottomSheet<Map<String, String?>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: 16 + MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('Change Address',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: ctrl,
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    hintText: 'Enter your delivery address',
-                    filled: true,
-                    fillColor: const Color(0xFFF7F7F7),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 16 + MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Change Address',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: addressCtrl,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your delivery address',
+                      filled: true,
+                      fillColor: const Color(0xFFF7F7F7),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12))),
-                  onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-                  child:
-                      const Text('Save', style: TextStyle(color: Colors.white)),
-                ),
-              ]),
+                  const SizedBox(height: 12),
+                  // Location picker button
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.map, color: primaryColor),
+                        onPressed: () async {
+                          final location =
+                              await Navigator.of(context).push<LatLng>(
+                            MaterialPageRoute(
+                              builder: (_) => const LocationPickerPage(),
+                            ),
+                          );
+                          if (location != null) {
+                            setModalState(() {
+                              newLat = location.latitude.toStringAsFixed(5);
+                              newLng = location.longitude.toStringAsFixed(5);
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          newLat != null && newLng != null
+                              ? S
+                                  .of(context)
+                                  .signUpLocationPicked(newLat!, newLng!)
+                              : S.of(context).signUpNoLocationSelected,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12))),
+                    onPressed: () => Navigator.pop(ctx, {
+                      'address': addressCtrl.text.trim(),
+                      'lat': newLat,
+                      'lng': newLng,
+                    }),
+                    child: const Text('Save',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
     if (result == null) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userAddress', result);
-    setState(() => _address = result);
+    await prefs.setString('userAddress', result['address'] ?? '');
+    if (result['lat'] != null) {
+      await prefs.setString('userLatitude', result['lat']!);
+    }
+    if (result['lng'] != null) {
+      await prefs.setString('userLongitude', result['lng']!);
+    }
+    setState(() {
+      _address = result['address'] ?? '';
+      _userLat = result['lat'];
+      _userLng = result['lng'];
+    });
   }
 
   // Contact helpers
@@ -314,6 +380,31 @@ class _ProfileState extends State<Profile> {
                   const SizedBox(height: 4),
                   if (_phone.isNotEmpty)
                     Text(_phone, style: const TextStyle(color: Colors.black87)),
+                  if (_loggedIn) ...[
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final result = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const EditProfilePage(),
+                          ),
+                        );
+                        if (result == true) {
+                          _loadProfile();
+                        }
+                      },
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Edit Profile'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

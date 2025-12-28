@@ -29,8 +29,6 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
   int _remaining = _cooldownSeconds;
   Timer? _timer;
 
-  bool get _isPhoneChannel => widget.payload.otpChannel == 'phone';
-
   @override
   void initState() {
     super.initState();
@@ -72,17 +70,11 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
     setState(() => _resending = true);
     try {
       print('🔄 [OTP RESEND] Resending OTP');
-      print('🔄 Channel: ${widget.payload.otpChannel}');
-      print('🔄 Email: ${widget.payload.email}');
-      if (_isPhoneChannel) {
-        print('🔄 Phone: ${widget.payload.phone}');
-      }
+      print('🔄 Phone: ${widget.payload.phone}');
 
       final uri = Uri.parse('$apiBase/auth/register-start');
       final body = {
-        'email': widget.payload.email,
-        'channel': widget.payload.otpChannel,
-        if (_isPhoneChannel) 'phone': widget.payload.phone,
+        'phone': widget.payload.phone,
       };
       print('🔄 Request body: ${jsonEncode(body)}');
 
@@ -96,12 +88,13 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
 
       if (resp.statusCode == 200) {
         print('✅ [OTP RESEND] OTP resent successfully');
-        Map<String, dynamic> body = {};
+        Map<String, dynamic> responseBody = {};
         try {
-          body = jsonDecode(resp.body) as Map<String, dynamic>;
+          responseBody = jsonDecode(resp.body) as Map<String, dynamic>;
         } catch (_) {}
-        final resendIn =
-            (body['resend_in'] is num) ? (body['resend_in'] as num).toInt() : 0;
+        final resendIn = (responseBody['resend_in'] is num)
+            ? (responseBody['resend_in'] as num).toInt()
+            : 60;
         print('🔄 [OTP RESEND] Resend cooldown: ${resendIn}s');
         if (!mounted) return;
         ScaffoldMessenger.of(context)
@@ -109,8 +102,21 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
         _startCooldown(resendIn > 0 ? resendIn : _cooldownSeconds);
       } else {
         print('❌ [OTP RESEND] Failed with status ${resp.statusCode}');
+        String msg = 'Failed';
+        if (resp.body.isNotEmpty) {
+          try {
+            final data = jsonDecode(resp.body);
+            if (data is Map && data['error'] != null) {
+              msg = data['error'].toString();
+            } else {
+              msg = resp.body;
+            }
+          } catch (_) {
+            msg = resp.body;
+          }
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: ${resp.statusCode}')),
+          SnackBar(content: Text(msg)),
         );
       }
     } catch (_) {
@@ -145,7 +151,6 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
       // register-complete is multipart to optionally include avatar
       final uri = Uri.parse('$apiBase/auth/register-complete');
       final req = http.MultipartRequest('POST', uri)
-        ..fields['email'] = widget.payload.email
         ..fields['otp_code'] = code
         ..fields['name'] = widget.payload.name
         ..fields['password'] = widget.payload.password
@@ -154,6 +159,11 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
         ..fields['latitude'] = widget.payload.lat
         ..fields['longitude'] = widget.payload.lng
         ..fields['otp_channel'] = widget.payload.otpChannel;
+      
+      // Email is optional - only send if provided
+      if (widget.payload.email.trim().isNotEmpty) {
+        req.fields['email'] = widget.payload.email.trim();
+      }
 
       // avatar: file if chosen, else default asset
       final File? file = widget.payload.avatarFile;
@@ -184,7 +194,7 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
       print('📥 [COMPLETE SIGNUP] Response status: ${streamed.statusCode}');
       print('📥 [COMPLETE SIGNUP] Response body: $bodyText');
 
-      if (streamed.statusCode == 201) {
+      if (streamed.statusCode == 200) {
         print('✅ [COMPLETE SIGNUP] Registration successful!');
         // body: { token, user: {...} }
         // If you store token, parse it here:
@@ -228,9 +238,7 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isPhoneChannel
-            ? S.of(context).verificationPhoneOption
-            : S.of(context).verificationEmailOption),
+        title: Text(S.of(context).verificationPhoneOption),
         backgroundColor: primaryColor,
       ),
       body: Padding(

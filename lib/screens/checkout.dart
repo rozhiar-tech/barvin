@@ -34,7 +34,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _normalizeImageUrl(String raw) {
     if (raw.isEmpty) return raw;
     if (raw.startsWith('http')) return raw;
-    final base = apiBase.replaceAll('/api', ''); // http://95.111.224.58:4000
+    final base = apiBase.replaceAll('/api', ''); // http://62.84.176.8:4000
     final path = raw.startsWith('/') ? raw.substring(1) : raw;
     return '$base/$path';
   }
@@ -54,9 +54,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
       final m = jsonDecode(res.body) as Map<String, dynamic>;
       final raw = m['delivery_fee_iqd'];
-      final fee = raw is num
-          ? raw.toDouble()
-          : double.tryParse(raw?.toString() ?? '');
+      final fee =
+          raw is num ? raw.toDouble() : double.tryParse(raw?.toString() ?? '');
       if (fee != null) {
         setState(() => _deliveryFee = fee);
       }
@@ -135,7 +134,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           .map((e) => {
                 'item_id': e.id,
                 'quantity': e.quantity,
-                'price': e.price, // Send the actual price (including pack price if applicable)
+                'price': e
+                    .price, // Send the actual price (including pack price if applicable)
               })
           .toList(),
     };

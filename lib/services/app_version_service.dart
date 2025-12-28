@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../constants/app_constants.dart';
 import 'api_config.dart';
 
 class AppVersionStatus {
@@ -45,9 +46,9 @@ class AppVersionService {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentBuild = int.tryParse(packageInfo.buildNumber) ?? 0;
-      final currentVersionInfo =
-          _VersionInfo.parse(packageInfo.version, fallbackBuild: currentBuild) ??
-              _VersionInfo(0, 0, 0, currentBuild);
+      final currentVersionInfo = _VersionInfo.parse(packageInfo.version,
+              fallbackBuild: currentBuild) ??
+          _VersionInfo(0, 0, 0, currentBuild);
       final platform = Platform.isIOS ? 'ios' : 'android';
       final uri = apiUrl('/app-version', {'platform': platform});
 
@@ -77,10 +78,18 @@ class AppVersionService {
         requires = true;
       }
 
+      // Use store URL from API if provided, otherwise use fallback URLs
+      final apiStoreUrl = payload['store_url'] as String?;
+      final storeUrl = apiStoreUrl?.isNotEmpty == true
+          ? apiStoreUrl
+          : (Platform.isIOS
+              ? AppStoreUrls.iosStore
+              : AppStoreUrls.androidStore);
+
       return AppVersionStatus(
         requiresUpdate: requires,
         message: payload['update_message'] as String?,
-        storeUrl: payload['store_url'] as String?,
+        storeUrl: storeUrl,
         minVersion: minVersionRaw,
         minBuild: minBuild,
       );

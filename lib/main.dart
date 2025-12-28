@@ -60,6 +60,25 @@ class _MyAppState extends State<MyApp> {
     setState(() => _locale = newLoc);
   }
 
+  /// Build theme with Kurdish font for Kurdish locale
+  ThemeData _buildTheme(Locale locale) {
+    final baseTheme = ThemeData(useMaterial3: true);
+    
+    // Use K24 font for Kurdish text
+    if (locale.languageCode == 'ku') {
+      return baseTheme.copyWith(
+        textTheme: baseTheme.textTheme.apply(
+          fontFamily: 'K24',
+        ),
+        primaryTextTheme: baseTheme.primaryTextTheme.apply(
+          fontFamily: 'K24',
+        ),
+      );
+    }
+    
+    return baseTheme;
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -89,7 +108,7 @@ class _MyAppState extends State<MyApp> {
           child: child!,
         );
       },
-      theme: ThemeData(useMaterial3: true),
+      theme: _buildTheme(_locale),
       initialRoute: '/splash',
       routes: {
         '/login': (c) => LoginPage(),

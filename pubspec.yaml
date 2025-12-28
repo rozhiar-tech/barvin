@@ -3,7 +3,7 @@ description: "A new Flutter project."
 
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 2.1.0+6
+version: 2.3.0+8
 
 environment:
   sdk: ^3.6.1
@@ -69,3 +69,10 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/
+
+  # Fonts
+  fonts:
+    - family: K24
+      fonts:
+        - asset: assets/fonts/K24-Light.ttf
+          weight: 300

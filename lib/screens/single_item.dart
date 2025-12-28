@@ -580,7 +580,8 @@ class _SingleItemState extends State<SingleItem> {
 
                     return InkWell(
                       onTap: () {
-                        Navigator.push(
+                        // Replace current item screen with new one to avoid deep navigation stack
+                        Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
                             builder: (_) => SingleItem(

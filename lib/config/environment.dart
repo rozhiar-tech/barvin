@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 class Environment {
   static const String _apiOrigin = String.fromEnvironment(
     'API_ORIGIN',
-    defaultValue: 'http://95.111.224.58:3000',
+    defaultValue: 'http://62.84.176.8:3000',
   );
 
   static const String _envName = String.fromEnvironment(
@@ -27,4 +27,3 @@ class Environment {
 
   static bool get isDebugBuild => kDebugMode;
 }
-

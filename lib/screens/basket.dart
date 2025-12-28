@@ -49,7 +49,7 @@ class BasketPageState extends State<BasketPage> {
   String _normalizeImageUrl(String raw) {
     if (raw.isEmpty) return raw;
     if (raw.startsWith('http')) return raw;
-    final base = apiBase.replaceAll('/api', ''); // http://95.111.224.58:4000
+    final base = apiBase.replaceAll('/api', ''); // http://62.84.176.8:4000
     final path = raw.startsWith('/') ? raw.substring(1) : raw;
     return '$base/$path';
   }
