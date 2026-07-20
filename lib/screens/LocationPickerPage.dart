@@ -1,3 +1,5 @@
+import 'package:barvin/generated/l10n.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -5,6 +7,11 @@ import 'package:latlong2/latlong.dart';
 
 const Color _primaryColor = Color(0xFF567765);
 const Color _accentColor = Color(0xFF5D8A4E);
+
+// Used only if GPS is unavailable/denied, so the map has somewhere to
+// center. The banner below the app bar makes clear this isn't the user's
+// real location whenever it's actually in use.
+const LatLng _fallbackCenter = LatLng(36.2021, 43.6150);
 
 class LocationPickerPage extends StatefulWidget {
   const LocationPickerPage({Key? key}) : super(key: key);
@@ -19,6 +26,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   final MapController _mapController = MapController();
   bool _isLoadingLocation = true;
   bool _mapReady = false;
+  bool _usingFallbackLocation = false;
 
   @override
   void initState() {
@@ -29,130 +37,117 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     });
   }
 
+  void _debugLog(String message) {
+    if (kDebugMode) print('[LOCATION] $message');
+  }
+
   Future<void> _goToMyLocation({bool autoLoad = false}) async {
-    print('📍 [LOCATION] Getting location (autoLoad: $autoLoad)');
     if (!autoLoad) {
       setState(() => _isLoadingLocation = true);
     }
+    final s = S.of(context);
 
     try {
-      // Check if location services are enabled
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      print('📍 [LOCATION] Service enabled: $serviceEnabled');
-
       if (!serviceEnabled) {
-        print('❌ [LOCATION] Location services are disabled');
+        _debugLog('location services disabled');
         if (!autoLoad && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                  'Location services are disabled. Please enable GPS.'),
-              backgroundColor: Colors.orange.shade700,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-          );
+          _showLocationSnack(s.locationServicesDisabled,
+              color: Colors.orange.shade700);
         }
-        setState(() => _isLoadingLocation = false);
+        setState(() {
+          _isLoadingLocation = false;
+          _usingFallbackLocation = true;
+        });
         return;
       }
 
-      // Check permission status
       var perm = await Geolocator.checkPermission();
-      print('📍 [LOCATION] Current permission: $perm');
-
       if (perm == LocationPermission.denied) {
-        print('📍 [LOCATION] Requesting permission...');
         perm = await Geolocator.requestPermission();
-        print('📍 [LOCATION] Permission after request: $perm');
-
         if (perm == LocationPermission.denied) {
-          print('❌ [LOCATION] Permission denied by user');
+          _debugLog('permission denied by user');
           if (!autoLoad && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Location permission denied'),
-                backgroundColor: Colors.orange.shade700,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-            );
+            _showLocationSnack(s.locationPermissionDenied,
+                color: Colors.orange.shade700);
           }
-          setState(() => _isLoadingLocation = false);
+          setState(() {
+            _isLoadingLocation = false;
+            _usingFallbackLocation = true;
+          });
           return;
         }
       }
 
       if (perm == LocationPermission.deniedForever) {
-        print('❌ [LOCATION] Permission permanently denied');
+        _debugLog('permission permanently denied');
         if (!autoLoad && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                  'Location permissions are permanently denied. Enable in Settings.'),
-              backgroundColor: Colors.red.shade700,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              duration: const Duration(seconds: 4),
-            ),
-          );
+          _showLocationSnack(s.locationPermissionDeniedForever,
+              color: Colors.red.shade700,
+              duration: const Duration(seconds: 4));
         }
-        setState(() => _isLoadingLocation = false);
+        setState(() {
+          _isLoadingLocation = false;
+          _usingFallbackLocation = true;
+        });
         return;
       }
 
-      print('📍 [LOCATION] Getting current position...');
       final pos = await Geolocator.getCurrentPosition(
           // ignore: deprecated_member_use
           desiredAccuracy: LocationAccuracy.high);
 
       final latlng = LatLng(pos.latitude, pos.longitude);
-      print('✅ [LOCATION] Got location: ${pos.latitude}, ${pos.longitude}');
-      print('✅ [LOCATION] Accuracy: ${pos.accuracy}m');
+      _debugLog('got location (±${pos.accuracy.toStringAsFixed(0)}m)');
 
       setState(() {
         _userLocation = latlng;
         _picked = latlng;
         _isLoadingLocation = false;
+        _usingFallbackLocation = false;
       });
 
-      // Re-center the map at zoom 16 for better detail
       if (_mapReady) {
-        print('📍 [LOCATION] Moving map to user location');
         _mapController.move(latlng, 16);
       }
     } catch (e) {
-      print('💥 [LOCATION] Error: $e');
-      print('💥 [LOCATION] Error type: ${e.runtimeType}');
-      setState(() => _isLoadingLocation = false);
+      _debugLog('error: $e');
+      setState(() {
+        _isLoadingLocation = false;
+        _usingFallbackLocation = true;
+      });
       if (!autoLoad && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error getting location: $e'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+        _showLocationSnack(s.locationErrorGeneric(e.toString()),
+            color: Colors.red.shade700);
       }
     }
   }
 
+  void _showLocationSnack(String message,
+      {required Color color, Duration? duration}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: duration ?? const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       backgroundColor: const Color(0xffD3E4C4),
       appBar: AppBar(
         backgroundColor: const Color(0xffFEFAE0),
         elevation: 0,
         iconTheme: const IconThemeData(color: _primaryColor),
-        title: const Text(
-          'Pick Your Location',
-          style: TextStyle(
+        title: Text(
+          s.locationPickerTitle,
+          style: const TextStyle(
             color: _primaryColor,
             fontWeight: FontWeight.w600,
           ),
@@ -168,7 +163,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
+                  color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -179,7 +174,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               child: FlutterMap(
                 mapController: _mapController,
                 options: MapOptions(
-                  initialCenter: _userLocation ?? LatLng(36.2021, 43.6150),
+                  initialCenter: _userLocation ?? _fallbackCenter,
                   initialZoom: 14,
                   onMapReady: () {
                     setState(() => _mapReady = true);
@@ -204,7 +199,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                         CircleMarker(
                           point: _userLocation!,
                           radius: 8,
-                          color: Colors.blue.withOpacity(0.3),
+                          color: Colors.blue.withValues(alpha: 0.3),
                           borderColor: Colors.blue,
                           borderStrokeWidth: 2,
                         ),
@@ -226,7 +221,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
+                                      color: Colors.black.withValues(alpha: 0.3),
                                       blurRadius: 8,
                                       offset: const Offset(0, 3),
                                     ),
@@ -258,18 +253,18 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               child: Container(
                 margin: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Center(
+                child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(color: Colors.white),
-                      SizedBox(height: 16),
+                      const CircularProgressIndicator(color: Colors.white),
+                      const SizedBox(height: 16),
                       Text(
-                        'Getting your location...',
-                        style: TextStyle(
+                        s.locationGettingYours,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -290,7 +285,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -320,7 +315,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: _accentColor.withOpacity(0.4),
+                      color: _accentColor.withValues(alpha: 0.4),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -328,9 +323,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 ),
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.check_circle, color: Colors.white),
-                  label: const Text(
-                    'Confirm Location',
-                    style: TextStyle(
+                  label: Text(
+                    s.locationConfirm,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -351,7 +346,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               ),
             ),
 
-          // Instruction hint at top
+          // Instruction hint at top — calls out explicitly when the map is
+          // centered on the fallback location rather than the user's own.
           Positioned(
             top: 24,
             left: 24,
@@ -363,7 +359,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -371,12 +367,20 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.touch_app, color: _primaryColor, size: 20),
+                  Icon(
+                    _usingFallbackLocation
+                        ? Icons.info_outline
+                        : Icons.touch_app,
+                    color: _primaryColor,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Tap on the map to select your delivery location',
-                      style: TextStyle(
+                      _usingFallbackLocation
+                          ? s.locationFallbackHint
+                          : s.locationTapHint,
+                      style: const TextStyle(
                         color: Colors.black87,
                         fontSize: 13,
                       ),

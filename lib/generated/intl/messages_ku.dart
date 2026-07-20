@@ -20,22 +20,27 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'ku';
 
-  static String m0(error) => "هەڵە: ${error}";
+  static String m0(status) =>
+      "بارکردنی کاڵاکان سەرکەوتوو نەبوو (HTTP ${status}).";
 
-  static String m1(count) => "بەردەستە: ${count}";
+  static String m1(error) => "هەڵە: ${error}";
 
-  static String m2(howMany) =>
+  static String m2(count) => "بەردەستە: ${count}";
+
+  static String m3(howMany) =>
       "${Intl.plural(howMany, zero: 'هیچ بابەتێک نییە', one: ' یەک دانە', other: '${howMany} چەندە')}";
 
-  static String m3(status) => "هیچ ئۆردەرێک نییە";
+  static String m4(error) => "هەڵە لە دیاریکردنی شوێن: ${error}";
 
-  static String m4(seconds) => "دوبارە ناردنەوە لە {چرکە}s";
+  static String m5(status) => "هیچ ئۆردەرێک نییە";
 
-  static String m5(destination) => "کۆد نێردرا بۆ ${destination}.";
+  static String m6(seconds) => "دوبارە ناردنەوە لە {چرکە}s";
 
-  static String m6(lat, lng) => "شوێن: (${lat}، ${lng})";
+  static String m7(destination) => "کۆد نێردرا بۆ ${destination}.";
 
-  static String m7(version) => "وەشانی داواکراو: ${version}";
+  static String m8(lat, lng) => "شوێن: (${lat}، ${lng})";
+
+  static String m9(version) => "وەشانی داواکراو: ${version}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -45,6 +50,8 @@ class MessageLookup extends MessageLookupByLibrary {
       "ناونیشانی نوێ زیاد بکە",
     ),
     "address": MessageLookupByLibrary.simpleMessage("ناونیشان"),
+    "adsTitle": MessageLookupByLibrary.simpleMessage("ڕیکلامەکان"),
+    "adsVisitLink": MessageLookupByLibrary.simpleMessage("سەردانی لینک"),
     "allDiscount": MessageLookupByLibrary.simpleMessage("هەموو دەسکاونتەکان"),
     "appName": MessageLookupByLibrary.simpleMessage("بارڤین"),
     "appTitle": MessageLookupByLibrary.simpleMessage("برڤین بەرنامە"),
@@ -54,6 +61,26 @@ class MessageLookup extends MessageLookupByLibrary {
     "basket": MessageLookupByLibrary.simpleMessage("سەتلی داواکاری"),
     "basketBadgeCustom": MessageLookupByLibrary.simpleMessage("سەبەتەی تایبەت"),
     "basketBadgePreset": MessageLookupByLibrary.simpleMessage("سەبەتەی خواردن"),
+    "basketBuilderAddToCart": MessageLookupByLibrary.simpleMessage(
+      "کاڵا هەڵبژێردراوەکان زیاد بکە بۆ سەبەتە",
+    ),
+    "basketBuilderAdding": MessageLookupByLibrary.simpleMessage("زیادکردن…"),
+    "basketBuilderLoadError": MessageLookupByLibrary.simpleMessage(
+      "نەتوانرا کۆگا باربکرێت.",
+    ),
+    "basketBuilderLoadFailed": m0,
+    "basketBuilderPickAtLeastOne": MessageLookupByLibrary.simpleMessage(
+      "لانیکەم یەک کاڵا هەڵبژێرە.",
+    ),
+    "basketBuilderSaveError": MessageLookupByLibrary.simpleMessage(
+      "نەتوانرا سەبەتەکەت نوێ بکرێتەوە.",
+    ),
+    "basketBuilderSearchHint": MessageLookupByLibrary.simpleMessage(
+      "گەڕان بۆ کاڵا…",
+    ),
+    "basketBuilderTitle": MessageLookupByLibrary.simpleMessage(
+      "دروستکردنی سەبەتەی خۆراک",
+    ),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("سەتلەکە بەتالە"),
     "basketSectionCustom": MessageLookupByLibrary.simpleMessage(
       "سەبەتە تایبەتەکان",
@@ -101,7 +128,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "زانیاری گەیاندن",
     ),
     "dontHaveAnAccount": MessageLookupByLibrary.simpleMessage("ئەکاونتت نییە؟"),
-    "errorWithMessage": m0,
+    "errorWithMessage": m1,
     "facebook": MessageLookupByLibrary.simpleMessage("فەیسبووک"),
     "featuredCategoriesTitle": MessageLookupByLibrary.simpleMessage(
       "هاوپۆلە پەرەنگاوەکان",
@@ -143,7 +170,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "handWorkSectionTitle": MessageLookupByLibrary.simpleMessage(
       "چاپەمەنی بارڤین",
     ),
-    "handworkAvailableLabel": m1,
+    "handworkAvailableLabel": m2,
     "handworkContactButton": MessageLookupByLibrary.simpleMessage(
       "بۆ پرسیار پەیوەندی بکە",
     ),
@@ -157,9 +184,32 @@ class MessageLookup extends MessageLookupByLibrary {
     "home": MessageLookupByLibrary.simpleMessage("ماڵەوە"),
     "instagram": MessageLookupByLibrary.simpleMessage("ئینستاگرام"),
     "item": MessageLookupByLibrary.simpleMessage("بابەت"),
-    "itemsCount": m2,
+    "itemsCount": m3,
     "language": MessageLookupByLibrary.simpleMessage("زمان"),
     "latitude": MessageLookupByLibrary.simpleMessage("پانی"),
+    "locationConfirm": MessageLookupByLibrary.simpleMessage("شوێن پەسند بکە"),
+    "locationErrorGeneric": m4,
+    "locationFallbackHint": MessageLookupByLibrary.simpleMessage(
+      "شوێنێکی بنەڕەتی پیشان دەدرێت — کرتە لەسەر نەخشە بکە بۆ دیاریکردنی شوێنی گەیاندن",
+    ),
+    "locationGettingYours": MessageLookupByLibrary.simpleMessage(
+      "شوێنەکەت دیاری دەکرێت…",
+    ),
+    "locationPermissionDenied": MessageLookupByLibrary.simpleMessage(
+      "مۆڵەتی شوێن ڕەتکرایەوە",
+    ),
+    "locationPermissionDeniedForever": MessageLookupByLibrary.simpleMessage(
+      "مۆڵەتی شوێن بە تەواوی ڕەتکرایەوە. لە ڕێکخستنەکان چالاکی بکە.",
+    ),
+    "locationPickerTitle": MessageLookupByLibrary.simpleMessage(
+      "شوێنەکەت هەڵبژێرە",
+    ),
+    "locationServicesDisabled": MessageLookupByLibrary.simpleMessage(
+      "خزمەتگوزاری شوێن ناچالاکە. تکایە GPS چالاک بکە.",
+    ),
+    "locationTapHint": MessageLookupByLibrary.simpleMessage(
+      "کرتە لەسەر نەخشە بکە بۆ دیاریکردنی شوێنی گەیاندن",
+    ),
     "login": MessageLookupByLibrary.simpleMessage("چوونە ژوەرەوە"),
     "loginButton": MessageLookupByLibrary.simpleMessage("چوونەژوورەوە"),
     "loginIdentifierHint": MessageLookupByLibrary.simpleMessage(
@@ -210,10 +260,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "orders_empty_all": MessageLookupByLibrary.simpleMessage(
       "هیچ داواکاریەک نییە",
     ),
-    "orders_empty_status": m3,
+    "orders_empty_status": m5,
     "otpCodeLabel": MessageLookupByLibrary.simpleMessage("کۆدی ٦ ژمارەیی"),
     "otpConfirmPasswordLabel": MessageLookupByLibrary.simpleMessage(
       "وشەی نهێنی پشتڕاست بکەرەوە",
+    ),
+    "otpCreateAccountButton": MessageLookupByLibrary.simpleMessage(
+      "هەژمار دروست بکە",
     ),
     "otpInvalidCode": MessageLookupByLibrary.simpleMessage(
       "کۆدی نادروست یان بەسەرچووە",
@@ -228,9 +281,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "وشەی نهێنی یەک ناگرێتەوە",
     ),
     "otpResend": MessageLookupByLibrary.simpleMessage("دوبارە ناردنەوە"),
-    "otpResendIn": m4,
+    "otpResendIn": m6,
     "otpResent": MessageLookupByLibrary.simpleMessage("کۆد دووبارە نێردرا."),
-    "otpSentTo": m5,
+    "otpSentTo": m7,
     "otpSubmit": MessageLookupByLibrary.simpleMessage(
       "وشەی نهێنی ڕێست بکەرەوە",
     ),
@@ -261,13 +314,41 @@ class MessageLookup extends MessageLookupByLibrary {
     "profileTab": MessageLookupByLibrary.simpleMessage("پڕۆفایلی"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("پەڕەی تایبەت"),
     "qty": MessageLookupByLibrary.simpleMessage("بڕ"),
+    "receiptBranchLabel": MessageLookupByLibrary.simpleMessage("شوێن/کۆگا:"),
+    "receiptColCode": MessageLookupByLibrary.simpleMessage("کۆدی کاڵا"),
+    "receiptColName": MessageLookupByLibrary.simpleMessage("ناوی کاڵا"),
+    "receiptColNo": MessageLookupByLibrary.simpleMessage("ژ.ک"),
+    "receiptColQty": MessageLookupByLibrary.simpleMessage("ژمارە"),
+    "receiptColTotal": MessageLookupByLibrary.simpleMessage("کۆ"),
+    "receiptColUnitPrice": MessageLookupByLibrary.simpleMessage("نرخی تاک"),
+    "receiptCurrencyLabel": MessageLookupByLibrary.simpleMessage("دراو:"),
+    "receiptCustomerNameLabel": MessageLookupByLibrary.simpleMessage(
+      "ناوی کڕیار:",
+    ),
+    "receiptDateLabel": MessageLookupByLibrary.simpleMessage("بەروار:"),
+    "receiptDeliveryFeeLabel": MessageLookupByLibrary.simpleMessage(
+      "کرێی گەیاندن:",
+    ),
+    "receiptDiscountLabel": MessageLookupByLibrary.simpleMessage("داشکاندن:"),
+    "receiptGrandTotalLabel": MessageLookupByLibrary.simpleMessage("کۆی گشتی:"),
+    "receiptLaborFeeLabel": MessageLookupByLibrary.simpleMessage("کرێی کار:"),
+    "receiptNumberLabel": MessageLookupByLibrary.simpleMessage("ژمارەی وەسڵ:"),
+    "receiptSignatureLabel": MessageLookupByLibrary.simpleMessage(
+      "واژۆی کڕیار:",
+    ),
+    "receiptSubtotalLabel": MessageLookupByLibrary.simpleMessage(
+      "کۆی گشتی(سەرەتای):",
+    ),
+    "receiptTitle": MessageLookupByLibrary.simpleMessage("فرۆشتن"),
     "requiredField": MessageLookupByLibrary.simpleMessage("مەیدانی پێویست"),
     "reviewBasket": MessageLookupByLibrary.simpleMessage("پێداچوونەوە سەبەتە"),
     "save": MessageLookupByLibrary.simpleMessage("هەڵگرتن"),
     "seeMore": MessageLookupByLibrary.simpleMessage("بینینی زیاتر"),
     "sendOrder": MessageLookupByLibrary.simpleMessage("ناردنی داواکاری"),
     "signUpAddressLabel": MessageLookupByLibrary.simpleMessage("ناونیشان"),
+    "signUpBack": MessageLookupByLibrary.simpleMessage("گەڕانەوە"),
     "signUpButton": MessageLookupByLibrary.simpleMessage("تۆماربوون"),
+    "signUpContinue": MessageLookupByLibrary.simpleMessage("بەردەوامبوون"),
     "signUpCta": MessageLookupByLibrary.simpleMessage(
       "هەژمارەت نیە؟ تۆمار ببە",
     ),
@@ -287,7 +368,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpInvalidPhone": MessageLookupByLibrary.simpleMessage(
       "ژمارەی تەلەفۆن نادروستە",
     ),
-    "signUpLocationPicked": m6,
+    "signUpLocationPicked": m8,
     "signUpNoLocationSelected": MessageLookupByLibrary.simpleMessage(
       "هیچ شوێنێک هەڵنەبژێردراوە",
     ),
@@ -305,8 +386,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpSelectLocationError": MessageLookupByLibrary.simpleMessage(
       "تکایە شوێنت دیاری بکە لەسەر نەخشە",
     ),
+    "signUpSkipForNow": MessageLookupByLibrary.simpleMessage("ئێستا پەڕاندن"),
+    "signUpSkipHint": MessageLookupByLibrary.simpleMessage(
+      "دەتوانیت ناونیشانی گەیاندن هەر کاتێک لە پرۆفایلەکەت زیاد بکەیت.",
+    ),
+    "signUpStepAccount": MessageLookupByLibrary.simpleMessage(
+      "هەنگاوی 1 لە 2 · زانیاری هەژمار",
+    ),
+    "signUpStepProfile": MessageLookupByLibrary.simpleMessage(
+      "هەنگاوی 2 لە 2 · زانیاری گەیاندن",
+    ),
     "signUpSuccess": MessageLookupByLibrary.simpleMessage(
-      "هەژمارت دروست کرا! تکایە بچۆ ژوورەوە.",
+      "بەخێربێیت بۆ بارڤین!",
     ),
     "signUpTitle": MessageLookupByLibrary.simpleMessage("دروستکردنی هەژمار"),
     "singInOrder": MessageLookupByLibrary.simpleMessage(
@@ -365,7 +456,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateStoreLinkHint": MessageLookupByLibrary.simpleMessage(
       "ئەگەر دوگمەکە کار نەکرد، فڕۆشگای ئەپەکەت بکەرەوە و \"Barvin\" بگەڕێ.",
     ),
-    "updateVersionLabel": m7,
+    "updateVersionLabel": m9,
     "verificationEmailOption": MessageLookupByLibrary.simpleMessage(
       "کۆدی ئیمەیل",
     ),

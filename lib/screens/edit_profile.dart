@@ -182,9 +182,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
         }
         if (_lat != null) {
           await prefs.setString('userLatitude', _lat!);
+          // Checkout reads the 'latitude'/'longitude' keys — keep them in
+          // sync so a location change here actually reaches delivery.
+          await prefs.setString('latitude', _lat!);
         }
         if (_lng != null) {
           await prefs.setString('userLongitude', _lng!);
+          await prefs.setString('longitude', _lng!);
         }
 
         if (!mounted) return;

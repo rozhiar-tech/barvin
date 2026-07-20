@@ -1,6 +1,7 @@
 import 'package:barvin/l10n/kurdish_fallback.dart';
 import 'package:barvin/screens/basket.dart';
 import 'package:barvin/services/push_notifications.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -18,13 +19,22 @@ import 'screens/splash.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  FirebaseMessaging.onBackgroundMessage(
-    firebaseMessagingBackgroundHandler,
-  );
-  await PushNotifications.initialize();
+  // Push notifications are a nice-to-have, not something the app should be
+  // unable to launch without — a misconfigured Firebase project on a new
+  // build flavor shouldn't take the whole app down before runApp ever runs.
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseMessaging.onBackgroundMessage(
+      firebaseMessagingBackgroundHandler,
+    );
+    await PushNotifications.initialize();
+  } catch (e, st) {
+    if (kDebugMode) {
+      print('Firebase/push notifications failed to initialize: $e\n$st');
+    }
+  }
 
   // 1️⃣ Load saved locale code, default to English
   final prefs = await SharedPreferences.getInstance();

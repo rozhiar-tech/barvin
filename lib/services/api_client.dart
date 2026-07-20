@@ -2,10 +2,21 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
 import 'token_storage.dart';
+
+/// Redacts sensitive header values before they're ever logged.
+Map<String, String> _redactedHeaders(Map<String, String> headers) {
+  return headers.map((key, value) {
+    if (key.toLowerCase() == 'authorization') {
+      return MapEntry(key, 'Bearer ***');
+    }
+    return MapEntry(key, value);
+  });
+}
 
 class ApiClient {
   ApiClient._internal({http.Client? httpClient})
@@ -40,10 +51,11 @@ class ApiClient {
       () async {
         final uri = apiUrl(path);
         final resolvedHeaders = await _buildHeaders(headers, requiresAuth);
-        print('🌐 [API POST] URL: $uri');
-        print('🌐 [API POST] Headers: $resolvedHeaders');
-        print('🌐 [API POST] Body: $body');
-        print('🌐 [API POST] RequiresAuth: $requiresAuth');
+        if (kDebugMode) {
+          print('🌐 [API POST] URL: $uri');
+          print('🌐 [API POST] Headers: ${_redactedHeaders(resolvedHeaders)}');
+          print('🌐 [API POST] Body: $body');
+        }
         return _http.post(uri, headers: resolvedHeaders, body: body);
       },
     );
@@ -97,29 +109,25 @@ class ApiClient {
     Future<http.Response> Function() request,
   ) async {
     try {
-      print('🌐 [API] Sending request...');
       final response = await request().timeout(const Duration(seconds: 30));
-      print('🌐 [API] Response received:');
-      print('🌐 [API]   Status: ${response.statusCode}');
-      print('🌐 [API]   Body length: ${response.body.length} chars');
-      print('🌐 [API]   Body: ${response.body}');
-      print('🌐 [API]   Headers: ${response.headers}');
+      if (kDebugMode) {
+        print(
+          '🌐 [API] ${response.statusCode} · ${response.body.length} chars',
+        );
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        print('✅ [API] Success response (${response.statusCode})');
         return ApiResponse(
           statusCode: response.statusCode,
           body: response.body,
           headers: response.headers,
         );
       }
-      print('❌ [API] Error response (${response.statusCode})');
       throw ApiException.fromResponse(response);
     } on SocketException catch (e) {
-      print('💥 [API] Socket exception: $e');
+      if (kDebugMode) print('💥 [API] Socket exception: $e');
       throw ApiException.network(e);
     } on TimeoutException {
-      print('⏱️ [API] Request timeout');
       throw ApiException(
         statusCode: -1,
         message: 'Request timed out. Please try again.',

@@ -18,8 +18,10 @@ class Splash extends StatefulWidget {
 class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   bool _isOnline = true;
+  bool _navigated = false;
   final AppVersionService _versionService = const AppVersionService();
   Timer? _navTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   @override
   void initState() {
@@ -30,24 +32,41 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
     )..forward();
 
     Connectivity().checkConnectivity().then((result) {
-      setState(() => _isOnline = result != ConnectivityResult.none);
+      if (!mounted) return;
+      setState(() => _isOnline = !result.contains(ConnectivityResult.none));
+      if (_isOnline) _scheduleNavigation();
     });
 
+    // If we started offline, come back to life the moment connectivity
+    // returns instead of leaving the user stuck on this screen forever.
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((result) {
+      if (!mounted) return;
+      final online = !result.contains(ConnectivityResult.none);
+      setState(() => _isOnline = online);
+      if (online) _scheduleNavigation();
+    });
+  }
+
+  void _scheduleNavigation() {
+    if (_navigated) return;
+    _navTimer?.cancel();
     _navTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _isOnline) {
-        _handleNavigation();
-      }
+      if (mounted && _isOnline) _handleNavigation();
     });
   }
 
   @override
   void dispose() {
     _navTimer?.cancel();
+    _connectivitySub?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
   Future<void> _handleNavigation() async {
+    if (_navigated) return;
+    _navigated = true;
     final status = await _versionService.checkVersion();
     if (!mounted) return;
     if (status.requiresUpdate) {

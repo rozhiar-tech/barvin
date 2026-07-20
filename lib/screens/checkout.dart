@@ -26,8 +26,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool _cashOnDelivery = true;
   List<_CartEntry> _cart = [];
   double _deliveryFee = 0; // ← from /settings
+  bool _freeDelivery = false;
 
-  final double _taxRate = 0.02;
   bool _isSending = false;
   bool _loggedIn = false;
 // at top of _CheckoutPageState
@@ -73,6 +73,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _address = prefs.getString('userAddress') ?? '';
       _lat = prefs.getString('latitude') ?? '';
       _lng = prefs.getString('longitude') ?? '';
+      _freeDelivery = prefs.getBool('delivery') ?? false;
     });
 
     // in _loadPrefs(), where you build _cart
@@ -101,8 +102,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   double get _subtotal => _cart.fold(0, (sum, e) => sum + e.price * e.quantity);
-  double get _tax => _subtotal * _taxRate;
-  double get _total => _subtotal + _deliveryFee + _tax;
+  double get _effectiveDeliveryFee => _freeDelivery ? 0 : _deliveryFee;
+  double get _total => _subtotal + _effectiveDeliveryFee;
 
   String? _deriveOrderType() {
     if (_cart.any((e) => e.basketType == 'custom_food_basket')) {
@@ -138,6 +139,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     .price, // Send the actual price (including pack price if applicable)
               })
           .toList(),
+      'delivery_fee': _effectiveDeliveryFee,
     };
 
     final orderType = _deriveOrderType();
@@ -253,7 +255,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 _summaryRow(s.subtotal, '${_subtotal.toStringAsFixed(0)} IQD'),
                 const SizedBox(height: 4),
                 _summaryRow(
-                    s.deliveryFee, '${_deliveryFee.toStringAsFixed(0)} IQD'),
+                    s.deliveryFee,
+                    _freeDelivery
+                        ? s.waFree
+                        : '${_deliveryFee.toStringAsFixed(0)} IQD'),
                 const Divider(height: 20),
                 _summaryRow(s.total, '${_total.toStringAsFixed(0)} IQD',
                     isTotal: true),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'item.dart';
+import 'utils.dart';
 
 /// Model representing a product category
 class Category {
@@ -26,7 +27,7 @@ class Category {
         <Item>[];
 
     return Category(
-      id: j['id'],
+      id: parseInt(j['id']),
       nameEn: j['name_en'] ?? '',
       nameKu: j['name_ku'] ?? '',
       nameAr: j['name_ar'] ?? '',

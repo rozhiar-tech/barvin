@@ -1,5 +1,6 @@
 // lib/screens/ads_screen.dart
 import 'dart:convert';
+import 'package:barvin/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
@@ -86,9 +87,9 @@ class _AdsScreenState extends State<AdsScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Ads',
-                    style: TextStyle(
+                  Text(
+                    S.of(context).adsTitle,
+                    style: const TextStyle(
                       color: textColor,
                       fontWeight: FontWeight.w800,
                       fontSize: 18,
@@ -221,7 +222,8 @@ class _AdsScreenState extends State<AdsScreen> {
                                               },
                                         icon: const Icon(
                                             Icons.open_in_new_outlined),
-                                        label: const Text('Visit link'),
+                                        label:
+                                            Text(S.of(context).adsVisitLink),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: primaryColor,
                                           foregroundColor: Colors.white,

@@ -20,22 +20,26 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'ar';
 
-  static String m0(error) => "خطأ: ${error}";
+  static String m0(status) => "فشل تحميل المنتجات (HTTP ${status}).";
 
-  static String m1(count) => "المتوفر: ${count}";
+  static String m1(error) => "خطأ: ${error}";
 
-  static String m2(howMany) =>
+  static String m2(count) => "المتوفر: ${count}";
+
+  static String m3(howMany) =>
       "${Intl.plural(howMany, zero: 'لا عناصر', one: 'عنصر واحد', other: '${howMany} عناصر')}";
 
-  static String m3(status) => "لا توجد طلبات";
+  static String m4(error) => "خطأ في تحديد الموقع: ${error}";
 
-  static String m4(seconds) => "إعادة الإرسال خلال {ثانية} ثانية";
+  static String m5(status) => "لا توجد طلبات";
 
-  static String m5(destination) => "أرسلنا الرمز إلى ${destination}.";
+  static String m6(seconds) => "إعادة الإرسال خلال {ثانية} ثانية";
 
-  static String m6(lat, lng) => "الموقع: (${lat}, ${lng})";
+  static String m7(destination) => "أرسلنا الرمز إلى ${destination}.";
 
-  static String m7(version) => "الإصدار المطلوب: ${version}";
+  static String m8(lat, lng) => "الموقع: (${lat}, ${lng})";
+
+  static String m9(version) => "الإصدار المطلوب: ${version}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -43,6 +47,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "addBasket": MessageLookupByLibrary.simpleMessage("أضف إلى السلة"),
     "addNewAddress": MessageLookupByLibrary.simpleMessage("إضافة عنوان جديد"),
     "address": MessageLookupByLibrary.simpleMessage("عنوان"),
+    "adsTitle": MessageLookupByLibrary.simpleMessage("الإعلانات"),
+    "adsVisitLink": MessageLookupByLibrary.simpleMessage("زيارة الرابط"),
     "allDiscount": MessageLookupByLibrary.simpleMessage("جميع الخصومات"),
     "appName": MessageLookupByLibrary.simpleMessage("بارڤین"),
     "appTitle": MessageLookupByLibrary.simpleMessage("تطبيق بارڤين"),
@@ -52,6 +58,28 @@ class MessageLookup extends MessageLookupByLibrary {
     "basket": MessageLookupByLibrary.simpleMessage("سلتك"),
     "basketBadgeCustom": MessageLookupByLibrary.simpleMessage("سلة مخصصة"),
     "basketBadgePreset": MessageLookupByLibrary.simpleMessage("سلة طعام"),
+    "basketBuilderAddToCart": MessageLookupByLibrary.simpleMessage(
+      "أضف المنتجات المختارة إلى السلة",
+    ),
+    "basketBuilderAdding": MessageLookupByLibrary.simpleMessage(
+      "جارٍ الإضافة…",
+    ),
+    "basketBuilderLoadError": MessageLookupByLibrary.simpleMessage(
+      "تعذر تحميل المخزون.",
+    ),
+    "basketBuilderLoadFailed": m0,
+    "basketBuilderPickAtLeastOne": MessageLookupByLibrary.simpleMessage(
+      "اختر منتجًا واحدًا على الأقل.",
+    ),
+    "basketBuilderSaveError": MessageLookupByLibrary.simpleMessage(
+      "تعذر تحديث سلتك.",
+    ),
+    "basketBuilderSearchHint": MessageLookupByLibrary.simpleMessage(
+      "ابحث عن منتجات…",
+    ),
+    "basketBuilderTitle": MessageLookupByLibrary.simpleMessage(
+      "إنشاء سلة غذائية",
+    ),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("السلة فارغة"),
     "basketSectionCustom": MessageLookupByLibrary.simpleMessage(
       "سلالك المخصصة",
@@ -95,7 +123,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "معلومات التسليم",
     ),
     "dontHaveAnAccount": MessageLookupByLibrary.simpleMessage("ليس لديك حساب؟"),
-    "errorWithMessage": m0,
+    "errorWithMessage": m1,
     "facebook": MessageLookupByLibrary.simpleMessage("فيسبوك"),
     "featuredCategoriesTitle": MessageLookupByLibrary.simpleMessage(
       "تصنيفات مميزة",
@@ -139,7 +167,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "handWorkSectionTitle": MessageLookupByLibrary.simpleMessage(
       "مطبعة بارڤين",
     ),
-    "handworkAvailableLabel": m1,
+    "handworkAvailableLabel": m2,
     "handworkContactButton": MessageLookupByLibrary.simpleMessage(
       "للاستفسار تواصل معنا",
     ),
@@ -153,9 +181,30 @@ class MessageLookup extends MessageLookupByLibrary {
     "home": MessageLookupByLibrary.simpleMessage("الرئيسية"),
     "instagram": MessageLookupByLibrary.simpleMessage("إنستغرام"),
     "item": MessageLookupByLibrary.simpleMessage("العنصر"),
-    "itemsCount": m2,
+    "itemsCount": m3,
     "language": MessageLookupByLibrary.simpleMessage("اللغة"),
     "latitude": MessageLookupByLibrary.simpleMessage("خط العرض"),
+    "locationConfirm": MessageLookupByLibrary.simpleMessage("تأكيد الموقع"),
+    "locationErrorGeneric": m4,
+    "locationFallbackHint": MessageLookupByLibrary.simpleMessage(
+      "يتم عرض موقع افتراضي — اضغط على الخريطة لتحديد موقع التوصيل",
+    ),
+    "locationGettingYours": MessageLookupByLibrary.simpleMessage(
+      "جارٍ تحديد موقعك…",
+    ),
+    "locationPermissionDenied": MessageLookupByLibrary.simpleMessage(
+      "تم رفض إذن الموقع",
+    ),
+    "locationPermissionDeniedForever": MessageLookupByLibrary.simpleMessage(
+      "تم رفض إذن الموقع نهائيًا. فعّله من الإعدادات.",
+    ),
+    "locationPickerTitle": MessageLookupByLibrary.simpleMessage("اختر موقعك"),
+    "locationServicesDisabled": MessageLookupByLibrary.simpleMessage(
+      "خدمات الموقع معطّلة. يرجى تفعيل GPS.",
+    ),
+    "locationTapHint": MessageLookupByLibrary.simpleMessage(
+      "اضغط على الخريطة لتحديد موقع التوصيل",
+    ),
     "login": MessageLookupByLibrary.simpleMessage("تسجيل الدخول"),
     "loginButton": MessageLookupByLibrary.simpleMessage("تسجيل الدخول"),
     "loginIdentifierHint": MessageLookupByLibrary.simpleMessage(
@@ -206,10 +255,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "orders_empty_all": MessageLookupByLibrary.simpleMessage(
       "لا توجد طلبات حتى الآن",
     ),
-    "orders_empty_status": m3,
+    "orders_empty_status": m5,
     "otpCodeLabel": MessageLookupByLibrary.simpleMessage("رمز من 6 أرقام"),
     "otpConfirmPasswordLabel": MessageLookupByLibrary.simpleMessage(
       "تأكيد كلمة المرور",
+    ),
+    "otpCreateAccountButton": MessageLookupByLibrary.simpleMessage(
+      "إنشاء حساب",
     ),
     "otpInvalidCode": MessageLookupByLibrary.simpleMessage(
       "الرمز غير صالح أو منتهي الصلاحية",
@@ -224,9 +276,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "كلمات المرور غير متطابقة",
     ),
     "otpResend": MessageLookupByLibrary.simpleMessage("إعادة إرسال"),
-    "otpResendIn": m4,
+    "otpResendIn": m6,
     "otpResent": MessageLookupByLibrary.simpleMessage("تمت إعادة إرسال الرمز."),
-    "otpSentTo": m5,
+    "otpSentTo": m7,
     "otpSubmit": MessageLookupByLibrary.simpleMessage(
       "إعادة تعيين كلمة المرور",
     ),
@@ -257,13 +309,43 @@ class MessageLookup extends MessageLookupByLibrary {
     "profileTab": MessageLookupByLibrary.simpleMessage("الملف الشخصي"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("الملف الشخصي"),
     "qty": MessageLookupByLibrary.simpleMessage("الكمية"),
+    "receiptBranchLabel": MessageLookupByLibrary.simpleMessage("الفرع/المخزن:"),
+    "receiptColCode": MessageLookupByLibrary.simpleMessage("رمز المنتج"),
+    "receiptColName": MessageLookupByLibrary.simpleMessage("اسم المنتج"),
+    "receiptColNo": MessageLookupByLibrary.simpleMessage("ت"),
+    "receiptColQty": MessageLookupByLibrary.simpleMessage("الكمية"),
+    "receiptColTotal": MessageLookupByLibrary.simpleMessage("المجموع"),
+    "receiptColUnitPrice": MessageLookupByLibrary.simpleMessage("سعر الوحدة"),
+    "receiptCurrencyLabel": MessageLookupByLibrary.simpleMessage("العملة:"),
+    "receiptCustomerNameLabel": MessageLookupByLibrary.simpleMessage(
+      "اسم الزبون:",
+    ),
+    "receiptDateLabel": MessageLookupByLibrary.simpleMessage("التاريخ:"),
+    "receiptDeliveryFeeLabel": MessageLookupByLibrary.simpleMessage(
+      "أجور التوصيل:",
+    ),
+    "receiptDiscountLabel": MessageLookupByLibrary.simpleMessage("الخصم:"),
+    "receiptGrandTotalLabel": MessageLookupByLibrary.simpleMessage(
+      "المجموع الكلي:",
+    ),
+    "receiptLaborFeeLabel": MessageLookupByLibrary.simpleMessage("أجور العمل:"),
+    "receiptNumberLabel": MessageLookupByLibrary.simpleMessage("رقم الفاتورة:"),
+    "receiptSignatureLabel": MessageLookupByLibrary.simpleMessage(
+      "توقيع الزبون:",
+    ),
+    "receiptSubtotalLabel": MessageLookupByLibrary.simpleMessage(
+      "المجموع الفرعي:",
+    ),
+    "receiptTitle": MessageLookupByLibrary.simpleMessage("فاتورة بيع"),
     "requiredField": MessageLookupByLibrary.simpleMessage("الحقل المطلوب"),
     "reviewBasket": MessageLookupByLibrary.simpleMessage("المراجعة سلة"),
     "save": MessageLookupByLibrary.simpleMessage("يحفظ"),
     "seeMore": MessageLookupByLibrary.simpleMessage("زیادە"),
     "sendOrder": MessageLookupByLibrary.simpleMessage("إرسال الطلب"),
     "signUpAddressLabel": MessageLookupByLibrary.simpleMessage("العنوان"),
+    "signUpBack": MessageLookupByLibrary.simpleMessage("رجوع"),
     "signUpButton": MessageLookupByLibrary.simpleMessage("إنشاء حساب"),
+    "signUpContinue": MessageLookupByLibrary.simpleMessage("متابعة"),
     "signUpCta": MessageLookupByLibrary.simpleMessage(
       "ليس لديك حساب؟ سجّل الآن",
     ),
@@ -283,7 +365,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpInvalidPhone": MessageLookupByLibrary.simpleMessage(
       "رقم هاتف غير صالح",
     ),
-    "signUpLocationPicked": m6,
+    "signUpLocationPicked": m8,
     "signUpNoLocationSelected": MessageLookupByLibrary.simpleMessage(
       "لم يتم اختيار موقع",
     ),
@@ -301,8 +383,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpSelectLocationError": MessageLookupByLibrary.simpleMessage(
       "يرجى تحديد موقعك على الخريطة",
     ),
+    "signUpSkipForNow": MessageLookupByLibrary.simpleMessage("تخطي الآن"),
+    "signUpSkipHint": MessageLookupByLibrary.simpleMessage(
+      "يمكنك إضافة عنوان التوصيل لاحقًا من ملفك الشخصي.",
+    ),
+    "signUpStepAccount": MessageLookupByLibrary.simpleMessage(
+      "الخطوة 1 من 2 · بيانات الحساب",
+    ),
+    "signUpStepProfile": MessageLookupByLibrary.simpleMessage(
+      "الخطوة 2 من 2 · بيانات التوصيل",
+    ),
     "signUpSuccess": MessageLookupByLibrary.simpleMessage(
-      "تم إنشاء الحساب! يرجى تسجيل الدخول.",
+      "أهلاً بك في بارڤين!",
     ),
     "signUpTitle": MessageLookupByLibrary.simpleMessage("إنشاء حساب"),
     "singInOrder": MessageLookupByLibrary.simpleMessage(
@@ -353,7 +445,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateStoreLinkHint": MessageLookupByLibrary.simpleMessage(
       "إذا لم يعمل الزر، افتح متجر التطبيقات لديك وابحث عن \"Barvin\".",
     ),
-    "updateVersionLabel": m7,
+    "updateVersionLabel": m9,
     "verificationEmailOption": MessageLookupByLibrary.simpleMessage(
       "رمز عبر البريد الإلكتروني",
     ),

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The backend currently serves API traffic over plain HTTP (no TLS yet).
+  Android blocks cleartext traffic by default for apps targeting API 28+,
+  so without this, every request to the backend is silently refused at the
+  OS level — the device has real connectivity, the app just isn't allowed
+  to use it for this specific unencrypted host. Scoped to just the backend
+  IP rather than allowing cleartext app-wide.
+
+  Once the backend is moved behind HTTPS, this file (and the
+  networkSecurityConfig reference in AndroidManifest.xml) should be removed.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">62.84.176.8</domain>
+    </domain-config>
+</network-security-config>

@@ -328,6 +328,16 @@ class _FoodBasketDetailPageState extends State<FoodBasketDetailPage> {
                           : CachedNetworkImage(
                               imageUrl: imageUrl,
                               fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(
+                                color: Colors.grey.shade100,
+                                alignment: Alignment.center,
+                                child: const CircularProgressIndicator(),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
+                                color: Colors.grey.shade200,
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.broken_image, size: 48),
+                              ),
                             ),
                     ),
                   ),

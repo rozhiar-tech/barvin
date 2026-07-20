@@ -284,9 +284,15 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 ),
                                 obscureText: _obscure,
-                                validator: (v) => v != null && v.length >= 6
+                                // Only checks the field isn't empty — the
+                                // server is the source of truth for whether
+                                // an existing password is correct, and
+                                // accounts created under an older, looser
+                                // rule shouldn't be locked out by a client
+                                // side length check.
+                                validator: (v) => v != null && v.isNotEmpty
                                     ? null
-                                    : S.of(context).loginMinimumChars,
+                                    : S.of(context).loginRequired,
                                 onSaved: (v) => _password = v!.trim(),
                               ),
 

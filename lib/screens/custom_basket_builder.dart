@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/services/api_config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -65,11 +66,13 @@ class _CustomBasketBuilderState extends State<CustomBasketBuilder> {
           }
         });
       } else {
-        setState(
-            () => _error = 'Failed to load items (HTTP ${res.statusCode}).');
+        if (!mounted) return;
+        setState(() => _error =
+            S.of(context).basketBuilderLoadFailed(res.statusCode));
       }
     } catch (e) {
-      setState(() => _error = 'Unable to load inventory.');
+      if (!mounted) return;
+      setState(() => _error = S.of(context).basketBuilderLoadError);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -118,7 +121,7 @@ class _CustomBasketBuilderState extends State<CustomBasketBuilder> {
         .toList();
     if (entries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pick at least one item.')),
+        SnackBar(content: Text(S.of(context).basketBuilderPickAtLeastOne)),
       );
       return;
     }
@@ -134,12 +137,15 @@ class _CustomBasketBuilderState extends State<CustomBasketBuilder> {
         final item = _items.firstWhere((it) => it.id == entry.id);
         final idStr = item.id.toString();
         final idx = cart.indexWhere((m) => m['id']?.toString() == idStr);
+        final effectivePrice = item.discount > 0
+            ? item.price * (1 - item.discount / 100)
+            : item.price;
         final record = {
           'id': idStr,
           'name': item.nameEn.isNotEmpty
               ? item.nameEn
               : (item.nameKu.isNotEmpty ? item.nameKu : item.nameAr),
-          'price': item.price.toString(),
+          'price': effectivePrice.toString(),
           'discount': item.discount.toString(),
           'quantity': entry.qty.toString(),
           'imageUrl': item.imageUrl,
@@ -163,7 +169,7 @@ class _CustomBasketBuilderState extends State<CustomBasketBuilder> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to update your basket.')),
+        SnackBar(content: Text(S.of(context).basketBuilderSaveError)),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -172,13 +178,13 @@ class _CustomBasketBuilderState extends State<CustomBasketBuilder> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       backgroundColor: const Color(0xffD3E4C4),
       appBar: AppBar(
         backgroundColor: const Color(0xffFEFAE0),
         iconTheme: const IconThemeData(color: primaryColor),
-        title: const Text('Create Food Basket',
-            style: TextStyle(color: textColor)),
+        title: Text(s.basketBuilderTitle, style: const TextStyle(color: textColor)),
       ),
       body: Column(
         children: [
@@ -189,7 +195,7 @@ class _CustomBasketBuilderState extends State<CustomBasketBuilder> {
                 filled: true,
                 fillColor: Colors.white,
                 prefixIcon: const Icon(Icons.search),
-                hintText: 'Search items…',
+                hintText: s.basketBuilderSearchHint,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -308,8 +314,9 @@ class _CustomBasketBuilderState extends State<CustomBasketBuilder> {
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.black,
                   ),
-                  child:
-                      Text(_saving ? 'Adding…' : 'Add selected items to cart'),
+                  child: Text(_saving
+                      ? s.basketBuilderAdding
+                      : s.basketBuilderAddToCart),
                 ),
               ],
             ),

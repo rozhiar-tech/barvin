@@ -95,7 +95,7 @@ class Item {
         : int.tryParse(j['discount_id'].toString());
 
     return Item(
-      id: j['id'],
+      id: parseInt(j['id']),
       nameEn: j['name_en'] ?? '',
       nameKu: j['name_ku'] ?? '',
       nameAr: j['name_ar'] ?? '',

@@ -929,12 +929,14 @@ class HomeScreenState extends State<HomeScreen> {
     if (newQty <= 0) {
       if (idx >= 0) cart.removeAt(idx);
     } else {
+      final effectivePrice =
+          it.discount > 0 ? it.price * (1 - it.discount / 100) : it.price;
       final record = {
         'id': idStr,
         'name': it.nameEn.isNotEmpty
             ? it.nameEn
             : (it.nameKu.isNotEmpty ? it.nameKu : it.nameAr),
-        'price': it.price.toString(),
+        'price': effectivePrice.toString(),
         'discount': it.discount.toString(),
         'quantity': newQty.toString(),
         'imageUrl': it.imageUrl,
@@ -1016,7 +1018,8 @@ class HomeScreenState extends State<HomeScreen> {
 
   void _startCarousel() {
     _carouselTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _currentPage = (_currentPage + 1) % (_ads.isNotEmpty ? _ads.length : 1);
+      if (!mounted || !_pageController.hasClients || _ads.isEmpty) return;
+      _currentPage = (_currentPage + 1) % _ads.length;
       _pageController.animateToPage(
         _currentPage,
         duration: const Duration(milliseconds: 1000),
@@ -2912,6 +2915,17 @@ class HomeScreenState extends State<HomeScreen> {
                                 : CachedNetworkImage(
                                     imageUrl: imageUrl,
                                     fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                      color: Colors.grey.shade100,
+                                      alignment: Alignment.center,
+                                      child: const CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    ),
+                                    errorWidget: (_, __, ___) => Container(
+                                      color: Colors.grey.shade200,
+                                      alignment: Alignment.center,
+                                      child: const Icon(Icons.broken_image),
+                                    ),
                                   ),
                           ),
                         ),

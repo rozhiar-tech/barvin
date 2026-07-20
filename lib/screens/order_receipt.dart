@@ -2,6 +2,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:barvin/constants/app_constants.dart';
+import 'package:barvin/constants/contact.dart';
+import 'package:barvin/generated/l10n.dart';
 import 'package:barvin/services/api_client.dart';
 import 'package:barvin/services/token_storage.dart';
 
@@ -30,7 +32,7 @@ class _OrderReceiptPageState extends State<OrderReceiptPage> {
 سەوزە و میوە و موادی سەفەری
 ناونیشان / هەولێر''',
     'city': 'Erbil',
-    'phones': ['07502312211', '07502412211', '07702877878'],
+    'phones': [kSupportPhone1, kSupportPhone2, kSupportPhone3],
     'currency': 'IQD',
   };
 
@@ -115,6 +117,7 @@ class _OrderReceiptPageState extends State<OrderReceiptPage> {
   }
 
   Widget _buildReceipt(BuildContext context, Map<String, dynamic> o) {
+    final s = S.of(context);
     // rows
     final items = (o['orderItems'] as List? ?? []);
     final rows = items.map<Map<String, dynamic>>((oi) {
@@ -323,16 +326,19 @@ class _OrderReceiptPageState extends State<OrderReceiptPage> {
               childAspectRatio: isNarrow ? 7 : 7,
             ),
             children: [
-              metaRow('ناوی کڕیار:', (o['user']?['name'] ?? '—').toString()),
-              metaRow('ژمارەی وەسڵ:', '${o['id'] ?? ''}'),
-              metaRow('بەروار:',
+              metaRow(s.receiptCustomerNameLabel,
+                  (o['user']?['name'] ?? '—').toString()),
+              metaRow(s.receiptNumberLabel, '${o['id'] ?? ''}'),
+              metaRow(s.receiptDateLabel,
                   (placedAt.isNotEmpty) ? placedAt.split('T').first : '—'),
-              metaRow('دراو:', currency),
-              metaRow('کرێی گەیاندن:', '${_fmtNum(delivery)} $currency'),
-              metaRow('کرێی کار:', '${_fmtNum(labor)} $currency'),
-              metaRow('داشکاندن:', '${_fmtNum(discount)} $currency'),
+              metaRow(s.receiptCurrencyLabel, currency),
               metaRow(
-                  'شوێن/کۆگا:', (o['branch']?['name'] ?? 'رەئیسی').toString()),
+                  s.receiptDeliveryFeeLabel, '${_fmtNum(delivery)} $currency'),
+              metaRow(s.receiptLaborFeeLabel, '${_fmtNum(labor)} $currency'),
+              metaRow(
+                  s.receiptDiscountLabel, '${_fmtNum(discount)} $currency'),
+              metaRow(s.receiptBranchLabel,
+                  (o['branch']?['name'] ?? 'رەئیسی').toString()),
             ],
           );
         },
@@ -355,14 +361,14 @@ class _OrderReceiptPageState extends State<OrderReceiptPage> {
               color: Color(0xFFE9F5F1),
               borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                _Cell('ژ.ک', flex: 10, header: true),
-                _Cell('کۆدی کاڵا', flex: 22, header: true),
-                _Cell('ناوی کاڵا', flex: 36, header: true),
-                _Cell('ژمارە', flex: 14, header: true),
-                _Cell('نرخی تاک', flex: 18, header: true),
-                _Cell('کۆی گشتی', flex: 22, header: true),
+                _Cell(s.receiptColNo, flex: 10, header: true),
+                _Cell(s.receiptColCode, flex: 22, header: true),
+                _Cell(s.receiptColName, flex: 36, header: true),
+                _Cell(s.receiptColQty, flex: 14, header: true),
+                _Cell(s.receiptColUnitPrice, flex: 18, header: true),
+                _Cell(s.receiptColTotal, flex: 22, header: true),
               ],
             ),
           ),
@@ -415,12 +421,13 @@ class _OrderReceiptPageState extends State<OrderReceiptPage> {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       child: Column(
         children: [
-          totalRow('کۆی گشتی(سەرەتای):', '${_fmtNum(subtotal)} $currency'),
-          totalRow('کرێی گەیاندن:', '${_fmtNum(delivery)} $currency'),
-          totalRow('تێچووی کرێکار:', '${_fmtNum(labor)} $currency'),
-          totalRow('داشکاندن:', '-${_fmtNum(discount)} $currency'),
+          totalRow(s.receiptSubtotalLabel, '${_fmtNum(subtotal)} $currency'),
+          totalRow(s.receiptDeliveryFeeLabel, '${_fmtNum(delivery)} $currency'),
+          totalRow(s.receiptLaborFeeLabel, '${_fmtNum(labor)} $currency'),
+          totalRow(s.receiptDiscountLabel, '-${_fmtNum(discount)} $currency'),
           const Divider(height: 16),
-          totalRow('کۆی گشتی:', '${_fmtNum(grand)} $currency', grand: true),
+          totalRow(s.receiptGrandTotalLabel, '${_fmtNum(grand)} $currency',
+              grand: true),
         ],
       ),
     );
@@ -428,8 +435,8 @@ class _OrderReceiptPageState extends State<OrderReceiptPage> {
     final signature = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('واژۆی کڕیار:',
-            style: TextStyle(fontSize: 14, color: Color(0xFF495652))),
+        Text(s.receiptSignatureLabel,
+            style: const TextStyle(fontSize: 14, color: Color(0xFF495652))),
         const SizedBox(height: 24),
         Container(height: 1, width: 280, color: const Color(0xFFC9D5CF)),
       ],
@@ -442,7 +449,7 @@ class _OrderReceiptPageState extends State<OrderReceiptPage> {
         rule,
         const SizedBox(height: 4),
         Center(
-          child: Text('فرۆشتن',
+          child: Text(s.receiptTitle,
               style: TextStyle(
                   color: const Color(0xFFC43D3D),
                   fontSize: 22,

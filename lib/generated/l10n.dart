@@ -664,6 +664,16 @@ class S {
     );
   }
 
+  /// `Create Account`
+  String get otpCreateAccountButton {
+    return Intl.message(
+      'Create Account',
+      name: 'otpCreateAccountButton',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Passwords don’t match`
   String get otpPasswordMismatch {
     return Intl.message(
@@ -724,6 +734,341 @@ class S {
     );
   }
 
+  /// `Create Food Basket`
+  String get basketBuilderTitle {
+    return Intl.message(
+      'Create Food Basket',
+      name: 'basketBuilderTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search items…`
+  String get basketBuilderSearchHint {
+    return Intl.message(
+      'Search items…',
+      name: 'basketBuilderSearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pick at least one item.`
+  String get basketBuilderPickAtLeastOne {
+    return Intl.message(
+      'Pick at least one item.',
+      name: 'basketBuilderPickAtLeastOne',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Failed to load items (HTTP {status}).`
+  String basketBuilderLoadFailed(Object status) {
+    return Intl.message(
+      'Failed to load items (HTTP $status).',
+      name: 'basketBuilderLoadFailed',
+      desc: '',
+      args: [status],
+    );
+  }
+
+  /// `Unable to load inventory.`
+  String get basketBuilderLoadError {
+    return Intl.message(
+      'Unable to load inventory.',
+      name: 'basketBuilderLoadError',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unable to update your basket.`
+  String get basketBuilderSaveError {
+    return Intl.message(
+      'Unable to update your basket.',
+      name: 'basketBuilderSaveError',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Adding…`
+  String get basketBuilderAdding {
+    return Intl.message(
+      'Adding…',
+      name: 'basketBuilderAdding',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Add selected items to cart`
+  String get basketBuilderAddToCart {
+    return Intl.message(
+      'Add selected items to cart',
+      name: 'basketBuilderAddToCart',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Ads`
+  String get adsTitle {
+    return Intl.message('Ads', name: 'adsTitle', desc: '', args: []);
+  }
+
+  /// `Visit link`
+  String get adsVisitLink {
+    return Intl.message('Visit link', name: 'adsVisitLink', desc: '', args: []);
+  }
+
+  /// `Pick Your Location`
+  String get locationPickerTitle {
+    return Intl.message(
+      'Pick Your Location',
+      name: 'locationPickerTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Location services are disabled. Please enable GPS.`
+  String get locationServicesDisabled {
+    return Intl.message(
+      'Location services are disabled. Please enable GPS.',
+      name: 'locationServicesDisabled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Location permission denied`
+  String get locationPermissionDenied {
+    return Intl.message(
+      'Location permission denied',
+      name: 'locationPermissionDenied',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Location permissions are permanently denied. Enable in Settings.`
+  String get locationPermissionDeniedForever {
+    return Intl.message(
+      'Location permissions are permanently denied. Enable in Settings.',
+      name: 'locationPermissionDeniedForever',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Error getting location: {error}`
+  String locationErrorGeneric(Object error) {
+    return Intl.message(
+      'Error getting location: $error',
+      name: 'locationErrorGeneric',
+      desc: '',
+      args: [error],
+    );
+  }
+
+  /// `Getting your location…`
+  String get locationGettingYours {
+    return Intl.message(
+      'Getting your location…',
+      name: 'locationGettingYours',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Confirm Location`
+  String get locationConfirm {
+    return Intl.message(
+      'Confirm Location',
+      name: 'locationConfirm',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Tap on the map to select your delivery location`
+  String get locationTapHint {
+    return Intl.message(
+      'Tap on the map to select your delivery location',
+      name: 'locationTapHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Showing a default location — tap the map to set your delivery point`
+  String get locationFallbackHint {
+    return Intl.message(
+      'Showing a default location — tap the map to set your delivery point',
+      name: 'locationFallbackHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sale Receipt`
+  String get receiptTitle {
+    return Intl.message(
+      'Sale Receipt',
+      name: 'receiptTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Customer name:`
+  String get receiptCustomerNameLabel {
+    return Intl.message(
+      'Customer name:',
+      name: 'receiptCustomerNameLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receipt #:`
+  String get receiptNumberLabel {
+    return Intl.message(
+      'Receipt #:',
+      name: 'receiptNumberLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Date:`
+  String get receiptDateLabel {
+    return Intl.message('Date:', name: 'receiptDateLabel', desc: '', args: []);
+  }
+
+  /// `Currency:`
+  String get receiptCurrencyLabel {
+    return Intl.message(
+      'Currency:',
+      name: 'receiptCurrencyLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Delivery fee:`
+  String get receiptDeliveryFeeLabel {
+    return Intl.message(
+      'Delivery fee:',
+      name: 'receiptDeliveryFeeLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Labor cost:`
+  String get receiptLaborFeeLabel {
+    return Intl.message(
+      'Labor cost:',
+      name: 'receiptLaborFeeLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Discount:`
+  String get receiptDiscountLabel {
+    return Intl.message(
+      'Discount:',
+      name: 'receiptDiscountLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Branch/Store:`
+  String get receiptBranchLabel {
+    return Intl.message(
+      'Branch/Store:',
+      name: 'receiptBranchLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No.`
+  String get receiptColNo {
+    return Intl.message('No.', name: 'receiptColNo', desc: '', args: []);
+  }
+
+  /// `Item code`
+  String get receiptColCode {
+    return Intl.message(
+      'Item code',
+      name: 'receiptColCode',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Item`
+  String get receiptColName {
+    return Intl.message('Item', name: 'receiptColName', desc: '', args: []);
+  }
+
+  /// `Qty`
+  String get receiptColQty {
+    return Intl.message('Qty', name: 'receiptColQty', desc: '', args: []);
+  }
+
+  /// `Unit price`
+  String get receiptColUnitPrice {
+    return Intl.message(
+      'Unit price',
+      name: 'receiptColUnitPrice',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Total`
+  String get receiptColTotal {
+    return Intl.message('Total', name: 'receiptColTotal', desc: '', args: []);
+  }
+
+  /// `Subtotal:`
+  String get receiptSubtotalLabel {
+    return Intl.message(
+      'Subtotal:',
+      name: 'receiptSubtotalLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Grand Total:`
+  String get receiptGrandTotalLabel {
+    return Intl.message(
+      'Grand Total:',
+      name: 'receiptGrandTotalLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Customer signature:`
+  String get receiptSignatureLabel {
+    return Intl.message(
+      'Customer signature:',
+      name: 'receiptSignatureLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Home`
   String get home {
     return Intl.message('Home', name: 'home', desc: '', args: []);
@@ -779,11 +1124,61 @@ class S {
     return Intl.message('Sign Up', name: 'signUpButton', desc: '', args: []);
   }
 
-  /// `Account created! Please sign in.`
+  /// `Welcome to Barvin!`
   String get signUpSuccess {
     return Intl.message(
-      'Account created! Please sign in.',
+      'Welcome to Barvin!',
       name: 'signUpSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Step 1 of 2 · Account`
+  String get signUpStepAccount {
+    return Intl.message(
+      'Step 1 of 2 · Account',
+      name: 'signUpStepAccount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Step 2 of 2 · Delivery details`
+  String get signUpStepProfile {
+    return Intl.message(
+      'Step 2 of 2 · Delivery details',
+      name: 'signUpStepProfile',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Continue`
+  String get signUpContinue {
+    return Intl.message('Continue', name: 'signUpContinue', desc: '', args: []);
+  }
+
+  /// `Back`
+  String get signUpBack {
+    return Intl.message('Back', name: 'signUpBack', desc: '', args: []);
+  }
+
+  /// `Skip for now`
+  String get signUpSkipForNow {
+    return Intl.message(
+      'Skip for now',
+      name: 'signUpSkipForNow',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `You can add your delivery address anytime from your profile.`
+  String get signUpSkipHint {
+    return Intl.message(
+      'You can add your delivery address anytime from your profile.',
+      name: 'signUpSkipHint',
       desc: '',
       args: [],
     );

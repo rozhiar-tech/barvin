@@ -10,6 +10,7 @@ import 'package:barvin/screens/home.dart' show apiBase;
 import 'package:latlong2/latlong.dart';
 import 'LocationPickerPage.dart';
 import 'package:barvin/constants/app_constants.dart';
+import 'package:barvin/constants/contact.dart';
 import 'package:barvin/services/api_client.dart';
 import 'package:barvin/services/token_storage.dart';
 
@@ -295,9 +296,13 @@ class _ProfileState extends State<Profile> {
     await prefs.setString('userAddress', result['address'] ?? '');
     if (result['lat'] != null) {
       await prefs.setString('userLatitude', result['lat']!);
+      // Checkout reads the 'latitude'/'longitude' keys — keep them in sync
+      // so an address change here actually reaches delivery.
+      await prefs.setString('latitude', result['lat']!);
     }
     if (result['lng'] != null) {
       await prefs.setString('userLongitude', result['lng']!);
+      await prefs.setString('longitude', result['lng']!);
     }
     setState(() {
       _address = result['address'] ?? '';
@@ -471,7 +476,7 @@ class _ProfileState extends State<Profile> {
                         const Icon(Icons.phone_in_talk, color: primaryColor),
                     title: Text(S.of(context).contact,
                         style: TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: const Text('07502312211 – 07502412211'),
+                    subtitle: const Text('$kSupportPhone1 – $kSupportPhone2'),
                     trailing:
                         const Icon(Icons.chevron_right, color: primaryColor),
                     onTap: () => _showContactSheet(),
@@ -560,13 +565,13 @@ class _ProfileState extends State<Profile> {
             Row(children: [
               Expanded(
                   child: _PhoneTile(
-                      number: '07502312211',
-                      onTap: () => _call('07502312211'))),
+                      number: kSupportPhone1,
+                      onTap: () => _call(kSupportPhone1))),
               const SizedBox(width: 8),
               Expanded(
                   child: _PhoneTile(
-                      number: '07502412211',
-                      onTap: () => _call('07502412211'))),
+                      number: kSupportPhone2,
+                      onTap: () => _call(kSupportPhone2))),
             ]),
             const SizedBox(height: 8),
             Row(

@@ -172,7 +172,7 @@ class BasketPageState extends State<BasketPage> {
     final prefs = await SharedPreferences.getInstance();
     final rawList = prefs.getStringList('cart') ?? [];
     final loggedIn = prefs.getBool('loggedIn') ?? false;
-    final hasDebt = prefs.getBool('debt') ?? false;
+    final freeDelivery = prefs.getBool('delivery') ?? false;
 
     // Decode & ensure every entry has a quantity
     final raw = rawList.map((e) {
@@ -248,7 +248,7 @@ class BasketPageState extends State<BasketPage> {
     setState(() {
       _entries = grouped.values.toList();
       _isLoggedIn = loggedIn;
-      _freeDelivery = hasDebt;
+      _freeDelivery = freeDelivery;
     });
   }
 

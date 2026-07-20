@@ -20,22 +20,26 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'en';
 
-  static String m0(error) => "Error: ${error}";
+  static String m0(status) => "Failed to load items (HTTP ${status}).";
 
-  static String m1(count) => "Available: ${count}";
+  static String m1(error) => "Error: ${error}";
 
-  static String m2(howMany) =>
+  static String m2(count) => "Available: ${count}";
+
+  static String m3(howMany) =>
       "${Intl.plural(howMany, zero: 'No items', one: '1 item', other: '${howMany} items')}";
 
-  static String m3(status) => "No ${status} orders";
+  static String m4(error) => "Error getting location: ${error}";
 
-  static String m4(seconds) => "Resend in ${seconds}s";
+  static String m5(status) => "No ${status} orders";
 
-  static String m5(destination) => "We sent a code to ${destination}.";
+  static String m6(seconds) => "Resend in ${seconds}s";
 
-  static String m6(lat, lng) => "Location: (${lat}, ${lng})";
+  static String m7(destination) => "We sent a code to ${destination}.";
 
-  static String m7(version) => "Required version: ${version}";
+  static String m8(lat, lng) => "Location: (${lat}, ${lng})";
+
+  static String m9(version) => "Required version: ${version}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -43,6 +47,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "addBasket": MessageLookupByLibrary.simpleMessage("Add to Basket"),
     "addNewAddress": MessageLookupByLibrary.simpleMessage("Add New Address"),
     "address": MessageLookupByLibrary.simpleMessage("Address"),
+    "adsTitle": MessageLookupByLibrary.simpleMessage("Ads"),
+    "adsVisitLink": MessageLookupByLibrary.simpleMessage("Visit link"),
     "allDiscount": MessageLookupByLibrary.simpleMessage("All Discounts"),
     "appName": MessageLookupByLibrary.simpleMessage("Barvin"),
     "appTitle": MessageLookupByLibrary.simpleMessage("My Barvin App"),
@@ -50,6 +56,26 @@ class MessageLookup extends MessageLookupByLibrary {
     "basket": MessageLookupByLibrary.simpleMessage("Your basket"),
     "basketBadgeCustom": MessageLookupByLibrary.simpleMessage("Custom basket"),
     "basketBadgePreset": MessageLookupByLibrary.simpleMessage("Food basket"),
+    "basketBuilderAddToCart": MessageLookupByLibrary.simpleMessage(
+      "Add selected items to cart",
+    ),
+    "basketBuilderAdding": MessageLookupByLibrary.simpleMessage("Adding…"),
+    "basketBuilderLoadError": MessageLookupByLibrary.simpleMessage(
+      "Unable to load inventory.",
+    ),
+    "basketBuilderLoadFailed": m0,
+    "basketBuilderPickAtLeastOne": MessageLookupByLibrary.simpleMessage(
+      "Pick at least one item.",
+    ),
+    "basketBuilderSaveError": MessageLookupByLibrary.simpleMessage(
+      "Unable to update your basket.",
+    ),
+    "basketBuilderSearchHint": MessageLookupByLibrary.simpleMessage(
+      "Search items…",
+    ),
+    "basketBuilderTitle": MessageLookupByLibrary.simpleMessage(
+      "Create Food Basket",
+    ),
     "basketEmpty": MessageLookupByLibrary.simpleMessage("Basket is empty"),
     "basketSectionCustom": MessageLookupByLibrary.simpleMessage(
       "Your custom baskets",
@@ -98,7 +124,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "dontHaveAnAccount": MessageLookupByLibrary.simpleMessage(
       "Don\'t Have an Account?",
     ),
-    "errorWithMessage": m0,
+    "errorWithMessage": m1,
     "facebook": MessageLookupByLibrary.simpleMessage("Facebook"),
     "featuredCategoriesTitle": MessageLookupByLibrary.simpleMessage(
       "Featured categories",
@@ -138,7 +164,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "handWorkSectionTitle": MessageLookupByLibrary.simpleMessage(
       "Barvin Press",
     ),
-    "handworkAvailableLabel": m1,
+    "handworkAvailableLabel": m2,
     "handworkContactButton": MessageLookupByLibrary.simpleMessage(
       "For inquiries contact us",
     ),
@@ -152,9 +178,32 @@ class MessageLookup extends MessageLookupByLibrary {
     "home": MessageLookupByLibrary.simpleMessage("Home"),
     "instagram": MessageLookupByLibrary.simpleMessage("Instagram"),
     "item": MessageLookupByLibrary.simpleMessage("Item"),
-    "itemsCount": m2,
+    "itemsCount": m3,
     "language": MessageLookupByLibrary.simpleMessage("language"),
     "latitude": MessageLookupByLibrary.simpleMessage("latitude"),
+    "locationConfirm": MessageLookupByLibrary.simpleMessage("Confirm Location"),
+    "locationErrorGeneric": m4,
+    "locationFallbackHint": MessageLookupByLibrary.simpleMessage(
+      "Showing a default location — tap the map to set your delivery point",
+    ),
+    "locationGettingYours": MessageLookupByLibrary.simpleMessage(
+      "Getting your location…",
+    ),
+    "locationPermissionDenied": MessageLookupByLibrary.simpleMessage(
+      "Location permission denied",
+    ),
+    "locationPermissionDeniedForever": MessageLookupByLibrary.simpleMessage(
+      "Location permissions are permanently denied. Enable in Settings.",
+    ),
+    "locationPickerTitle": MessageLookupByLibrary.simpleMessage(
+      "Pick Your Location",
+    ),
+    "locationServicesDisabled": MessageLookupByLibrary.simpleMessage(
+      "Location services are disabled. Please enable GPS.",
+    ),
+    "locationTapHint": MessageLookupByLibrary.simpleMessage(
+      "Tap on the map to select your delivery location",
+    ),
     "login": MessageLookupByLibrary.simpleMessage("Login"),
     "loginButton": MessageLookupByLibrary.simpleMessage("Log In"),
     "loginIdentifierHint": MessageLookupByLibrary.simpleMessage(
@@ -201,10 +250,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "orderTab": MessageLookupByLibrary.simpleMessage("Orders"),
     "order_number_prefix": MessageLookupByLibrary.simpleMessage("#ORD-"),
     "orders_empty_all": MessageLookupByLibrary.simpleMessage("No orders yet"),
-    "orders_empty_status": m3,
+    "orders_empty_status": m5,
     "otpCodeLabel": MessageLookupByLibrary.simpleMessage("6-digit code"),
     "otpConfirmPasswordLabel": MessageLookupByLibrary.simpleMessage(
       "Confirm password",
+    ),
+    "otpCreateAccountButton": MessageLookupByLibrary.simpleMessage(
+      "Create Account",
     ),
     "otpInvalidCode": MessageLookupByLibrary.simpleMessage(
       "Invalid code or expired",
@@ -217,11 +269,11 @@ class MessageLookup extends MessageLookupByLibrary {
       "Passwords don’t match",
     ),
     "otpResend": MessageLookupByLibrary.simpleMessage("Resend"),
-    "otpResendIn": m4,
+    "otpResendIn": m6,
     "otpResent": MessageLookupByLibrary.simpleMessage(
       "Verification code re-sent.",
     ),
-    "otpSentTo": m5,
+    "otpSentTo": m7,
     "otpSubmit": MessageLookupByLibrary.simpleMessage("Reset password"),
     "otpTitle": MessageLookupByLibrary.simpleMessage(
       "Enter the code we emailed you",
@@ -250,13 +302,41 @@ class MessageLookup extends MessageLookupByLibrary {
     "profileTab": MessageLookupByLibrary.simpleMessage("Profile"),
     "profileTitle": MessageLookupByLibrary.simpleMessage("Profile"),
     "qty": MessageLookupByLibrary.simpleMessage("Qty"),
+    "receiptBranchLabel": MessageLookupByLibrary.simpleMessage("Branch/Store:"),
+    "receiptColCode": MessageLookupByLibrary.simpleMessage("Item code"),
+    "receiptColName": MessageLookupByLibrary.simpleMessage("Item"),
+    "receiptColNo": MessageLookupByLibrary.simpleMessage("No."),
+    "receiptColQty": MessageLookupByLibrary.simpleMessage("Qty"),
+    "receiptColTotal": MessageLookupByLibrary.simpleMessage("Total"),
+    "receiptColUnitPrice": MessageLookupByLibrary.simpleMessage("Unit price"),
+    "receiptCurrencyLabel": MessageLookupByLibrary.simpleMessage("Currency:"),
+    "receiptCustomerNameLabel": MessageLookupByLibrary.simpleMessage(
+      "Customer name:",
+    ),
+    "receiptDateLabel": MessageLookupByLibrary.simpleMessage("Date:"),
+    "receiptDeliveryFeeLabel": MessageLookupByLibrary.simpleMessage(
+      "Delivery fee:",
+    ),
+    "receiptDiscountLabel": MessageLookupByLibrary.simpleMessage("Discount:"),
+    "receiptGrandTotalLabel": MessageLookupByLibrary.simpleMessage(
+      "Grand Total:",
+    ),
+    "receiptLaborFeeLabel": MessageLookupByLibrary.simpleMessage("Labor cost:"),
+    "receiptNumberLabel": MessageLookupByLibrary.simpleMessage("Receipt #:"),
+    "receiptSignatureLabel": MessageLookupByLibrary.simpleMessage(
+      "Customer signature:",
+    ),
+    "receiptSubtotalLabel": MessageLookupByLibrary.simpleMessage("Subtotal:"),
+    "receiptTitle": MessageLookupByLibrary.simpleMessage("Sale Receipt"),
     "requiredField": MessageLookupByLibrary.simpleMessage("Required Field"),
     "reviewBasket": MessageLookupByLibrary.simpleMessage("Review Basket"),
     "save": MessageLookupByLibrary.simpleMessage("Save"),
     "seeMore": MessageLookupByLibrary.simpleMessage("See More"),
     "sendOrder": MessageLookupByLibrary.simpleMessage("Send Order"),
     "signUpAddressLabel": MessageLookupByLibrary.simpleMessage("Address"),
+    "signUpBack": MessageLookupByLibrary.simpleMessage("Back"),
     "signUpButton": MessageLookupByLibrary.simpleMessage("Sign Up"),
+    "signUpContinue": MessageLookupByLibrary.simpleMessage("Continue"),
     "signUpCta": MessageLookupByLibrary.simpleMessage(
       "Don\'t have an account? Sign Up",
     ),
@@ -274,7 +354,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpFullName": MessageLookupByLibrary.simpleMessage("Full Name"),
     "signUpInvalidEmail": MessageLookupByLibrary.simpleMessage("Invalid email"),
     "signUpInvalidPhone": MessageLookupByLibrary.simpleMessage("Invalid phone"),
-    "signUpLocationPicked": m6,
+    "signUpLocationPicked": m8,
     "signUpNoLocationSelected": MessageLookupByLibrary.simpleMessage(
       "No location selected",
     ),
@@ -292,9 +372,17 @@ class MessageLookup extends MessageLookupByLibrary {
     "signUpSelectLocationError": MessageLookupByLibrary.simpleMessage(
       "Please select your location on map",
     ),
-    "signUpSuccess": MessageLookupByLibrary.simpleMessage(
-      "Account created! Please sign in.",
+    "signUpSkipForNow": MessageLookupByLibrary.simpleMessage("Skip for now"),
+    "signUpSkipHint": MessageLookupByLibrary.simpleMessage(
+      "You can add your delivery address anytime from your profile.",
     ),
+    "signUpStepAccount": MessageLookupByLibrary.simpleMessage(
+      "Step 1 of 2 · Account",
+    ),
+    "signUpStepProfile": MessageLookupByLibrary.simpleMessage(
+      "Step 2 of 2 · Delivery details",
+    ),
+    "signUpSuccess": MessageLookupByLibrary.simpleMessage("Welcome to Barvin!"),
     "signUpTitle": MessageLookupByLibrary.simpleMessage("Create Account"),
     "singInOrder": MessageLookupByLibrary.simpleMessage(
       "Sign In to View Orders",
@@ -348,7 +436,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateStoreLinkHint": MessageLookupByLibrary.simpleMessage(
       "If the button doesn’t work, open your app store and search for “Barvin”.",
     ),
-    "updateVersionLabel": m7,
+    "updateVersionLabel": m9,
     "verificationEmailOption": MessageLookupByLibrary.simpleMessage(
       "Email OTP",
     ),

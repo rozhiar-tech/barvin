@@ -1,3 +1,5 @@
+import 'utils.dart';
+
 /// Model representing an advertisement
 class Ad {
   final int id;
@@ -13,10 +15,10 @@ class Ad {
   });
 
   factory Ad.fromJson(Map<String, dynamic> j) => Ad(
-        id: j['id'],
-        filePath: j['file_path'],
-        link: j['link'],
-        mediaType: j['media_type'],
+        id: parseInt(j['id']),
+        filePath: (j['file_path'] ?? '').toString(),
+        link: (j['link'] ?? '').toString(),
+        mediaType: (j['media_type'] ?? '').toString(),
       );
 }
 
