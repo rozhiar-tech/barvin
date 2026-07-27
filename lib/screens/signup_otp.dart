@@ -270,6 +270,13 @@ class _SignupOtpPageState extends State<SignupOtpPage> {
             final j = jsonDecode(bodyText);
             if (j is Map && j['error'] != null) {
               message = j['error'].toString();
+              final remaining = j['attempts_remaining'];
+              if (remaining is num) {
+                final n = remaining.toInt();
+                message += n == 1
+                    ? ' (1 attempt left)'
+                    : ' ($n attempts left)';
+              }
             } else {
               message = bodyText;
             }
